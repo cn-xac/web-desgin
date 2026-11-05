@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@x-ac/design-core": ["../../packages/core/src/index.ts"],
+      "@x-ac/design-vue": ["../../packages/vue/src/index.ts"],
+      "@x-ac/design-vue/designer": ["../../packages/vue/src/designer.ts"]
+    },
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue", "env.d.ts", "vite.config.ts"]
+}
