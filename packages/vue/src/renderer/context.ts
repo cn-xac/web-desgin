@@ -23,6 +23,12 @@ export interface DropPositionLike {
 export interface DesignerScene {
   selectedId: () => string | null;
   select: (id: string | null) => void;
+  /**
+   * 外部（组件树）悬停 → 画布节点高亮。可选能力：
+   * 未提供时画布不响应外部悬停，view 模式完全不受影响。
+   */
+  hoveredId?: () => string | null;
+  hoverNode?: (id: string | null) => void;
   onNodeDragStart: (id: string) => void;
   onNodeDragOver: (hint: DropPositionLike) => void;
   onNodeDragLeave: (id: string) => void;

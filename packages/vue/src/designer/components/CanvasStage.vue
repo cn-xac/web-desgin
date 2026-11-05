@@ -12,6 +12,8 @@ const store = useDesignerStore();
 provide(DESIGNER_SCENE, {
   selectedId: () => store.selectedId,
   select: (id) => store.select(id),
+  hoveredId: () => store.hoverId,
+  hoverNode: (id) => store.hover(id),
   onNodeDragStart: (id) => store.beginDrag({ kind: "move", id }),
   onNodeDragOver: (hint) => store.setDropHint(hint),
   onNodeDragLeave: (id) => {

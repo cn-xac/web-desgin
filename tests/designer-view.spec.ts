@@ -75,4 +75,63 @@ describe("设计器整页装配", () => {
     await new Promise((r) => setTimeout(r, 30));
     expect(wrapper.find(".inspector__crumbs").text()).toContain("卡片");
   });
+
+  it("组件树：节点入树、点击行选中容器", async () => {
+    const wrapper = await mountDesigner(pageId);
+    const container = wrapper.findAll(".palette__item").find((node) => node.text().includes("容器"));
+    await container!.trigger("click");
+    await new Promise((r) => setTimeout(r, 30));
+
+    // 容器入树；空容器在画布上有占位，点得中
+    let rows = wrapper.findAll(".opanel .otree__row");
+    expect(rows.length).toBe(1);
+    expect(rows[0].text()).toContain("容器");
+    expect(wrapper.find(".canvas__body .wb-node__empty").exists()).toBe(true);
+
+    // 再点输入框：addNodeSmart 放进选中的容器，树里出现子行（选中即展开）
+    const input = wrapper.findAll(".palette__item").find((node) => node.text().includes("输入框"));
+    await input!.trigger("click");
+    await new Promise((r) => setTimeout(r, 30));
+
+    rows = wrapper.findAll(".opanel .otree__row");
+    expect(rows.length).toBe(2);
+    expect(rows[1].text()).toContain("输入框");
+
+    // 点树里的容器行 → 与画布选中联动，面包屑出现「容器」
+    await rows[0].trigger("click");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(wrapper.find(".inspector__crumbs").text()).toContain("容器");
+  });
+
+  it("组件树：悬停行高亮画布对应节点", async () => {
+    const wrapper = await mountDesigner(pageId);
+    const container = wrapper.findAll(".palette__item").find((node) => node.text().includes("容器"));
+    await container!.trigger("click");
+    await new Promise((r) => setTimeout(r, 30));
+
+    await wrapper.find(".opanel .otree__row").trigger("mouseenter");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(wrapper.find(".canvas__body .wb-node--design.is-hovered").exists()).toBe(true);
+
+    await wrapper.find(".opanel .otree__row").trigger("mouseleave");
+    await new Promise((r) => setTimeout(r, 30));
+    expect(wrapper.find(".canvas__body .wb-node--design.is-hovered").exists()).toBe(false);
+  });
+
+  it("组件树：行内删除节点", async () => {
+    const wrapper = await mountDesigner(pageId);
+    const container = wrapper.findAll(".palette__item").find((node) => node.text().includes("容器"));
+    await container!.trigger("click");
+    const input = wrapper.findAll(".palette__item").find((node) => node.text().includes("输入框"));
+    await input!.trigger("click");
+    await new Promise((r) => setTimeout(r, 30));
+
+    const inputRow = wrapper.findAll(".opanel .otree__row").find((node) => node.text().includes("输入框"));
+    await inputRow!.find(".otree__act[title='删除']").trigger("click");
+    await new Promise((r) => setTimeout(r, 30));
+
+    expect(wrapper.text()).toContain("1 个节点");
+    // 删掉子节点后容器回到空态占位
+    expect(wrapper.find(".canvas__body .wb-node__empty").exists()).toBe(true);
+  });
 });

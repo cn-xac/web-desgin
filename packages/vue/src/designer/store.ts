@@ -31,6 +31,8 @@ const MAX_HISTORY = 80;
 export const useDesignerStore = defineStore("designer", () => {
   const page = ref<PageSchema>(createEmptyPage());
   const selectedId = ref<string | null>(null);
+  /** 组件树悬停的节点：画布上同步高亮，方便在嵌套容器里「先看清、再点中」 */
+  const hoverId = ref<string | null>(null);
   const history = ref<string[]>([]);
   const future = ref<string[]>([]);
   const dragPayload = ref<DragPayload | null>(null);
@@ -155,6 +157,10 @@ export const useDesignerStore = defineStore("designer", () => {
 
   function select(id: string | null): void {
     selectedId.value = id;
+  }
+
+  function hover(id: string | null): void {
+    hoverId.value = id;
   }
 
   function addNode(component: string, targetId: string | null = null, position: DropPosition = "after"): void {
@@ -364,6 +370,7 @@ export const useDesignerStore = defineStore("designer", () => {
   return {
     page,
     selectedId,
+    hoverId,
     selectedNode,
     selectedLocation,
     breadcrumb,
@@ -386,6 +393,7 @@ export const useDesignerStore = defineStore("designer", () => {
     patchPage,
     createNode,
     select,
+    hover,
     addNode,
     addNodeSmart,
     relocate,

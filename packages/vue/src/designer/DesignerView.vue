@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { useDesignerStore } from "./store";
 import PalettePanel from "./components/PalettePanel.vue";
+import OutlinePanel from "./components/OutlinePanel.vue";
 import CanvasStage from "./components/CanvasStage.vue";
 import InspectorPanel from "./components/InspectorPanel.vue";
 import { migratePage } from "@x-ac/design-core";
@@ -236,6 +237,7 @@ function backToList(): void {
 
     <div class="body">
       <PalettePanel />
+      <OutlinePanel />
       <CanvasStage :navigate="navigate" />
       <InspectorPanel />
     </div>

@@ -170,8 +170,14 @@ function onFieldBlur(event: FocusEvent): void {
 const wrapperClass = computed(() => ({
   "wb-node--design": props.design,
   "is-selected": props.design && scene?.selectedId() === props.node.id,
+  "is-hovered": props.design && scene?.hoveredId?.() === props.node.id,
   "is-hidden": hiddenByShow.value,
 }));
+
+/** 空容器在设计态给一块可点击的占位区，否则高度塌成 0 根本点不中 */
+const showEmptyHint = computed(
+  () => props.design && Boolean(material.value?.acceptsChildren) && !(props.node.children?.length),
+);
 
 const hint = computed(() => (props.design ? (scene?.hintFor(props.node.id) ?? null) : null));
 
@@ -258,8 +264,11 @@ function selectSelf(): void {
       <span v-if="hint === 'inside'" class="wb-drop wb-drop--inside" />
     </template>
 
+    <!-- 空容器占位：设计态可点选、可拖入；view 模式不渲染 -->
+    <div v-if="showEmptyHint" class="wb-node__empty">空容器 · 点击选中，或把组件拖进来</div>
+
     <!-- 未知组件：降级为占位块，保留子节点，绝不白屏 -->
-    <div v-if="isUnknown" class="wb-node__unknown">
+    <div v-else-if="isUnknown" class="wb-node__unknown">
       <div class="wb-node__unknown-title">未知组件 {{ node.component }}</div>
       <div class="wb-node__unknown-tip">物料未注册，已降级渲染；节点与子节点数据保留</div>
       <SchemaNode
@@ -317,8 +326,23 @@ function selectSelf(): void {
 .wb-node--design:hover {
   outline-color: #b9c6ff;
 }
+.wb-node--design.is-hovered {
+  outline-color: #b9c6ff;
+}
 .wb-node--design.is-selected {
   outline: 2px solid var(--wb-primary);
+}
+.wb-node__empty {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--wb-line);
+  border-radius: 6px;
+  background: repeating-linear-gradient(-45deg, transparent 0 8px, rgba(47, 75, 255, 0.03) 8px 16px);
+  font-size: 12px;
+  color: var(--wb-ink3);
+  pointer-events: none;
 }
 .wb-node__tag {
   position: absolute;
