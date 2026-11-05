@@ -1,0 +1,36 @@
+{
+  "name": "vue-design-workspace",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "description": "Schema 驱动的可视化搭建引擎：框架无关 core + Vue / React 适配层 + 示例应用",
+  "scripts": {
+    "dev": "pnpm --filter playground dev",
+    "dev:vue": "pnpm --filter playground dev",
+    "dev:react": "pnpm --filter react-demo dev",
+    "build": "pnpm build:lib && pnpm --filter playground build && pnpm --filter react-demo build",
+    "build:lib": "pnpm --filter @x-ac/design-core build && pnpm --filter @x-ac/design-vue build && pnpm --filter @x-ac/design-react build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm --filter @x-ac/design-core typecheck && pnpm --filter @x-ac/design-vue typecheck && pnpm --filter @x-ac/design-react typecheck && pnpm --filter playground typecheck && pnpm --filter react-demo typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.4.6",
+    "element-plus": "^2.14.7",
+    "jsdom": "^25.0.1",
+    "pinia": "^2.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.5",
+    "vitest": "^3.2.7",
+    "vue": "^3.5.44",
+    "vue-router": "^4.6.4",
+    "vue-tsc": "^2.1.10"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@x-ac/design-core": ["packages/core/src/index.ts"],
+      "@x-ac/design-vue": ["packages/vue/src/index.ts"],
+      "@/designer/*": ["packages/vue/src/designer/*"],
+      "@/renderer/*": ["packages/vue/src/renderer/*"],
+      "@/materials/*": ["packages/vue/src/materials/*"],
+      "@/api/*": ["apps/playground/src/api/*"],
+      "@/data/*": ["apps/playground/src/data/*"],
+      "@/views/*": ["apps/playground/src/views/*"]
+    },
+    "types": ["vite/client", "node"]
+  },
+  "include": [
+    "tests/**/*.ts", "tests/**/*.tsx",
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.vue",
+    "apps/*/src/**/*.ts",
+    "apps/*/src/**/*.vue"
+  ]
+}
