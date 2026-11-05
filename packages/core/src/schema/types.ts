@@ -1,0 +1,82 @@
+/**
+ * PageSchema 类型定义。
+ * 与 docs/schema/page.schema.json 保持一一对应；改这里必须同步改 JSON Schema。
+ */
+
+import type { ValidationRule } from "../validation/rules";
+
+export type DeviceType = "pc" | "pad" | "h5";
+
+export type DirectiveName = "show" | "if" | "for";
+
+export interface DirectiveSchema {
+  name: DirectiveName;
+  /** 受限表达式，例如 `list.length > 0` 或 `{{list}}` */
+  value?: string;
+  /** for 指令遍历时的别名，默认 item */
+  itemKey?: string;
+  /** for 指令遍历时的索引别名，默认 index */
+  indexKey?: string;
+}
+
+export interface ActionSchema {
+  /** 预注册动作名，JSON 中不允许出现可执行代码 */
+  action: string;
+  args?: Record<string, unknown>;
+}
+
+export interface NodeSchema {
+  id: string;
+  component: string;
+  props?: Record<string, unknown>;
+  style?: Record<string, string | number>;
+  directives?: DirectiveSchema[];
+  events?: Record<string, ActionSchema[]>;
+  /**
+   * 数据校验规则。挂在节点上而不是 props 里：
+   * 校验是数据契约，与「用哪个控件展示」解耦。
+   */
+  rules?: ValidationRule[];
+  children?: NodeSchema[];
+}
+
+export interface DataSourceConfig {
+  type: "http" | "static";
+  url?: string;
+  method?: "GET" | "POST";
+  params?: Record<string, unknown>;
+  auto?: boolean;
+  data?: unknown;
+}
+
+export interface PageMeta {
+  title?: string;
+  device?: DeviceType;
+  description?: string;
+  [key: string]: unknown;
+}
+
+export interface PageSchema {
+  schemaVersion: string;
+  id: string;
+  type: "page";
+  meta?: PageMeta;
+  /** 页面级响应式状态初值，渲染器注入 scope */
+  state?: Record<string, unknown>;
+  /** 声明式取数配置，键名即 scope 变量名 */
+  dataSource?: Record<string, DataSourceConfig>;
+  children: NodeSchema[];
+}
+
+export const SCHEMA_VERSION = "1.0.0";
+
+export function createEmptyPage(title = "未命名页面"): PageSchema {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    id: `page_${Math.random().toString(36).slice(2, 10)}`,
+    type: "page",
+    meta: { title, device: "pc" },
+    state: {},
+    children: [],
+  };
+}
