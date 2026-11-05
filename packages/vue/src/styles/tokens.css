@@ -1,0 +1,36 @@
+/**
+ * 设计令牌：物料与设计器共用。
+ * 以 CSS 变量形式提供，宿主可在自己项目里覆盖，不需要改源码。
+ */
+:root {
+  --wb-bg: #f4f5f7;
+  --wb-panel: #ffffff;
+  --wb-line: #e4e7ed;
+  --wb-line-soft: #eef0f4;
+  --wb-ink: #1f2430;
+  --wb-ink2: #5c6373;
+  --wb-ink3: #8b93a3;
+  --wb-primary: #2f4bff;
+  --wb-primary-soft: #eef1ff;
+  --wb-mono: "SFMono-Regular", Consolas, Menlo, monospace;
+  --el-color-primary: #2f4bff;
+  --el-font-size-base: 13px;
+  --el-border-radius-base: 5px;
+}
+
+.wb-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.wb-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.wb-scroll::-webkit-scrollbar-thumb {
+  background: #d9dde6;
+  border-radius: 4px;
+}
+
+.wb-mono {
+  font-family: var(--wb-mono);
+}

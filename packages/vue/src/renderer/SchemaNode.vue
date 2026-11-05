@@ -1,0 +1,384 @@
+<script setup lang="ts">
+/**
+ * 递归渲染器。入参只有 PageSchema，不依赖设计器任何模块。
+ * mode=view 挂事件、跑动作；mode=edit 只做视觉呈现，供设计器包裹交互。
+ */
+import { computed, inject } from "vue";
+import type { CSSProperties } from "vue";
+import type { NodeSchema } from "@x-ac/design-core";
+import { getMaterial, resolveDefaults } from "@x-ac/design-core";
+import { resolveComponent } from "../materials/components";
+import FieldShell from "../materials/fields/FieldShell.vue";
+import { extractPath, getByPath, isBindable, isRequired, resolveBoolean, resolveNodeStyle, resolveValue, setByPath } from "@x-ac/design-core";
+import { DESIGNER_SCENE, RENDER_CONTEXT } from "./context";
+import { runActions } from "./actions";
+
+const props = withDefaults(
+  defineProps<{
+    node: NodeSchema;
+    scope: Record<string, unknown>;
+    mode?: "view" | "edit";
+    design?: boolean;
+    ignoreFor?: boolean;
+  }>(),
+  { mode: "view", design: false, ignoreFor: false },
+);
+
+const scene = inject(DESIGNER_SCENE, null);
+const renderCtx = inject(RENDER_CONTEXT, null);
+
+const material = computed(() => getMaterial(props.node.component));
+const isUnknown = computed(() => !material.value);
+const resolved = computed(() => resolveComponent(props.node.component));
+const nodeLabel = computed(() => material.value?.title ?? props.node.component);
+
+/* ---------------- 指令 ---------------- */
+
+const forDirective = computed(() =>
+  props.ignoreFor ? undefined : props.node.directives?.find((d) => d.name === "for"),
+);
+
+const loopInstances = computed<Array<{ key: string; scope: Record<string, unknown> }> | null>(() => {
+  const directive = forDirective.value;
+  if (!directive) return null;
+
+  const raw = directive.value ?? "";
+  const expression = raw.includes("{{") ? raw : `{{${raw}}}`;
+  const list = resolveValue(expression, props.scope);
+  const items = Array.isArray(list) ? list : [];
+  const itemKey = directive.itemKey ?? "item";
+  const indexKey = directive.indexKey ?? "index";
+
+  return items.map((item, index) => ({
+    key: `${props.node.id}-${index}`,
+    scope: { ...props.scope, [itemKey]: item, [indexKey]: index } as Record<string, unknown>,
+  }));
+});
+
+const hiddenByIf = computed(() =>
+  (props.node.directives ?? []).some((d) => d.name === "if" && !resolveBoolean(d.value, props.scope)),
+);
+
+const hiddenByShow = computed(() =>
+  (props.node.directives ?? []).some((d) => d.name === "show" && !resolveBoolean(d.value, props.scope)),
+);
+
+/* ---------------- 属性 ---------------- */
+
+const effective = computed(() => resolveDefaults(props.node.component, props.node.props));
+
+const bindProps = computed<Record<string, unknown>>(() => {
+  const out: Record<string, unknown> = {};
+  const materialMeta = material.value;
+  const raw = effective.value;
+
+  for (const [key, value] of Object.entries(raw)) {
+    // 面板/外壳专用字段，以及正文来自 textProp 的字段，都不透传给组件
+    if (["label", "required", "tip", "block", "radius", "modelValue"].includes(key)) continue;
+    if (materialMeta?.textProp === key) continue;
+    if (materialMeta?.internalProps?.includes(key)) continue;
+    out[key] = isBindable(key) ? resolveValue(value, props.scope) : value;
+  }
+
+  // 双向绑定：{{path}} 写法直接读写 scope，实现「改输入框 → 页面状态更新」
+  const modelValue = raw.modelValue;
+  const path = extractPath(modelValue);
+  if (path) {
+    out.modelValue = getByPath(props.scope, path);
+    out["onUpdate:modelValue"] = (value: unknown) => {
+      setByPath(props.scope, path, value);
+      // 已经报错的字段边改边验：改对了立刻消红，没改对继续提示
+      if (renderCtx?.errors[props.node.id]) renderCtx.validateField(props.node);
+    };
+  } else if (modelValue !== undefined) {
+    out.modelValue = resolveValue(modelValue, props.scope);
+  }
+
+  return out;
+});
+
+const slotText = computed<string | null>(() => {
+  const key = material.value?.textProp;
+  if (!key) return null;
+  const value = effective.value[key];
+  if (value === undefined || value === null) return null;
+  return String(resolveValue(value, props.scope) ?? "");
+});
+
+const fieldLabel = computed(() => String(effective.value.label ?? ""));
+const fieldRequired = computed(() => isRequired(props.node, effective.value));
+const fieldError = computed(() => renderCtx?.errors[props.node.id] ?? "");
+
+const mergedStyle = computed<CSSProperties>(() => {
+  // 通用间距（margin / padding）与其余样式走同一条链路：
+  // 组件契约样式 → 物料默认样式 → 节点 style（含表达式求值）
+  const style = resolveNodeStyle(
+    props.node.component,
+    effective.value,
+    props.node.style,
+    (value) => resolveValue(value, props.scope),
+  ) as CSSProperties;
+
+  if (hiddenByShow.value) style.display = "none";
+  return style;
+});
+
+/* ---------------- 事件 ---------------- */
+
+const eventHandlers = computed<Record<string, (...args: unknown[]) => void>>(() => {
+  const out: Record<string, (...args: unknown[]) => void> = {};
+  if (props.mode !== "view" || props.design || !renderCtx) return out;
+
+  for (const [name, actions] of Object.entries(props.node.events ?? {})) {
+    // v-on 对象绑定的 key 用事件名本身（Vue 内部会补 on 前缀并转驼峰），
+    // 所以 row-click 要写成 rowClick，不能写 onClick。
+    const eventName = name.replace(/-([a-z])/g, (_match, char: string) => char.toUpperCase());
+
+    out[eventName] = () => {
+      void runActions(actions, {
+        scope: props.scope,
+        page: renderCtx.page,
+        errors: renderCtx.errors,
+        resetScope: renderCtx.resetScope,
+        navigate: renderCtx.navigate,
+      });
+    };
+  }
+
+  return out;
+});
+
+/**
+ * 失焦校验。
+ * 用原生 focusout 而不是组件的 blur：focusout 会冒泡，且不依赖各 UI 库是否派发 blur，
+ * Element Plus / 原生控件 / 未来换库都能用同一条路径。
+ */
+function onFieldBlur(event: FocusEvent): void {
+  if (!renderCtx || props.mode !== "view" || props.design) return;
+  if (!material.value?.isFormControl) return;
+
+  const wrapper = event.currentTarget as HTMLElement | null;
+  const next = event.relatedTarget as Node | null;
+  // 在同一个字段内部移动焦点（例如点到清除按钮）不算失焦
+  if (wrapper && next && wrapper.contains(next)) return;
+
+  renderCtx.validateField(props.node);
+}
+
+/* ---------------- 设计态包裹 ---------------- */
+
+const wrapperClass = computed(() => ({
+  "wb-node--design": props.design,
+  "is-selected": props.design && scene?.selectedId() === props.node.id,
+  "is-hidden": hiddenByShow.value,
+}));
+
+const hint = computed(() => (props.design ? (scene?.hintFor(props.node.id) ?? null) : null));
+
+function positionFromEvent(event: DragEvent): "inside" | "before" | "after" {
+  const element = event.currentTarget as HTMLElement | null;
+  if (!element) return "after";
+  const rect = element.getBoundingClientRect();
+  const ratio = (event.clientY - rect.top) / Math.max(1, rect.height);
+
+  if (material.value?.acceptsChildren) {
+    if (ratio < 0.25) return "before";
+    if (ratio > 0.75) return "after";
+    return "inside";
+  }
+  return ratio < 0.5 ? "before" : "after";
+}
+
+function onDragStart(event: DragEvent): void {
+  if (!props.design || !scene) return;
+  event.stopPropagation();
+  event.dataTransfer?.setData("text/plain", JSON.stringify({ kind: "move", id: props.node.id }));
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+  scene.onNodeDragStart(props.node.id);
+}
+
+function onDragOver(event: DragEvent): void {
+  if (!props.design || !scene) return;
+  event.preventDefault();
+  event.stopPropagation();
+  scene.onNodeDragOver({ id: props.node.id, position: positionFromEvent(event) });
+}
+
+function onDragLeave(event: DragEvent): void {
+  if (!props.design || !scene) return;
+  event.stopPropagation();
+  scene.onNodeDragLeave(props.node.id);
+}
+
+function onDrop(event: DragEvent): void {
+  if (!props.design || !scene) return;
+  event.preventDefault();
+  event.stopPropagation();
+  scene.onNodeDrop({ id: props.node.id, position: positionFromEvent(event) });
+}
+
+function selectSelf(): void {
+  if (!props.design || !scene) return;
+  scene.select(props.node.id);
+}
+</script>
+
+<template>
+  <!-- for 指令：先展开成多个实例，再逐个渲染（子实例带 ignoreFor 防止递归展开） -->
+  <template v-if="loopInstances">
+    <SchemaNode
+      v-for="instance in loopInstances"
+      :key="instance.key"
+      :node="node"
+      :scope="instance.scope"
+      :mode="mode"
+      :design="design"
+      ignore-for
+    />
+  </template>
+
+  <div
+    v-else-if="!hiddenByIf"
+    class="wb-node"
+    :class="wrapperClass"
+    :data-node-id="design ? node.id : undefined"
+    :data-node-label="design ? nodeLabel : undefined"
+    :draggable="design ? 'true' : undefined"
+    @click.stop="selectSelf"
+    @focusout="onFieldBlur"
+    @dragstart.stop="onDragStart"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
+    <template v-if="design">
+      <span class="wb-node__tag">{{ nodeLabel }}</span>
+      <span v-if="hint === 'before'" class="wb-drop wb-drop--before" />
+      <span v-if="hint === 'after'" class="wb-drop wb-drop--after" />
+      <span v-if="hint === 'inside'" class="wb-drop wb-drop--inside" />
+    </template>
+
+    <!-- 未知组件：降级为占位块，保留子节点，绝不白屏 -->
+    <div v-if="isUnknown" class="wb-node__unknown">
+      <div class="wb-node__unknown-title">未知组件 {{ node.component }}</div>
+      <div class="wb-node__unknown-tip">物料未注册，已降级渲染；节点与子节点数据保留</div>
+      <SchemaNode
+        v-for="child in node.children ?? []"
+        :key="child.id"
+        :node="child"
+        :scope="scope"
+        :mode="mode"
+        :design="design"
+      />
+    </div>
+
+    <!-- 表单控件：套一层字段外壳，负责标签、必填星号、错误文案；间距作用在外壳上 -->
+    <FieldShell
+      v-else-if="material?.kind === 'field'"
+      :label="fieldLabel"
+      :required="fieldRequired"
+      :error="fieldError"
+      :style="mergedStyle"
+    >
+      <component :is="resolved" v-bind="bindProps" v-on="eventHandlers" />
+    </FieldShell>
+
+    <component :is="resolved" v-else v-bind="bindProps" v-on="eventHandlers" :style="mergedStyle">
+      <template v-if="slotText !== null">{{ slotText }}</template>
+      <template v-if="material?.acceptsChildren">
+        <SchemaNode
+          v-for="child in node.children ?? []"
+          :key="child.id"
+          :node="child"
+          :scope="scope"
+          :mode="mode"
+          :design="design"
+        />
+      </template>
+    </component>
+  </div>
+</template>
+
+<style scoped>
+.wb-node {
+  display: contents;
+}
+.wb-node.is-hidden {
+  display: none;
+}
+.wb-node--design {
+  display: block;
+  position: relative;
+  outline: 1px dashed transparent;
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: outline-color 0.12s ease;
+}
+.wb-node--design:hover {
+  outline-color: #b9c6ff;
+}
+.wb-node--design.is-selected {
+  outline: 2px solid var(--wb-primary);
+}
+.wb-node__tag {
+  position: absolute;
+  top: -18px;
+  left: -2px;
+  z-index: 6;
+  display: none;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--wb-primary);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.wb-node--design.is-selected > .wb-node__tag,
+.wb-node--design:hover > .wb-node__tag {
+  display: block;
+}
+.wb-drop {
+  position: absolute;
+  z-index: 7;
+  background: var(--wb-primary);
+  pointer-events: none;
+}
+.wb-drop--before {
+  left: 0;
+  right: 0;
+  top: -2px;
+  height: 3px;
+  border-radius: 2px;
+}
+.wb-drop--after {
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 2px;
+}
+.wb-drop--inside {
+  inset: 0;
+  background: rgba(47, 75, 255, 0.08);
+  border: 1px dashed var(--wb-primary);
+  border-radius: 4px;
+}
+.wb-node__unknown {
+  padding: 12px 14px;
+  border: 1px dashed var(--el-color-danger);
+  border-radius: 6px;
+  background: #fff5f5;
+}
+.wb-node__unknown-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-color-danger);
+}
+.wb-node__unknown-tip {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--wb-ink3);
+}
+</style>
