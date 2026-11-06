@@ -25,6 +25,12 @@ export interface ActionContext {
   resetScope: (paths?: string[]) => void;
   navigate: (to: string) => void;
   adapter: ActionAdapter;
+  /**
+   * submitForm 校验通过并组装好数据行后回调（可选）。
+   * 宿主（如 Vue 渲染器）用它把提交数据以事件形式抛给上层页面，
+   * core 自身不关心消费方式。
+   */
+  onFormSubmit?: (payload: Record<string, unknown>, action: ActionSchema) => void;
 }
 
 type Handler = (args: Record<string, unknown>, ctx: ActionContext) => void | Promise<void>;
@@ -137,6 +143,8 @@ export const ACTION_REGISTRY: Record<string, Handler> = {
 
     if (args.reset !== false) resetObject(source);
     Object.keys(ctx.errors).forEach((key) => delete ctx.errors[key]);
+    // 提交成功才通知宿主：校验失败、找不到数据源都不会触发
+    ctx.onFormSubmit?.({ ...row }, { action: "submitForm", args });
     ctx.adapter.notify(String(resolveValue(args.successText, ctx.scope) ?? "提交成功"), "success");
   },
 
