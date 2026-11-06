@@ -18,6 +18,10 @@ export * from "./validation/rules";
 export * from "./validation/engine";
 
 export * from "./materials/types";
+export * from "./materials/keys";
+export * from "./materials/portability";
+export * from "./materials/adapter";
+export * from "./materials/registry";
 export * from "./materials/catalog";
 export * from "./materials/utils";
 

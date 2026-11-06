@@ -16,6 +16,9 @@ export type PropFieldType =
   | "options"
   | "columns";
 
+/** 属性可移植性：行为/内容缺失是缺陷，视觉缺失是可接受的外观差异（详见 portability.ts） */
+export type Portability = "behavior" | "content" | "visual";
+
 export interface PropField {
   key: string;
   label: string;
@@ -23,6 +26,11 @@ export interface PropField {
   /** select 的候选值 */
   options?: Array<string | number>;
   tip?: string;
+  /**
+   * 跨库映射等级。缺省按键名推断（见 fieldPortability），
+   * 正式物料建议显式标注，避免新增字段默默归入 visual。
+   */
+  portability?: Portability;
 }
 
 export interface MaterialEvent {
@@ -58,4 +66,14 @@ export interface Material {
   hint?: string;
   /** 是否为表单控件（参与必填校验） */
   isFormControl?: boolean;
+  /**
+   * 物料归属：adapter = 适配包提供（官方物料），user = 业务方注册。
+   * 自定义物料的跨库可移植性由注册者自行负责，引擎不做保证。
+   */
+  owner?: "adapter" | "user";
+  /**
+   * 是否能被其它 UI 库渲染。false 表示该物料只在当前适配包下有效：
+   * 不参加跨库一致性测试，静态 HTML 导出走占位。
+   */
+  portable?: boolean;
 }
