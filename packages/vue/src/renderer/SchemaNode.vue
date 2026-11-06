@@ -141,6 +141,7 @@ const eventHandlers = computed<Record<string, (...args: unknown[]) => void>>(() 
         errors: renderCtx.errors,
         resetScope: renderCtx.resetScope,
         navigate: renderCtx.navigate,
+        onFormSubmit: renderCtx.onFormSubmit,
       });
     };
   }

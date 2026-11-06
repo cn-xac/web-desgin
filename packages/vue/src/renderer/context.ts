@@ -10,6 +10,8 @@ export interface RenderContext {
   navigate: (to: string) => void;
   /** 只校验一个节点，结果同步进 errors（失焦 / 修改后调用） */
   validateField: (node: NodeSchema) => void;
+  /** submitForm 动作提交成功时回调（抛给宿主的 @submit 事件） */
+  onFormSubmit: (payload: Record<string, unknown>) => void;
 }
 
 export const RENDER_CONTEXT: InjectionKey<RenderContext> = Symbol("wb-render-context");

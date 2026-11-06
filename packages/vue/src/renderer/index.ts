@@ -1,4 +1,6 @@
 export { default as SchemaRenderer } from "./SchemaRenderer.vue";
+/** 渲染标签的语义化别名：<SchemaPage :page="schema" v-model:data="formData" @submit="..." /> */
+export { default as SchemaPage } from "./SchemaRenderer.vue";
 export { default as SchemaNode } from "./SchemaNode.vue";
 export { elementAdapter, runActions } from "./actions";
 export type { VueActionContext } from "./actions";

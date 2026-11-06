@@ -18,9 +18,19 @@ export interface PageScopeApi {
  * 页面作用域：
  *   state 初值 + dataSource 取数结果 → 一个 reactive 对象，渲染器所有表达式都从这个 scope 求值。
  * 只监听 page.id，避免设计器改属性时把用户填的数据冲掉。
+ *
+ * seed：宿主通过 v-model:data 传入的外部数据，优先级高于 page.state——
+ * 这样「设计时 state 初值」与「运行时回填数据」两条路都能走。
  */
-export function usePageScope(page: Ref<PageSchema>, enabled: Ref<boolean>): PageScopeApi {
-  const initialState = (): Record<string, unknown> => deepClone(page.value.state ?? {});
+export function usePageScope(
+  page: Ref<PageSchema>,
+  enabled: Ref<boolean>,
+  seed?: () => Record<string, unknown> | undefined,
+): PageScopeApi {
+  const initialState = (): Record<string, unknown> => {
+    const external = seed?.();
+    return deepClone(external && Object.keys(external).length ? external : page.value.state ?? {});
+  };
   const scope = reactive<Record<string, unknown>>(initialState());
   const loading = ref(false);
   const dataError = ref("");
