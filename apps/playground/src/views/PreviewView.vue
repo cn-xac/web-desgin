@@ -3,14 +3,17 @@ import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { getPage, type PageRecord } from "@/api/pageRepo";
-import { SchemaRenderer } from "@x-ac/design-vue";
+import { SchemaPage } from "@x-ac/design-vue";
 import { toDataJSON, toJSON } from "@x-ac/design-core";
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
 const record = ref<PageRecord | null>(null);
 const mountKey = ref(0);
-const renderer = ref<InstanceType<typeof SchemaRenderer> | null>(null);
+const renderer = ref<InstanceType<typeof SchemaPage> | null>(null);
+
+/** v-model:data：渲染中的表单数据实时同步到这里（标签即用的数据出口） */
+const liveData = ref<Record<string, unknown>>({});
 
 const dialog = ref({ open: false, title: "", body: "", download: false });
 
@@ -31,6 +34,25 @@ function navigate(to: string): void {
     return;
   }
   void router.push(to);
+}
+
+/** submitForm 动作提交成功时，数据行以事件形式到达宿主 */
+function onSubmit(payload: Record<string, unknown>): void {
+  dialog.value = {
+    open: true,
+    title: "收到 @submit 事件（submitForm 提交的数据行）",
+    body: JSON.stringify(payload, null, 2),
+    download: false,
+  };
+}
+
+function showLiveData(): void {
+  dialog.value = {
+    open: true,
+    title: "实时数据（v-model:data）",
+    body: JSON.stringify(liveData.value, null, 2),
+    download: false,
+  };
 }
 
 function exportJSON(): void {
@@ -104,6 +126,7 @@ function downloadDialog(): void {
       <span class="topbar__hint">渲染器只消费 Schema，不加载设计器代码</span>
       <el-button size="small" @click="validateData">验证数据</el-button>
       <el-button size="small" @click="exportFormData">导出数据</el-button>
+      <el-button size="small" @click="showLiveData">实时数据</el-button>
       <el-button size="small" @click="exportJSON">导出 JSON</el-button>
       <el-button size="small" @click="reset">重置数据</el-button>
       <el-button size="small" type="primary" @click="router.push(`/designer/${props.id}`)">进入设计器</el-button>
@@ -111,7 +134,14 @@ function downloadDialog(): void {
 
     <main class="stage wb-scroll">
       <div v-if="page" :key="mountKey" class="canvas">
-        <SchemaRenderer ref="renderer" :page="page" mode="view" :navigate="navigate" />
+        <SchemaPage
+          ref="renderer"
+          :page="page"
+          mode="view"
+          :navigate="navigate"
+          v-model:data="liveData"
+          @submit="onSubmit"
+        />
       </div>
       <el-result v-else icon="warning" title="页面不存在" sub-title="该页面可能已被删除，请返回列表重新创建">
         <template #extra>

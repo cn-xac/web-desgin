@@ -12,27 +12,32 @@ pnpm add @x-ac/design-vue @x-ac/design-core vue element-plus
 pnpm add pinia
 ```
 
-## 只渲染页面
+## 只渲染页面（标签即用）
+
+`SchemaPage` 与 `SchemaRenderer` 是同一组件的两个名字。最简形态——一个标签 + 两个事件：
 
 ```vue
 <script setup lang="ts">
 import { ref } from "vue";
-import { SchemaRenderer } from "@x-ac/design-vue";
+import { SchemaPage } from "@x-ac/design-vue";
 import "@x-ac/design-vue/style.css";
 import type { PageSchema } from "@x-ac/design-vue";
 
+// page 可以是 Schema 对象，也可以直接是后端返回的 JSON 字符串
 const page = ref<PageSchema>(/* 来自后端或本地 JSON */);
-const renderer = ref<InstanceType<typeof SchemaRenderer> | null>(null);
+const formData = ref<Record<string, unknown>>({});
 
-function submit() {
-  const data = renderer.value?.getData();   // 收集 + 校验
-  if (!renderer.value?.validate()) return;  // 错误会显示到字段下方
-  console.log(data?.data);
+// v-model:data：页面里填的数据实时同步出来
+// @submit：submitForm 动作提交成功时抛出组装好的数据行（发后端在这里做）
+function onSubmit(payload: Record<string, unknown>) {
+  void fetch("/api/rows", { method: "POST", body: JSON.stringify(payload) });
 }
 </script>
 
 <template>
-  <SchemaRenderer ref="renderer" :page="page" @navigate="(to) => router.push(to)" />
+  <SchemaPage :page="page" v-model:data="formData" @submit="onSubmit">
+    <template #empty>页面还没有内容</template>
+  </SchemaPage>
 </template>
 ```
 
@@ -48,24 +53,29 @@ function submit() {
 
 字段失焦会自动单字段校验；修改输入时，已报错的字段会边改边验，改对即消红。
 
-## 内嵌设计器
+## 内嵌设计器（标签即用）
 
 ```vue
 <script setup lang="ts">
-import { DesignerView } from "@x-ac/design-vue/designer";
+import { SchemaDesigner, type PageRepository } from "@x-ac/design-vue/designer";
 // 设计器样式与渲染器同在一个 style.css 里（cssCodeSplit: false）
+
+// repository prop：组件级仓储，不传回落全局 setPageRepository()
+const repo: PageRepository = { /* list / get / save / remove，对接你的接口 */ };
 </script>
 
 <template>
-  <DesignerView
+  <SchemaDesigner
     :page-id="pageId"
+    :repository="repo"
     @back="router.push('/pages')"
     @preview="(id) => window.open(`/preview/${id}`)"
+    @export-schema="({ kind, content }) => archive(kind, content)"
   />
 </template>
 ```
 
-设计器**不内置路由**：只接收 `pageId`，跳转通过事件交给宿主；页面存储通过 `setPageRepository()` 注入（默认内存实现，附 localStorage 示例）。
+设计器**不内置路由**：只接收 `pageId`，跳转通过事件交给宿主。模板 ref 暴露 `importSchema(json)` / `exportSchema()` / `exportHtml()` / `save()`，宿主可在自己的按钮里主动触发导入导出；工具栏导出时同步触发 `@export-schema` 事件。
 
 右侧「校验」面板可以配置必填、最短 / 最长长度、最小 / 最大值、自定义正则、邮箱、手机号、整数，并支持自定义文案与 `when` 条件。
 
