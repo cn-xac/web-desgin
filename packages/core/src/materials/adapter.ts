@@ -16,16 +16,23 @@ export interface BindingChannel {
   event: string;
 }
 
-/** 设计器外壳需要的最小控件集合，缺省由引擎回落原生实现 */
-export type DesignerChromeSlot =
-  | "Button"
-  | "Input"
-  | "Select"
-  | "Switch"
-  | "Tabs"
-  | "Tooltip"
-  | "Message"
-  | "Drawer";
+/**
+ * 设计器自身 UI 的最小控件集合（D3）。
+ *
+ * 设计器跟着宿主选的 UI 库走，才不会「设计时一个样子、上线另一个样子」。
+ * 全部可选：未提供的槽位由引擎回落原生实现，所以不写也能跑。
+ */
+export interface DesignerKit<TComponent = unknown> {
+  Button?: TComponent;
+  Input?: TComponent;
+  NumberInput?: TComponent;
+  Select?: TComponent;
+  Switch?: TComponent;
+  Segmented?: TComponent;
+  ColorInput?: TComponent;
+  /** 命令式提示；缺省用内置轻提示 */
+  notify?: (message: string, type?: "success" | "warning" | "error" | "info") => void;
+}
 
 export interface UiAdapter<TComponent = unknown> {
   /** 适配包标识，如 element-plus / ant-design-vue */
@@ -36,8 +43,8 @@ export interface UiAdapter<TComponent = unknown> {
   materials: Material[];
   /** 设计器属性面板的字段编辑器：PropFieldType → 控件，缺省回落原生 */
   editors?: Partial<Record<PropFieldType, TComponent>>;
-  /** 设计器外壳控件，缺省回落原生；官方适配包应提供以保持一致观感 */
-  chrome?: Partial<Record<DesignerChromeSlot, TComponent>>;
+  /** 设计器自身 UI 的控件（按钮 / 输入 / 下拉 / 开关 / 分段 / 取色 / 提示） */
+  designer?: DesignerKit<TComponent>;
   /** 主题 / 语言 / 消息上下文的外层包装（NConfigProvider、a-config-provider 等） */
   provider?: TComponent;
   /** 该库的双向绑定通道，缺省 modelValue / onUpdate:modelValue */
