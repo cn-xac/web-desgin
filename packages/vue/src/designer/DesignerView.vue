@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { ElMessage } from "element-plus";
+import UiControl from "./ui/UiControl.vue";
 import { useDesignerStore } from "./store";
+import { useNotify } from "./ui/kit";
 import PalettePanel from "./components/PalettePanel.vue";
 import OutlinePanel from "./components/OutlinePanel.vue";
 import CanvasStage from "./components/CanvasStage.vue";
@@ -41,6 +42,7 @@ const emit = defineEmits<{
 }>();
 
 const store = useDesignerStore();
+const notify = useNotify();
 const ready = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
@@ -53,6 +55,13 @@ const device = computed({
   get: () => (store.page.meta?.device ?? "pc") as DeviceType,
   set: (value: DeviceType) => store.setDevice(value),
 });
+
+/** 画布设备档位（分段控件） */
+const deviceOptions = [
+  { label: "PC", value: "pc" },
+  { label: "Pad", value: "pad" },
+  { label: "H5", value: "h5" },
+];
 
 onMounted(() => {
   window.addEventListener("keydown", onKeydown);
@@ -71,7 +80,7 @@ watch(
     if (!id) return;
     const loaded = store.load(id);
     if (!loaded) {
-      ElMessage.error("页面不存在或已被删除");
+      notify("页面不存在或已被删除", "error");
       emit("back");
       return;
     }
@@ -144,11 +153,11 @@ function onKeydown(event: KeyboardEvent): void {
 function save(): boolean {
   try {
     store.save();
-    ElMessage.success("已保存");
+    notify("已保存", "success");
     emit("saved", pageId.value);
     return true;
   } catch (error) {
-    ElMessage.error(`保存失败：${(error as Error).message}`);
+    notify(`保存失败：${(error as Error).message}` , "error");
     return false;
   }
 }
@@ -170,7 +179,7 @@ function exportSchema(): string {
   download(`${store.page.meta?.title ?? "page"}.json`, json, "application/json");
   void navigator.clipboard?.writeText(json);
   emit("export-schema", { kind: "json", content: json, schema: JSON.parse(json) as PageSchema });
-  ElMessage.success("已导出 JSON 并复制到剪贴板");
+  notify("已导出 JSON 并复制到剪贴板", "success");
   return json;
 }
 
@@ -179,7 +188,7 @@ function exportHtml(): string {
   const html = toHtml(store.page);
   download(`${store.page.meta?.title ?? "page"}.html`, html, "text/html");
   emit("export-schema", { kind: "html", content: html, schema: store.page });
-  ElMessage.success("已导出静态 HTML");
+  notify("已导出静态 HTML", "success");
   return html;
 }
 
@@ -195,10 +204,10 @@ function importSchema(json: string): boolean {
       throw new Error(result.errors.map((e) => `${e.path}: ${e.message}`).join("；"));
     }
     store.replaceWith(schema);
-    ElMessage.success(applied.length ? `已导入（执行迁移 ${applied.join(", ")}）` : "已导入，记得保存");
+    notify(applied.length ? `已导入（执行迁移 ${applied.join(", ")}）` : "已导入，记得保存", "success");
     return true;
   } catch (error) {
-    ElMessage.error(`导入失败：${(error as Error).message}`);
+    notify(`导入失败：${(error as Error).message}` , "error");
     return false;
   }
 }
@@ -230,7 +239,7 @@ function preview(): void {
 
 function backToList(): void {
   if (store.dirty) {
-    ElMessage.warning("当前有未保存的修改，已自动保存");
+    notify("当前有未保存的修改，已自动保存", "warning");
     try {
       store.save();
     } catch {
@@ -248,11 +257,7 @@ function backToList(): void {
       <input v-model="title" class="title-input" placeholder="页面标题" />
       <span v-if="store.dirty" class="dirty" title="有未保存的修改">●</span>
 
-      <el-radio-group v-model="device" size="small" class="device">
-        <el-radio-button value="pc">PC</el-radio-button>
-        <el-radio-button value="pad">Pad</el-radio-button>
-        <el-radio-button value="h5">H5</el-radio-button>
-      </el-radio-group>
+      <UiControl as="Segmented" v-model="device" size="small" class="device" :options="deviceOptions" />
 
       <div class="divider" />
 
@@ -263,11 +268,11 @@ function backToList(): void {
 
       <div class="spacer" />
 
-      <el-button size="small" @click="triggerImport">导入</el-button>
-      <el-button size="small" @click="exportSchema">导出 JSON</el-button>
-      <el-button size="small" @click="exportHtml">导出 HTML</el-button>
-      <el-button size="small" @click="preview">预览</el-button>
-      <el-button size="small" type="primary" @click="save">保存</el-button>
+      <UiControl as="Button" size="small" @click="triggerImport">导入</UiControl>
+      <UiControl as="Button" size="small" @click="exportSchema">导出 JSON</UiControl>
+      <UiControl as="Button" size="small" @click="exportHtml">导出 HTML</UiControl>
+      <UiControl as="Button" size="small" @click="preview">预览</UiControl>
+      <UiControl as="Button" size="small" type="primary" @click="save">保存</UiControl>
     </header>
 
     <div class="body">

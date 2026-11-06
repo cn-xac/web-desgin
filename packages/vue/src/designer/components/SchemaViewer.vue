@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { ElMessage } from "element-plus";
+import UiControl from "../ui/UiControl.vue";
 import { toJSON } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import { useNotify } from "../ui/kit";
+
+const notify = useNotify();
 
 const store = useDesignerStore();
 const json = computed(() => toJSON(store.page));
 
 function copy(): void {
   void navigator.clipboard?.writeText(json.value);
-  ElMessage.success("Schema 已复制");
+  notify("Schema 已复制", "success");
 }
 
 function download(): void {
@@ -27,8 +30,8 @@ function download(): void {
     <div class="schema__bar">
       <span class="schema__title">PageSchema · {{ json.length }} 字符</span>
       <div class="spacer" />
-      <el-button size="small" text type="primary" @click="copy">复制</el-button>
-      <el-button size="small" text type="primary" @click="download">下载</el-button>
+      <UiControl as="Button" size="small" text type="primary" @click="copy">复制</UiControl>
+      <UiControl as="Button" size="small" text type="primary" @click="download">下载</UiControl>
     </div>
     <pre class="schema__code">{{ json }}</pre>
   </div>

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { ElMessage } from "element-plus";
+import UiControl from "../ui/UiControl.vue";
 import { getMaterial, resolveDefaults } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import { useNotify } from "../ui/kit";
+
+const notify = useNotify();
 
 const store = useDesignerStore();
 
@@ -81,7 +84,7 @@ function insertBinding(key: string, path: string): void {
 function copyId(): void {
   if (!node.value) return;
   void navigator.clipboard?.writeText(node.value.id);
-  ElMessage.success("已复制节点 ID");
+  notify("已复制节点 ID", "success");
 }
 </script>
 
@@ -101,14 +104,14 @@ function copyId(): void {
         <span v-if="isBound(value(field.key))" class="props__bind">绑定</span>
       </div>
 
-      <el-switch
+      <UiControl as="Switch"
         v-if="field.type === 'boolean'"
         :model-value="Boolean(value(field.key))"
         size="small"
         @update:model-value="(v: unknown) => set(field.key, v)"
       />
 
-      <el-input-number
+      <UiControl as="NumberInput"
         v-else-if="field.type === 'number'"
         :model-value="Number(value(field.key) ?? 0)"
         :controls="false"
@@ -117,17 +120,17 @@ function copyId(): void {
         @update:model-value="(v: unknown) => set(field.key, Number(v ?? 0))"
       />
 
-      <el-select
+      <UiControl
         v-else-if="field.type === 'select'"
+        as="Select"
         :model-value="value(field.key) as string | number"
+        :options="(field.options ?? []).map((option) => ({ label: String(option), value: option }))"
         size="small"
         style="width: 100%"
         @update:model-value="(v: unknown) => set(field.key, v)"
-      >
-        <el-option v-for="option in field.options ?? []" :key="String(option)" :label="String(option)" :value="option" />
-      </el-select>
+      />
 
-      <el-input
+      <UiControl as="Input"
         v-else-if="field.type === 'textarea'"
         type="textarea"
         :rows="3"
@@ -136,7 +139,7 @@ function copyId(): void {
         @update:model-value="(v: unknown) => set(field.key, v)"
       />
 
-      <el-input
+      <UiControl as="Input"
         v-else-if="field.type === 'text' || field.type === 'options'"
         size="small"
         :model-value="String(value(field.key) ?? '')"
@@ -146,13 +149,13 @@ function copyId(): void {
       <template v-if="field.type === 'columns'">
         <div class="columns">
           <div v-for="(column, index) in columnsOf(field.key)" :key="index" class="columns__row">
-            <el-input
+            <UiControl as="Input"
               size="small"
               :model-value="column.label"
               placeholder="列名"
               @update:model-value="(v: unknown) => updateColumn(field.key, index, 'label', String(v))"
             />
-            <el-input
+            <UiControl as="Input"
               size="small"
               :model-value="column.prop"
               placeholder="字段"
@@ -160,7 +163,7 @@ function copyId(): void {
             />
             <button class="columns__del" title="删除该列" @click="removeColumn(field.key, index)">×</button>
           </div>
-          <el-button size="small" text type="primary" @click="addColumn(field.key)">+ 添加列</el-button>
+          <UiControl as="Button" size="small" text type="primary" @click="addColumn(field.key)">+ 添加列</UiControl>
         </div>
       </template>
 

@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { materialsByCategory } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
 const keyword = ref("");
@@ -31,7 +32,7 @@ function onDragStart(event: DragEvent, component: string): void {
 <template>
   <aside class="palette">
     <div class="palette__search">
-      <el-input v-model="keyword" size="small" placeholder="搜索组件" clearable />
+      <UiControl as="Input" v-model="keyword" size="small" placeholder="搜索组件" clearable />
     </div>
 
     <div class="palette__scroll wb-scroll">

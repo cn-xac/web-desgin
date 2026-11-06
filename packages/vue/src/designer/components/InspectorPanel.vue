@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { effectiveRules, getMaterial, resolveDefaults } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import UiControl from "../ui/UiControl.vue";
 import PropsEditor from "./PropsEditor.vue";
 import StyleEditor from "./StyleEditor.vue";
 import EventsEditor from "./EventsEditor.vue";
@@ -82,10 +83,10 @@ const tabEvents = computed(() => selectedMaterial.value?.events ?? []);
       </div>
 
       <div class="inspector__footer">
-        <el-button size="small" @click="store.moveSelected(-1)">上移</el-button>
-        <el-button size="small" @click="store.moveSelected(1)">下移</el-button>
-        <el-button size="small" @click="store.duplicateSelected()">复制</el-button>
-        <el-button size="small" type="danger" plain @click="store.removeSelected()">删除</el-button>
+        <UiControl as="Button" size="small" @click="store.moveSelected(-1)">上移</UiControl>
+        <UiControl as="Button" size="small" @click="store.moveSelected(1)">下移</UiControl>
+        <UiControl as="Button" size="small" @click="store.duplicateSelected()">复制</UiControl>
+        <UiControl as="Button" size="small" type="danger" plain @click="store.removeSelected()">删除</UiControl>
       </div>
     </template>
 

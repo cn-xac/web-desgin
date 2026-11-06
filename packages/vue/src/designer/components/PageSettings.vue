@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { ElMessage } from "element-plus";
+import UiControl from "../ui/UiControl.vue";
 import type { DeviceType } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import { useNotify } from "../ui/kit";
+
+const notify = useNotify();
 
 const store = useDesignerStore();
 
@@ -16,6 +19,13 @@ const device = computed({
   set: (value: DeviceType) => store.setDevice(value),
 });
 
+/** 设备档位：标签里带上画布宽度，选的时候不用回忆数值 */
+const deviceOptions = [
+  { label: "PC · 960", value: "pc" },
+  { label: "Pad · 768", value: "pad" },
+  { label: "H5 · 420", value: "h5" },
+];
+
 const dataSourceEntries = computed(() => Object.entries(store.page.dataSource ?? {}));
 
 function applyState(): void {
@@ -26,7 +36,7 @@ function applyState(): void {
     }
     store.patchPage({ state: parsed as Record<string, unknown> });
     stateError.value = "";
-    ElMessage.success("页面状态已更新");
+    notify("页面状态已更新", "success");
   } catch (error) {
     stateError.value = (error as Error).message;
   }
@@ -40,7 +50,7 @@ function applyDataSource(): void {
     }
     store.patchPage({ dataSource: parsed as Record<string, never> });
     dataSourceError.value = "";
-    ElMessage.success("数据源已更新");
+    notify("数据源已更新", "success");
   } catch (error) {
     dataSourceError.value = (error as Error).message;
   }
@@ -52,7 +62,7 @@ function applyDataSource(): void {
     <div class="settings__section">页面</div>
     <div class="settings__row">
       <label>标题</label>
-      <el-input
+      <UiControl as="Input"
         size="small"
         :model-value="String(store.page.meta?.title ?? '')"
         @update:model-value="(v: string) => store.setTitle(v)"
@@ -60,11 +70,7 @@ function applyDataSource(): void {
     </div>
     <div class="settings__row">
       <label>设备</label>
-      <el-select v-model="device" size="small">
-        <el-option label="PC · 960" value="pc" />
-        <el-option label="Pad · 768" value="pad" />
-        <el-option label="H5 · 420" value="h5" />
-      </el-select>
+      <UiControl as="Select" v-model="device" size="small" :options="deviceOptions" />
     </div>
     <div class="settings__row">
       <label>页面 ID</label>
@@ -75,7 +81,7 @@ function applyDataSource(): void {
       页面状态 state
       <span class="settings__hint">渲染时注入 scope，供双花括号表达式取值</span>
     </div>
-    <el-input
+    <UiControl as="Input"
       v-model="stateText"
       type="textarea"
       :rows="8"
@@ -84,13 +90,13 @@ function applyDataSource(): void {
       spellcheck="false"
     />
     <div v-if="stateError" class="settings__error">{{ stateError }}</div>
-    <el-button size="small" type="primary" plain @click="applyState">应用状态</el-button>
+    <UiControl as="Button" size="small" type="primary" plain @click="applyState">应用状态</UiControl>
 
     <div class="settings__section">
       数据源 dataSource
       <span class="settings__hint">{{ dataSourceEntries.length }} 项</span>
     </div>
-    <el-input
+    <UiControl as="Input"
       v-model="dataSourceText"
       type="textarea"
       :rows="6"
@@ -99,7 +105,7 @@ function applyDataSource(): void {
       spellcheck="false"
     />
     <div v-if="dataSourceError" class="settings__error">{{ dataSourceError }}</div>
-    <el-button size="small" type="primary" plain @click="applyDataSource">应用数据源</el-button>
+    <UiControl as="Button" size="small" type="primary" plain @click="applyDataSource">应用数据源</UiControl>
 
     <div class="settings__tip">
       支持 <code>{"type":"static","data":{...}}</code> 与

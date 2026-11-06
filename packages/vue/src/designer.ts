@@ -11,6 +11,7 @@
 export { default as DesignerView } from "./designer/DesignerView.vue";
 /** 设计器标签的语义化别名，与 DesignerView 等同 */
 export { default as SchemaDesigner } from "./designer/DesignerView.vue";
+import "./designer/ui/ui.css";
 export { useDesignerStore } from "./designer/store";
 export type { DropHint, DragPayload } from "./designer/store";
 export { createMemoryRepository, getPageRepository, setPageRepository } from "./persistence/repo";

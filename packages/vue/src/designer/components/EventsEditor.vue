@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { ElMessage } from "element-plus";
+import UiControl from "../ui/UiControl.vue";
 import type { ActionSchema } from "@x-ac/design-core";
 import { ACTION_OPTIONS } from "@x-ac/design-core";
 import { getMaterial } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import { useNotify } from "../ui/kit";
+
+const notify = useNotify();
 
 const store = useDesignerStore();
 
@@ -48,7 +51,7 @@ function changeArgs(name: string, index: number, text: string): void {
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error("args 必须是对象");
     args = parsed as Record<string, unknown>;
   } catch (error) {
-    ElMessage.error(`参数不是合法 JSON：${(error as Error).message}`);
+    notify(`参数不是合法 JSON：${(error as Error).message}` , "error");
     return;
   }
   const list = actionsOf(name).slice();
@@ -78,24 +81,24 @@ function argsText(action: ActionSchema): string {
         <span class="events__name">{{ event.title }}</span>
         <span class="events__code">{{ event.name }}</span>
         <div class="spacer" />
-        <el-button size="small" text type="primary" @click="addAction(event.name)">+ 动作</el-button>
+        <UiControl as="Button" size="small" text type="primary" @click="addAction(event.name)">+ 动作</UiControl>
       </div>
 
       <div v-if="!actionsOf(event.name).length" class="events__empty">未配置动作，点击「+ 动作」添加</div>
 
       <div v-for="(action, index) in actionsOf(event.name)" :key="index" class="events__item">
         <div class="events__item-head">
-          <el-select
+          <UiControl
+            as="Select"
             :model-value="action.action"
+            :options="ACTION_OPTIONS"
             size="small"
             style="width: 100%"
             @update:model-value="(v: string) => changeAction(event.name, index, v)"
-          >
-            <el-option v-for="option in ACTION_OPTIONS" :key="option.value" :label="option.label" :value="option.value" />
-          </el-select>
+          />
           <button class="events__del" title="删除" @click="removeAction(event.name, index)">×</button>
         </div>
-        <el-input
+        <UiControl as="Input"
           type="textarea"
           :rows="3"
           size="small"

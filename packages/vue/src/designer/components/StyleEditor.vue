@@ -12,6 +12,7 @@ import {
   type SpacingSide,
 } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
 const node = computed(() => store.selectedNode);
@@ -153,7 +154,7 @@ function directiveValue(name: "show" | "if" | "for"): string {
 
       <!-- 统一：一个值铺四边 -->
       <div v-if="modes[key] === 'uniform'" class="box__single">
-        <el-input
+        <UiControl as="Input"
           size="small"
           :model-value="linkedValue[key]"
           placeholder="如 8 / 8px / auto"
@@ -165,7 +166,7 @@ function directiveValue(name: "show" | "if" | "for"): string {
       <div v-else-if="modes[key] === 'pair'" class="box__pair">
         <label class="box__pair-row">
           <span>上下</span>
-          <el-input
+          <UiControl as="Input"
             size="small"
             :model-value="boxes[key].top"
             placeholder="如 8 / 8px"
@@ -174,7 +175,7 @@ function directiveValue(name: "show" | "if" | "for"): string {
         </label>
         <label class="box__pair-row">
           <span>左右</span>
-          <el-input
+          <UiControl as="Input"
             size="small"
             :model-value="boxes[key].left"
             placeholder="如 12 / 12px"
@@ -187,7 +188,7 @@ function directiveValue(name: "show" | "if" | "for"): string {
       <div v-else class="box__grid">
         <label v-for="side in SPACING_SIDES" :key="side" class="box__cell">
           <span>{{ SIDE_LABEL[side] }}</span>
-          <el-input
+          <UiControl as="Input"
             size="small"
             :model-value="boxes[key][side]"
             placeholder="0"
@@ -235,24 +236,24 @@ function directiveValue(name: "show" | "if" | "for"): string {
     <div class="style__section">内联样式</div>
     <div v-for="field in STYLE_FIELDS" :key="field.key" class="style__row">
       <label>{{ field.label }}</label>
-      <el-color-picker
+      <UiControl as="ColorInput"
         v-if="field.type === 'color'"
         :model-value="styleValue(field.key)"
         size="small"
         show-alpha
         @update:model-value="(v: string | null) => store.updateStyle(field.key, v ?? '')"
       />
-      <el-select
+      <UiControl
         v-else-if="field.type === 'select'"
+        as="Select"
         :model-value="styleValue(field.key)"
+        :options="(field.options ?? []).map((option) => ({ label: option, value: option }))"
         size="small"
         clearable
         placeholder="默认"
         @update:model-value="(v: string) => store.updateStyle(field.key, v ?? '')"
-      >
-        <el-option v-for="option in field.options ?? []" :key="option" :label="option" :value="option" />
-      </el-select>
-      <el-input
+      />
+      <UiControl as="Input"
         v-else
         size="small"
         :model-value="styleValue(field.key)"
@@ -264,7 +265,7 @@ function directiveValue(name: "show" | "if" | "for"): string {
     <div class="style__section">显示与循环</div>
     <div v-for="directive in DIRECTIVES" :key="directive.name" class="style__row style__row--block">
       <label>{{ directive.label }}</label>
-      <el-input
+      <UiControl as="Input"
         size="small"
         :model-value="directiveValue(directive.name)"
         :placeholder="directive.placeholder"

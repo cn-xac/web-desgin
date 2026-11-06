@@ -17,6 +17,7 @@ import {
   type ValidationRule,
 } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
 
@@ -36,6 +37,12 @@ const availableTypes = computed(() =>
       label: getRuleDefinition(type)?.label ?? type,
     })),
 );
+
+/** 单条规则可切换的类型（required 只有它自己） */
+function typeOptions(rule: ValidationRule): Array<{ label: string; value: string }> {
+  const types = rule.type === "required" ? (["required"] as RuleType[]) : ruleTypesFor(component.value);
+  return types.map((type) => ({ label: getRuleDefinition(type)?.label ?? type, value: type }));
+}
 
 function commit(next: ValidationRule[]): void {
   store.setRules(next);
@@ -109,7 +116,7 @@ function preview(rule: ValidationRule): string {
         <div class="rules__title">校验规则</div>
         <div class="rules__sub">{{ label || "该字段" }} · {{ rules.length }} 条</div>
       </div>
-      <el-switch :model-value="required" size="small" @update:model-value="toggleRequired" />
+      <UiControl as="Switch" :model-value="required" size="small" @update:model-value="toggleRequired" />
     </div>
 
     <div class="rules__hint">
@@ -120,27 +127,22 @@ function preview(rule: ValidationRule): string {
 
     <div v-for="(rule, index) in rules" :key="`${rule.type}-${index}`" class="rule">
       <div class="rule__top">
-        <el-select
+        <UiControl
+          as="Select"
           :model-value="rule.type"
+          :options="typeOptions(rule)"
           size="small"
           :disabled="rule.type === 'required'"
           class="rule__type"
           @update:model-value="(value: unknown) => changeType(index, value as RuleType)"
-        >
-          <el-option
-            v-for="type in rule.type === 'required' ? ['required'] : ruleTypesFor(component)"
-            :key="type"
-            :label="getRuleDefinition(type)?.label ?? type"
-            :value="type"
-          />
-        </el-select>
+        />
 
         <button class="rule__del" title="删除该规则" @click="remove(index)">×</button>
       </div>
 
       <div v-if="getRuleDefinition(rule.type)?.valueKind === 'number' || getRuleDefinition(rule.type)?.valueKind === 'length'" class="rule__value">
         <span class="rule__value-label">{{ getRuleDefinition(rule.type)?.valueLabel }}</span>
-        <el-input-number
+        <UiControl as="NumberInput"
           :model-value="Number(rule.value ?? 0)"
           :min="0"
           :controls="false"
@@ -151,7 +153,7 @@ function preview(rule: ValidationRule): string {
       </div>
 
       <div v-else-if="getRuleDefinition(rule.type)?.valueKind === 'regex'" class="rule__regex">
-        <el-input
+        <UiControl as="Input"
           :model-value="String(rule.value ?? '')"
           size="small"
           placeholder="^\d{6}$"
@@ -160,8 +162,8 @@ function preview(rule: ValidationRule): string {
         >
           <template #prepend>/</template>
           <template #append>/{{ rule.flags ?? "" }}</template>
-        </el-input>
-        <el-input
+        </UiControl>
+        <UiControl as="Input"
           :model-value="rule.flags ?? ''"
           size="small"
           placeholder="imsu"
@@ -172,7 +174,7 @@ function preview(rule: ValidationRule): string {
 
       <div v-if="isInvalidRegex(rule)" class="rule__error">正则无法编译，请检查括号与转义</div>
 
-      <el-input
+      <UiControl as="Input"
         :model-value="rule.message ?? ''"
         size="small"
         class="rule__message"
@@ -181,7 +183,7 @@ function preview(rule: ValidationRule): string {
       />
 
       <div class="rule__when">
-        <el-input
+        <UiControl as="Input"
           :model-value="rule.when ?? ''"
           size="small"
           placeholder="生效条件（可选），如 {{form.type}} === 'company'"
@@ -192,16 +194,16 @@ function preview(rule: ValidationRule): string {
       <div class="rule__preview">{{ preview(rule) }}</div>
     </div>
 
-    <el-select
+    <UiControl
       v-if="availableTypes.length"
+      as="Select"
       v-model="addType"
+      :options="availableTypes"
       size="small"
       class="rules__add"
       placeholder="+ 添加规则"
       @update:model-value="addRule"
-    >
-      <el-option v-for="item in availableTypes" :key="item.value" :label="item.label" :value="item.value" />
-    </el-select>
+    />
 
     <div class="rules__tip">
       空值只由「必填」拦截；其余规则在字段为空时跳过，避免同一个空格子报两条错。
