@@ -1,4 +1,5 @@
 import type { Component } from "vue";
+import { materialKey } from "@x-ac/design-core";
 import {
   ElAlert,
   ElButton,
@@ -27,8 +28,10 @@ import FieldSelect from "./fields/FieldSelect.vue";
 /**
  * component 名 → Vue 组件。
  * 只在这里做映射，渲染器与设计器都不 import 具体组件，新增物料只改这张表。
+ * 表里写裸名，对外键统一加 `ec-` 前缀（与 Schema 里的协议物料名一致）。
+ * P1 会把这张表整体搬进 element-plus 适配包。
  */
-export const COMPONENT_MAP: Record<string, Component | string> = {
+const COMPONENT_TABLE: Record<string, Component | string> = {
   container: "div",
   grid: "div",
   space: ElSpace,
@@ -60,6 +63,10 @@ export const COMPONENT_MAP: Record<string, Component | string> = {
   "amount-input": FieldAmount,
 };
 
+export const COMPONENT_MAP: Record<string, Component | string> = Object.fromEntries(
+  Object.entries(COMPONENT_TABLE).map(([key, component]) => [materialKey(key), component]),
+);
+
 export function resolveComponent(component: string): Component | string | null {
-  return COMPONENT_MAP[component] ?? null;
+  return COMPONENT_MAP[materialKey(component)] ?? COMPONENT_TABLE[component] ?? null;
 }

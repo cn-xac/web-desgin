@@ -7,7 +7,7 @@
  * 所有组件都必须把 `style` 应用到根元素上——通用 margin / padding 依赖这一点。
  */
 import type { ComponentType, CSSProperties, ReactNode } from "react";
-import { parseOptions } from "@x-ac/design-core";
+import { materialKey, parseOptions } from "@x-ac/design-core";
 
 export interface ControlProps {
   value?: unknown;
@@ -285,7 +285,7 @@ const BusinessInput = (props: ControlProps) => <Input {...props} />;
 
 /* ---------------- 映射表 ---------------- */
 
-export const COMPONENTS: Record<string, ComponentType<ControlProps>> = {
+const COMPONENT_TABLE: Record<string, ComponentType<ControlProps>> = {
   container: Wrapper,
   grid: Wrapper,
   space: Wrapper,
@@ -317,6 +317,11 @@ export const COMPONENTS: Record<string, ComponentType<ControlProps>> = {
   "amount-input": (props) => <Input {...props} type="number" />,
 };
 
+/** 对外键统一加 `ec-` 前缀，与 Schema 里的协议物料名一致 */
+export const COMPONENTS: Record<string, ComponentType<ControlProps>> = Object.fromEntries(
+  Object.entries(COMPONENT_TABLE).map(([key, component]) => [materialKey(key), component]),
+);
+
 export function resolveComponent(component: string): ComponentType<ControlProps> | null {
-  return COMPONENTS[component] ?? null;
+  return COMPONENTS[materialKey(component)] ?? COMPONENT_TABLE[component] ?? null;
 }
