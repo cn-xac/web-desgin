@@ -22,27 +22,27 @@ export const employeeOnboardTemplate = (): PageSchema =>
     children: [
       {
         id: "n_card_form",
-        component: "card",
+        component: "ec-card",
         props: { title: "基本信息" },
         children: [
           {
             id: "n_title_form",
-            component: "title",
+            component: "ec-title",
             props: { text: "员工入职登记", level: 3 },
           },
           {
             id: "n_text_intro",
-            component: "text",
+            component: "ec-text",
             props: { text: "请填写新同事的基础信息，提交后会进入下方登记列表。可在右侧面板修改任何文案与绑定。", muted: true },
           },
           {
             id: "n_grid_form",
-            component: "grid",
+            component: "ec-grid",
             props: { columns: 2, gap: 16 },
             children: [
               {
                 id: "n_in_name",
-                component: "input",
+                component: "ec-input",
                 props: { label: "姓名", placeholder: "请输入姓名", modelValue: "{{form.name}}" },
                 rules: [
                   { type: "required" },
@@ -51,19 +51,19 @@ export const employeeOnboardTemplate = (): PageSchema =>
               },
               {
                 id: "n_in_mobile",
-                component: "input",
+                component: "ec-input",
                 props: { label: "手机号", placeholder: "请输入手机号", modelValue: "{{form.mobile}}" },
                 rules: [{ type: "required" }, { type: "phone" }],
               },
               {
                 id: "n_sel_dept",
-                component: "select",
+                component: "ec-select",
                 props: { label: "所属部门", options: "技术中心,产品中心,设计中心", modelValue: "{{form.dept}}" },
                 rules: [{ type: "required" }],
               },
               {
                 id: "n_date_entry",
-                component: "date",
+                component: "ec-date",
                 props: { label: "入职日期", modelValue: "{{form.entryDate}}" },
                 rules: [{ type: "required" }],
               },
@@ -71,18 +71,18 @@ export const employeeOnboardTemplate = (): PageSchema =>
           },
           {
             id: "n_ta_remark",
-            component: "textarea",
+            component: "ec-textarea",
             props: { label: "备注", placeholder: "如：需准备设备、工位等", modelValue: "{{form.remark}}" },
             rules: [{ type: "maxLength", value: 100 }],
           },
           {
             id: "n_space_actions",
-            component: "space",
+            component: "ec-space",
             props: { size: 12 },
             children: [
               {
                 id: "n_btn_submit",
-                component: "button",
+                component: "ec-button",
                 props: { text: "提交登记", type: "primary" },
                 events: {
                   click: [{ action: "submitForm", args: { from: "form", to: "list", successText: "登记成功，已加入列表" } }],
@@ -90,7 +90,7 @@ export const employeeOnboardTemplate = (): PageSchema =>
               },
               {
                 id: "n_btn_reset",
-                component: "button",
+                component: "ec-button",
                 props: { text: "重置", plain: true },
                 events: { click: [{ action: "resetForm", args: { path: "form" } }] },
               },
@@ -98,15 +98,15 @@ export const employeeOnboardTemplate = (): PageSchema =>
           },
         ],
       },
-      { id: "n_divider_list", component: "divider", props: {} },
+      { id: "n_divider_list", component: "ec-divider", props: {} },
       {
         id: "n_card_list",
-        component: "card",
+        component: "ec-card",
         props: { title: "最近登记" },
         children: [
           {
             id: "n_table_list",
-            component: "table",
+            component: "ec-table",
             props: {
               columns: [
                 { label: "姓名", prop: "name" },
@@ -119,13 +119,13 @@ export const employeeOnboardTemplate = (): PageSchema =>
           },
           {
             id: "n_text_empty",
-            component: "text",
+            component: "ec-text",
             props: { text: "还没有登记记录，填写上方表单试试。", muted: true },
             directives: [{ name: "show", value: "list.length === 0" }],
           },
           {
             id: "n_btn_clear",
-            component: "button",
+            component: "ec-button",
             props: { text: "清空列表", plain: true, size: "small" },
             directives: [{ name: "show", value: "list.length > 0" }],
             events: { click: [{ action: "clearList", args: { path: "list" } }] },
@@ -158,13 +158,13 @@ export const ticketTemplate = (): PageSchema =>
     children: [
       {
         id: "n_card_ticket",
-        component: "card",
+        component: "ec-card",
         props: { title: "工单信息" },
         children: [
-          { id: "n_title_ticket", component: "title", props: { text: "需求工单", level: 3 } },
+          { id: "n_title_ticket", component: "ec-title", props: { text: "需求工单", level: 3 } },
           {
             id: "n_alert_tip",
-            component: "alert",
+            component: "ec-alert",
             props: {
               title: "提交前请确认需求目标与验收标准",
               type: "info",
@@ -173,12 +173,12 @@ export const ticketTemplate = (): PageSchema =>
           },
           {
             id: "n_grid_ticket",
-            component: "grid",
+            component: "ec-grid",
             props: { columns: 2, gap: 16 },
             children: [
               {
                 id: "n_in_ticket_title",
-                component: "input",
+                component: "ec-input",
                 props: { label: "需求标题", placeholder: "一句话说明要做什么", modelValue: "{{ticket.title}}" },
                 rules: [
                   { type: "required" },
@@ -188,57 +188,57 @@ export const ticketTemplate = (): PageSchema =>
               },
               {
                 id: "n_org_picker",
-                component: "org-picker",
+                component: "ec-org-picker",
                 props: { label: "归属组织", modelValue: "{{ticket.org}}" },
                 rules: [{ type: "required" }],
               },
               {
                 id: "n_dict_priority",
-                component: "dict-select",
+                component: "ec-dict-select",
                 props: { label: "优先级", dict: "priority", modelValue: "{{ticket.priority}}" },
                 rules: [{ type: "required" }],
               },
               {
                 id: "n_amount_budget",
-                component: "amount-input",
+                component: "ec-amount-input",
                 props: { label: "预算", modelValue: "{{ticket.budget}}", precision: 0 },
                 rules: [{ type: "min", value: 0 }],
               },
               {
                 id: "n_rate_urgency",
-                component: "rate",
+                component: "ec-rate",
                 props: { label: "紧急程度", modelValue: "{{ticket.urgency}}" },
               },
               {
                 id: "n_slider_scope",
-                component: "slider",
+                component: "ec-slider",
                 props: { label: "影响范围", modelValue: "{{ticket.urgency}}", min: 1, max: 5, step: 1 },
               },
             ],
           },
           {
             id: "n_checkbox_channel",
-            component: "checkbox",
+            component: "ec-checkbox",
             props: { label: "触达渠道", options: "官网,小程序,线下", modelValue: "{{ticket.channels}}" },
           },
           {
             id: "n_switch_follow",
-            component: "switch",
+            component: "ec-switch",
             props: { label: "需要回访", modelValue: "{{ticket.needFollowUp}}" },
           },
           {
             id: "n_ta_detail",
-            component: "textarea",
+            component: "ec-textarea",
             props: { label: "需求详情", placeholder: "目标用户、痛点、期望效果", rows: 4, modelValue: "{{ticket.detail}}" },
           },
           {
             id: "n_space_ticket_actions",
-            component: "space",
+            component: "ec-space",
             props: { size: 12 },
             children: [
               {
                 id: "n_btn_ticket_submit",
-                component: "button",
+                component: "ec-button",
                 props: { text: "提交工单", type: "primary" },
                 events: {
                   click: [
@@ -256,7 +256,7 @@ export const ticketTemplate = (): PageSchema =>
               },
               {
                 id: "n_btn_ticket_reset",
-                component: "button",
+                component: "ec-button",
                 props: { text: "重置", plain: true },
                 events: { click: [{ action: "resetState", args: {} }] },
               },
@@ -266,12 +266,12 @@ export const ticketTemplate = (): PageSchema =>
       },
       {
         id: "n_card_ticket_list",
-        component: "card",
+        component: "ec-card",
         props: { title: "工单列表" },
         children: [
           {
             id: "n_table_tickets",
-            component: "table",
+            component: "ec-table",
             props: {
               columns: [
                 { label: "标题", prop: "title" },

@@ -17,13 +17,13 @@ export function createDemoPage(): PageSchema {
     children: [
       {
         id: "rt_title",
-        component: "title",
+        component: "ec-title",
         props: { text: "员工登记（React 渲染）" },
         style: { margin: "0 0 4px" },
       },
       {
         id: "rt_tip",
-        component: "text",
+        component: "ec-text",
         props: {
           text: "这一页的 Schema 与 Vue 示例同构：表达式、必填校验、动作白名单、margin / padding 全部来自 @x-ac/design-core。",
         },
@@ -31,13 +31,13 @@ export function createDemoPage(): PageSchema {
       },
       {
         id: "rt_card",
-        component: "card",
+        component: "ec-card",
         props: { title: "基本信息" },
         style: { padding: "16px", margin: "0 0 16px" },
         children: [
           {
             id: "rt_name",
-            component: "input",
+            component: "ec-input",
             props: { label: "姓名", placeholder: "请输入姓名", modelValue: "{{form.name}}" },
             rules: [
               { type: "required" },
@@ -48,7 +48,7 @@ export function createDemoPage(): PageSchema {
           },
           {
             id: "rt_dept",
-            component: "select",
+            component: "ec-select",
             props: {
               label: "部门",
               options: "技术中心,产品中心,设计中心",
@@ -60,18 +60,18 @@ export function createDemoPage(): PageSchema {
           },
           {
             id: "rt_note",
-            component: "textarea",
+            component: "ec-textarea",
             props: { label: "备注", modelValue: "{{form.note}}" },
             rules: [{ type: "maxLength", value: 50, message: "备注不要超过 {value} 个字" }],
             style: { marginBottom: "12px" },
           },
           {
             id: "rt_actions",
-            component: "space",
+            component: "ec-space",
             children: [
               {
                 id: "rt_submit",
-                component: "button",
+                component: "ec-button",
                 props: { text: "提交" },
                 style: { marginRight: "8px" },
                 events: {
@@ -85,7 +85,7 @@ export function createDemoPage(): PageSchema {
               },
               {
                 id: "rt_reset",
-                component: "button",
+                component: "ec-button",
                 props: { text: "重置" },
                 events: { click: [{ action: "resetState" }] },
               },
@@ -95,13 +95,13 @@ export function createDemoPage(): PageSchema {
       },
       {
         id: "rt_table_card",
-        component: "card",
+        component: "ec-card",
         props: { title: "已提交记录" },
         style: { padding: "16px" },
         children: [
           {
             id: "rt_table",
-            component: "table",
+            component: "ec-table",
             props: {
               columns: "姓名:name,部门:dept,提交时间:submitAt",
               data: "{{list}}",
