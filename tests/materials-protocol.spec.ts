@@ -158,7 +158,6 @@ describe("渲染器吃 ec- 前缀", () => {
     const { mount } = await import("@vue/test-utils");
     const { default: ElementPlus } = await import("element-plus");
     const { SchemaRenderer } = await import("@x-ac/design-vue");
-
     const node: NodeSchema = {
       id: "n_name",
       component: "ec-input",
@@ -182,5 +181,67 @@ describe("渲染器吃 ec- 前缀", () => {
     expect(wrapper.find("input").exists()).toBe(true);
     expect(wrapper.text()).toContain("姓名");
     expect(wrapper.find(".wb-field__req").exists()).toBe(true);
+  });
+
+  it("未注入适配包时降级为占位，不抛错", async () => {
+    const { mount } = await import("@vue/test-utils");
+    const { SchemaRenderer, UI_ADAPTER } = await import("@x-ac/design-vue");
+
+    const page: PageSchema = {
+      schemaVersion: "1.0.0",
+      id: "page_no_adapter",
+      type: "page",
+      meta: { title: "无适配包", device: "pc" },
+      children: [{ id: "n_x", component: "ec-input", props: { label: "姓名" } }],
+    };
+
+    const wrapper = mount(SchemaRenderer, {
+      props: { page },
+      global: { provide: { [UI_ADAPTER as symbol]: null } },
+    });
+
+    expect(wrapper.text()).toContain("未知组件");
+    expect(wrapper.html()).toContain("ec-input");
+  });
+
+  it("绑定通道由适配包决定（value 方言也能驱动 scope）", async () => {
+    const { mount } = await import("@vue/test-utils");
+    const { defineComponent, h } = await import("vue");
+    const { SchemaRenderer, UI_ADAPTER } = await import("@x-ac/design-vue");
+
+    const ValueInput = defineComponent({
+      name: "ValueInput",
+      props: { value: { type: String, default: "" } },
+      emits: ["update:value"],
+      setup(props, { emit }) {
+        return () =>
+          h("input", {
+            class: "fake-input",
+            value: props.value,
+            onInput: (event: Event) => emit("update:value", (event.target as HTMLInputElement).value),
+          });
+      },
+    });
+
+    const page: PageSchema = {
+      schemaVersion: "1.0.0",
+      id: "page_value_dialect",
+      type: "page",
+      meta: { title: "value 方言", device: "pc" },
+      state: { form: { name: "" } },
+      children: [{ id: "n_name", component: "ec-input", props: { label: "姓名", modelValue: "{{form.name}}" } }],
+    };
+
+    const wrapper = mount(SchemaRenderer, {
+      props: {
+        page,
+        adapter: { name: "fake", components: { "ec-input": ValueInput }, materials: MATERIALS, binding: { prop: "value", event: "onUpdate:value" } },
+      },
+      global: { provide: { [UI_ADAPTER as symbol]: null } },
+    });
+
+    await wrapper.find(".fake-input").setValue("张三");
+    const emitted = wrapper.emitted("update:data") as Array<[Record<string, unknown>]> | undefined;
+    expect(emitted?.at(-1)?.[0]).toEqual({ form: { name: "张三" } });
   });
 });
