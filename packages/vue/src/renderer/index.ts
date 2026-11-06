@@ -2,11 +2,11 @@ export { default as SchemaRenderer } from "./SchemaRenderer.vue";
 /** 渲染标签的语义化别名：<SchemaPage :page="schema" v-model:data="formData" @submit="..." /> */
 export { default as SchemaPage } from "./SchemaRenderer.vue";
 export { default as SchemaNode } from "./SchemaNode.vue";
-export { elementAdapter, runActions } from "./actions";
-export type { VueActionContext } from "./actions";
+export { runNodeActions } from "./runActions";
+export type { NodeActionContext } from "./runActions";
 export { usePageScope } from "./usePageScope";
 export type { PageScopeApi } from "./usePageScope";
-export { DESIGNER_SCENE, RENDER_CONTEXT } from "./context";
+export { DESIGNER_SCENE, RENDER_CONTEXT, UI_ADAPTER, materialFrom, useUiAdapter } from "./context";
 export type { DesignerScene, RenderContext } from "./context";
 
 // 动作协议与校验在 core，渲染器出口透传一份，宿主只装一个包也能用

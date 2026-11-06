@@ -11,19 +11,20 @@
 import "./styles/tokens.css";
 
 export * from "./renderer";
-export { COMPONENT_MAP, resolveComponent } from "./materials/components";
 export { createVueDesign, VueDesignPlugin } from "./plugin";
 export type { VueDesignOptions } from "./plugin";
 
 // 常用内核能力透出，宿主不必再单独安装 core
 export {
+  DEFAULT_BINDING,
   MATERIALS,
   createEmptyPage,
   getMaterial,
+  materialKey,
   migratePage,
   resolveDefaults,
   toHtml,
   toJSON,
   validatePage,
 } from "@x-ac/design-core";
-export type { NodeSchema, PageSchema } from "@x-ac/design-core";
+export type { Material, NodeSchema, PageSchema, UiAdapter } from "@x-ac/design-core";

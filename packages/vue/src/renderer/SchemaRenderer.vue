@@ -14,11 +14,11 @@
  * 生产环境的 /preview 只加载这一个组件树，不引入设计器。
  * SchemaPage 是本组件的语义化别名，二者完全等同。
  */
-import { computed, provide, reactive, ref, useAttrs, watch } from "vue";
-import type { DataExportOptions, DataExportResult, NodeSchema, PageSchema } from "@x-ac/design-core";
+import { computed, inject, provide, reactive, ref, useAttrs, watch } from "vue";
+import type { DataExportOptions, DataExportResult, NodeSchema, PageSchema, UiAdapter } from "@x-ac/design-core";
 import { exportData, createEmptyPage, migratePage, validateData, validateNodeField } from "@x-ac/design-core";
 import SchemaNode from "./SchemaNode.vue";
-import { RENDER_CONTEXT } from "./context";
+import { RENDER_CONTEXT, UI_ADAPTER } from "./context";
 import { usePageScope } from "./usePageScope";
 
 const props = withDefaults(
@@ -31,6 +31,11 @@ const props = withDefaults(
     navigate?: (to: string) => void;
     /** v-model:data —— 宿主外部数据，优先于 page.state 作为初始 scope */
     data?: Record<string, unknown>;
+    /**
+     * UI 适配包：组件实现 + 双向绑定通道 + 动作副作用。
+     * 通常由 createVueDesign({ adapter }) 全局注入；此处是组件级覆盖。
+     */
+    adapter?: UiAdapter<unknown>;
   }>(),
   { mode: "view", design: false },
 );
@@ -44,6 +49,16 @@ const emit = defineEmits<{
 }>();
 
 const attrs = useAttrs();
+
+/* ---------------- UI 适配包：prop 覆盖 > 全局注入 ---------------- */
+
+const inheritedAdapter = inject(UI_ADAPTER, null);
+const activeAdapter = computed(() => props.adapter ?? inheritedAdapter ?? null);
+provide(UI_ADAPTER, activeAdapter.value);
+
+if (!activeAdapter.value) {
+  console.warn("[vue-design] 未注入 UI 适配包：所有物料将降级为未知组件占位（不白屏）");
+}
 
 /* ---------------- page 归一：对象直用，字符串走解析 + 迁移 ---------------- */
 

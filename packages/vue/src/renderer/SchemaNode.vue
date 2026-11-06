@@ -4,14 +4,13 @@
  * mode=view 挂事件、跑动作；mode=edit 只做视觉呈现，供设计器包裹交互。
  */
 import { computed, inject } from "vue";
-import type { CSSProperties } from "vue";
+import type { CSSProperties, Component } from "vue";
 import type { NodeSchema } from "@x-ac/design-core";
-import { getMaterial, resolveDefaults } from "@x-ac/design-core";
-import { resolveComponent } from "../materials/components";
-import FieldShell from "../materials/fields/FieldShell.vue";
+import { DEFAULT_BINDING, getMaterial, materialKey, resolveDefaults } from "@x-ac/design-core";
+import FieldShell from "./FieldShell.vue";
 import { extractPath, getByPath, isBindable, isRequired, resolveBoolean, resolveNodeStyle, resolveValue, setByPath } from "@x-ac/design-core";
-import { DESIGNER_SCENE, RENDER_CONTEXT } from "./context";
-import { runActions } from "./actions";
+import { DESIGNER_SCENE, materialFrom, RENDER_CONTEXT, useUiAdapter } from "./context";
+import { runNodeActions } from "./runActions";
 
 const props = withDefaults(
   defineProps<{
@@ -26,10 +25,15 @@ const props = withDefaults(
 
 const scene = inject(DESIGNER_SCENE, null);
 const renderCtx = inject(RENDER_CONTEXT, null);
+/** 当前 UI 适配包：组件实现、双向绑定通道、动作副作用都从这里取 */
+const adapter = useUiAdapter();
 
-const material = computed(() => getMaterial(props.node.component));
-const isUnknown = computed(() => !material.value);
-const resolved = computed(() => resolveComponent(props.node.component));
+const material = computed(() => materialFrom(adapter, materialKey(props.node.component)) ?? getMaterial(props.node.component));
+const isUnknown = computed(() => !material.value || !resolved.value);
+const resolved = computed<Component | string | null>(() => {
+  const key = materialKey(props.node.component);
+  return (adapter?.components?.[key] as Component | string | undefined) ?? null;
+});
 const nodeLabel = computed(() => material.value?.title ?? props.node.component);
 
 /* ---------------- 指令 ---------------- */
@@ -80,18 +84,19 @@ const bindProps = computed<Record<string, unknown>>(() => {
     out[key] = isBindable(key) ? resolveValue(value, props.scope) : value;
   }
 
-  // 双向绑定：{{path}} 写法直接读写 scope，实现「改输入框 → 页面状态更新」
+  // 双向绑定：通道名由适配包决定（Element Plus 是 modelValue，antd / Naive 是 value）
+  const channel = adapter?.binding ?? DEFAULT_BINDING;
   const modelValue = raw.modelValue;
   const path = extractPath(modelValue);
   if (path) {
-    out.modelValue = getByPath(props.scope, path);
-    out["onUpdate:modelValue"] = (value: unknown) => {
+    out[channel.prop] = getByPath(props.scope, path);
+    out[channel.event] = (value: unknown) => {
       setByPath(props.scope, path, value);
       // 已经报错的字段边改边验：改对了立刻消红，没改对继续提示
       if (renderCtx?.errors[props.node.id]) renderCtx.validateField(props.node);
     };
   } else if (modelValue !== undefined) {
-    out.modelValue = resolveValue(modelValue, props.scope);
+    out[channel.prop] = resolveValue(modelValue, props.scope);
   }
 
   return out;
@@ -135,14 +140,18 @@ const eventHandlers = computed<Record<string, (...args: unknown[]) => void>>(() 
     const eventName = name.replace(/-([a-z])/g, (_match, char: string) => char.toUpperCase());
 
     out[eventName] = () => {
-      void runActions(actions, {
-        scope: props.scope,
-        page: renderCtx.page,
-        errors: renderCtx.errors,
-        resetScope: renderCtx.resetScope,
-        navigate: renderCtx.navigate,
-        onFormSubmit: renderCtx.onFormSubmit,
-      });
+      void runNodeActions(
+        actions,
+        {
+          scope: props.scope,
+          page: renderCtx.page,
+          errors: renderCtx.errors,
+          resetScope: renderCtx.resetScope,
+          navigate: renderCtx.navigate,
+          onFormSubmit: renderCtx.onFormSubmit,
+        },
+        adapter?.actions,
+      );
     };
   }
 

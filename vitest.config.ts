@@ -12,6 +12,7 @@ export default defineConfig({
     alias: [
       { find: "@x-ac/design-core", replacement: r("./packages/core/src/index.ts") },
       { find: "@x-ac/design-react", replacement: r("./packages/react/src/index.ts") },
+      { find: "@x-ac/design-vue-element-plus", replacement: r("./packages/vue-element-plus/src/index.ts") },
       { find: "@x-ac/design-vue/designer", replacement: r("./packages/vue/src/designer.ts") },
       { find: "@x-ac/design-vue", replacement: r("./packages/vue/src/index.ts") },
       { find: "@/designer", replacement: r("./packages/vue/src/designer") },
@@ -25,6 +26,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.spec.ts", "tests/**/*.spec.tsx"],
+    setupFiles: ["tests/setup.ts"],
     // 本机沙箱对 vite-node 的 ssr 临时写入受限，改用进程池可绕开该缓存
     pool: "forks",
     poolOptions: { forks: { singleFork: true } },

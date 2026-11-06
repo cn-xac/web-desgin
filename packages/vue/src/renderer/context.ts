@@ -1,5 +1,5 @@
-import type { InjectionKey } from "vue";
-import type { NodeSchema, PageSchema } from "@x-ac/design-core";
+import { inject, type InjectionKey } from "vue";
+import type { NodeSchema, Material, PageSchema, UiAdapter } from "@x-ac/design-core";
 
 /** 渲染上下文：动作执行、字段校验、跨页跳转都从这里拿 */
 export interface RenderContext {
@@ -39,3 +39,22 @@ export interface DesignerScene {
 }
 
 export const DESIGNER_SCENE: InjectionKey<DesignerScene> = Symbol("wb-designer-scene");
+
+/**
+ * UI 适配包：引擎只认这份契约，不认识任何具体 UI 库。
+ *
+ * 由宿主通过 createVueDesign({ adapter }) 或 <SchemaPage :adapter> 注入，
+ * 是应用级单例 —— 页面内不支持运行时切换（切换请重建根组件）。
+ */
+export const UI_ADAPTER: InjectionKey<UiAdapter<unknown> | null> = Symbol("wb-ui-adapter");
+
+/** 取当前适配包；未注入时返回 null，渲染器会降级为未知组件占位（不白屏） */
+export function useUiAdapter(): UiAdapter<unknown> | null {
+  return inject(UI_ADAPTER, null);
+}
+
+/** 物料查找：适配包自带 materials 时优先，否则回落到 core 的默认清单 */
+export function materialFrom(adapter: UiAdapter<unknown> | null, key: string): Material | undefined {
+  if (!adapter?.materials?.length) return undefined;
+  return adapter.materials.find((item) => item.component === key);
+}

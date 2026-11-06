@@ -223,6 +223,9 @@ importers:
       '@x-ac/design-vue':
         specifier: workspace:*
         version: link:../../packages/vue
+      '@x-ac/design-vue-element-plus':
+        specifier: workspace:*
+        version: link:../../packages/vue-element-plus
       element-plus:
         specifier: ^2.14.7
         version: 2.14.7(vue@3.5.44(typescript@5.9.3))
@@ -328,6 +331,34 @@ importers:
       pinia:
         specifier: ^2.3.0
         version: 2.3.1(typescript@5.9.3)(vue@3.5.44(typescript@5.9.3))
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.5
+        version: 6.4.5(@types/node@26.6.6)
+      vite-plugin-dts:
+        specifier: ^4.3.0
+        version: 4.5.4(@types/node@26.6.6)(rollup@4.67.5)(supports-color@8.1.1)(typescript@5.9.3)(vite@6.4.5(@types/node@26.6.6))
+      vue:
+        specifier: ^3.5.13
+        version: 3.5.44(typescript@5.9.3)
+      vue-tsc:
+        specifier: ^2.1.10
+        version: 2.2.12(typescript@5.9.3)
+
+  packages/vue-element-plus:
+    dependencies:
+      '@x-ac/design-core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^5.2.1
+        version: 5.2.4(vite@6.4.5(@types/node@26.6.6))(vue@3.5.44(typescript@5.9.3))
+      element-plus:
+        specifier: ^2.14.7
+        version: 2.14.7(vue@3.5.44(typescript@5.9.3))
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
