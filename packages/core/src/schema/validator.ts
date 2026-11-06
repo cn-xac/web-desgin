@@ -5,6 +5,7 @@
 
 import type { NodeSchema, PageSchema } from "./types";
 import { compilePattern, getRuleDefinition, RULE_TYPES } from "../validation/rules";
+import { materialKey } from "../materials/keys";
 
 export type IssueLevel = "error" | "warning";
 
@@ -93,7 +94,7 @@ export function validatePage(input: unknown, knownComponents?: Set<string>): Val
 
       if (typeof node.component !== "string" || !node.component.trim()) {
         error(`${at}.component`, "component 不能为空");
-      } else if (knownComponents && !knownComponents.has(node.component)) {
+      } else if (knownComponents && !knownComponents.has(node.component) && !knownComponents.has(materialKey(node.component))) {
         warn(`${at}.component`, `未注册的组件 ${node.component}，渲染时会降级为占位块`);
       }
 

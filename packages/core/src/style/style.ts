@@ -6,6 +6,7 @@
 
 import { normalizeLength, readSpacing, SPACING_SIDES, type SpacingKey } from "./spacing";
 import { resolveDefaultStyle } from "../materials/catalog";
+import { bareKey } from "../materials/keys";
 
 export type CssStyle = Record<string, string>;
 
@@ -43,7 +44,7 @@ const LENGTH_KEYS = new Set([
 export function propStyle(component: string, props: Record<string, unknown>): CssStyle {
   const style: CssStyle = {};
 
-  switch (component) {
+  switch (bareKey(component)) {
     case "container": {
       if (props.padding !== undefined) style.padding = `${Number(props.padding) || 0}px`;
       if (props.background) style.background = String(props.background);

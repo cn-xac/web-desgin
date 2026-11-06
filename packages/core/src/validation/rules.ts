@@ -9,6 +9,7 @@
  */
 
 import type { NodeSchema } from "../schema/types";
+import { bareKey } from "../materials/keys";
 
 export type RuleType =
   | "required"
@@ -142,7 +143,7 @@ export function defaultRuleMessage(rule: ValidationRule, label: string, componen
   const name = label || "该项";
   switch (rule.type) {
     case "required":
-      return `${CHOOSE_COMPONENTS.has(component ?? "") ? "请选择" : "请填写"}${name}`;
+      return `${CHOOSE_COMPONENTS.has(bareKey(component ?? "")) ? "请选择" : "请填写"}${name}`;
     case "minLength":
       return `${name}不能少于 ${rule.value ?? 0} 个字符`;
     case "maxLength":
@@ -196,8 +197,9 @@ export function isRequired(node: Pick<NodeSchema, "rules">, props: Record<string
 
 /** 设计器里按组件类型过滤可用规则：数字类不给长度规则，文本类不给数值规则 */
 export function ruleTypesFor(component: string): RuleType[] {
-  const numeric = ["number", "amount-input", "slider", "rate"].includes(component);
-  const text = ["input", "textarea"].includes(component);
+  const bare = bareKey(component);
+  const numeric = ["number", "amount-input", "slider", "rate"].includes(bare);
+  const text = ["input", "textarea"].includes(bare);
 
   return RULE_DEFINITIONS.filter((definition) => {
     if (definition.type === "required") return true;

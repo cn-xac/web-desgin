@@ -1,8 +1,12 @@
-import type { Material, MaterialCategory } from "./types";
+import type { Material } from "./types";
+import { materialKey } from "./keys";
+import { createRegistry, type MaterialRegistry } from "./registry";
 
 /**
  * 物料清单。默认值只在这里定义一次：节点 props 里只存与默认值不同的键，
  * 渲染时以 { ...defaultProps, ...props } 合并，导出即为最小化 JSON。
+ *
+ * 表里写裸名（`input`），对外统一加 `ec-` 前缀（`ec-input`）：归一化只发生在下面的 MATERIALS。
  */
 
 const commonEvents = {
@@ -13,7 +17,7 @@ const commonEvents = {
   clickEvents: [{ name: "click", title: "点击" }],
 };
 
-export const MATERIALS: Material[] = [
+const MATERIALS_RAW: Material[] = [
   /* ---------------- 布局 ---------------- */
   {
     component: "container",
@@ -510,30 +514,35 @@ export const MATERIALS: Material[] = [
   },
 ];
 
-export const CATEGORIES: MaterialCategory[] = ["布局", "展示", "表单", "交互", "业务"];
+/**
+ * 对外物料清单：组件名统一加 `ec-` 前缀，并补齐 owner / portable 默认值。
+ * 历史 Schema 里的裸名（`input`）仍可解析 —— 归一化在 registry 查询时完成。
+ */
+export const MATERIALS: Material[] = MATERIALS_RAW.map((material) => ({
+  ...material,
+  component: materialKey(material.component),
+  owner: material.owner ?? "adapter",
+  portable: material.portable ?? true,
+}));
 
-const byComponent = new Map(MATERIALS.map((m) => [m.component, m]));
+export const registry: MaterialRegistry = createRegistry(MATERIALS);
 
 export function getMaterial(component: string): Material | undefined {
-  return byComponent.get(component);
+  return registry.get(component);
 }
 
 export function acceptsChildren(component: string): boolean {
   return Boolean(getMaterial(component)?.acceptsChildren);
 }
 
-export const KNOWN_COMPONENTS = new Set(MATERIALS.map((m) => m.component));
+/** 已注册的组件名（协议名，含 ec- 前缀） */
+export const KNOWN_COMPONENTS = new Set(registry.keys());
 
-export function materialsByCategory(): Array<{ category: MaterialCategory; items: Material[] }> {
-  return CATEGORIES.map((category) => ({
-    category,
-    items: MATERIALS.filter((m) => m.category === category),
-  }));
-}
+export const materialsByCategory = registry.byCategory;
 
 /** 节点有效属性 = 物料默认值 + 节点自身属性（默认值不落库的实现基石） */
 export function resolveDefaults(component: string, props: Record<string, unknown> | undefined): Record<string, unknown> {
-  const material = byComponent.get(component);
+  const material = registry.get(component);
   return { ...(material?.defaultProps ?? {}), ...(props ?? {}) };
 }
 
@@ -542,7 +551,7 @@ export function resolveDefaultStyle(
   component: string,
   style: Record<string, unknown> | undefined,
 ): Record<string, string> {
-  const defaults = byComponent.get(component)?.defaultStyle ?? {};
+  const defaults = registry.get(component)?.defaultStyle ?? {};
   const merged: Record<string, string> = { ...defaults };
   for (const [key, value] of Object.entries(style ?? {})) {
     if (value === undefined || value === null || value === "") continue;

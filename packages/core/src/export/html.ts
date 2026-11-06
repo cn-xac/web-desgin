@@ -8,6 +8,7 @@
 import type { NodeSchema, PageSchema } from "../schema/types";
 import { resolveBoolean, resolveValue } from "../schema/expression";
 import { getMaterial, resolveDefaults } from "../materials/catalog";
+import { bareKey } from "../materials/keys";
 import { resolveNodeStyle, styleToCssText, kebab } from "../style/style";
 import { isRequired } from "../validation/rules";
 
@@ -57,7 +58,7 @@ function renderField(node: NodeSchema, materialTitle: string, props: Record<stri
   const label = textOf(props.label ?? materialTitle, scope);
   const requiredField = isRequired(node, props);
   const required = requiredField ? " required" : "";
-  const tag = FORM_TAGS[node.component] ?? "input";
+  const tag = FORM_TAGS[bareKey(node.component)] ?? "input";
   const placeholder = props.placeholder ? ` placeholder="${escapeHtml(textOf(props.placeholder, scope))}"` : "";
 
   let control: string;
@@ -72,7 +73,8 @@ function renderField(node: NodeSchema, materialTitle: string, props: Record<stri
   } else if (tag === "textarea") {
     control = `<textarea${style}${placeholder}${required}></textarea>`;
   } else {
-    const type = node.component === "number" ? "number" : node.component === "date" ? "date" : "text";
+    const bare = bareKey(node.component);
+    const type = bare === "number" ? "number" : bare === "date" ? "date" : "text";
     control = `<input type="${type}"${style}${placeholder}${required} />`;
   }
 
@@ -122,7 +124,7 @@ function renderNode(node: NodeSchema, scope: Scope): string {
   const children = (node.children ?? []).map((child) => renderNode(child, scope)).join("");
   const title = material?.title ?? node.component;
 
-  switch (node.component) {
+  switch (bareKey(node.component)) {
     case "text":
       return `<p${styleWithHidden}>${escapeHtml(textOf(props.text, scope))}</p>`;
     case "title":
