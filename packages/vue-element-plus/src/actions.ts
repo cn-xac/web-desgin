@@ -5,7 +5,6 @@
 
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
-  createNoopAdapter,
   runActions as runCoreActions,
   type ActionAdapter,
   type ActionContext,
@@ -39,5 +38,4 @@ export function runActions(actions: ActionSchema[], ctx: VueActionContext): Prom
   return runCoreActions(actions, { ...ctx, adapter: ctx.adapter ?? elementAdapter });
 }
 
-export { createNoopAdapter };
 export type { ActionAdapter, ActionNotifyType };
