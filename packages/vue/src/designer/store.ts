@@ -17,7 +17,7 @@ import {
 import { getMaterial } from "@x-ac/design-core";
 import { compactPage, toJSON } from "@x-ac/design-core";
 import { writeSpacing, type SpacingBox, type SpacingKey } from "@x-ac/design-core";
-import { getPageRepository } from "../persistence/repo";
+import { getPageRepository, type PageRepository } from "../persistence/repo";
 
 export type DragPayload = { kind: "new"; component: string } | { kind: "move"; id: string };
 
@@ -41,6 +41,14 @@ export const useDesignerStore = defineStore("designer", () => {
   const lastSavedSnapshot = ref("");
   const lastSavedAt = ref(0);
   const loading = ref(false);
+  /**
+   * 组件级仓储（<SchemaDesigner :repository="..."> 注入）。
+   * 不设置时回落全局 getPageRepository()，兼容旧的 setPageRepository 集成方式；
+   * 一个页面挂多个设计器实例时，各用各的仓储互不打架。
+   */
+  const repository = ref<PageRepository | null>(null);
+
+  const repo = (): PageRepository => repository.value ?? getPageRepository();
 
   const snapshot = computed(() => JSON.stringify(page.value));
   const dirty = computed(() => snapshot.value !== lastSavedSnapshot.value);
@@ -91,9 +99,13 @@ export const useDesignerStore = defineStore("designer", () => {
 
   /* ---------------- 载入 / 保存 ---------------- */
 
+  function setRepository(next: PageRepository | null): void {
+    repository.value = next;
+  }
+
   function load(id: string): boolean {
     loading.value = true;
-    const record = getPageRepository().get(id);
+    const record = repo().get(id);
     loading.value = false;
     if (!record) return false;
 
@@ -118,7 +130,7 @@ export const useDesignerStore = defineStore("designer", () => {
   function save(): boolean {
     try {
       const compact = compactPage(page.value);
-      getPageRepository().save(compact);
+      repo().save(compact);
       page.value = JSON.parse(JSON.stringify(compact)) as PageSchema;
       lastSavedSnapshot.value = JSON.stringify(page.value);
       lastSavedAt.value = Date.now();
@@ -385,6 +397,7 @@ export const useDesignerStore = defineStore("designer", () => {
     clipboard,
     undo,
     redo,
+    setRepository,
     load,
     save,
     setPage,

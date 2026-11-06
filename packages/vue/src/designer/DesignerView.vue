@@ -10,14 +10,22 @@ import { migratePage } from "@x-ac/design-core";
 import { validatePage } from "@x-ac/design-core";
 import { KNOWN_COMPONENTS } from "@x-ac/design-core";
 import { toHtml } from "@x-ac/design-core";
-import type { DeviceType } from "@x-ac/design-core";
+import type { DeviceType, PageSchema } from "@x-ac/design-core";
+import type { PageRepository } from "../persistence/repo";
 
 /**
- * 设计器不依赖路由：页面 id 由宿主传入，跳转通过事件抛给宿主。
+ * 设计器标签（<SchemaDesigner page-id="..." @saved="..." />）。
+ * 不依赖路由：页面 id 由宿主传入，跳转通过事件抛给宿主。
  * 这样既能挂在本项目的路由上，也能嵌进任何已有 Vue 后台的某个 Tab 里。
+ *
+ * 数据进出：
+ * - 进：`repository` prop（组件级仓储，不传回落全局 setPageRepository）
+ * - 出：`@saved` / `@export-schema` 事件；ref 上还有 importSchema / exportSchema / save
  */
 const props = defineProps<{
   pageId: string;
+  /** 组件级页面仓储：localStorage、HTTP 后端、内存都行；不传用全局仓储 */
+  repository?: PageRepository;
   /** 可选：宿主提供预览地址构造函数，设计器直接打开新窗口 */
   previewUrl?: (id: string) => string;
   /** 可选：动作里的「页面跳转」交给宿主处理 */
@@ -28,6 +36,8 @@ const emit = defineEmits<{
   back: [];
   preview: [id: string];
   saved: [id: string];
+  /** 工具栏导出 JSON / HTML 时同步抛出，宿主可顺手归档到自己的存储 */
+  "export-schema": [payload: { kind: "json" | "html"; content: string; schema: PageSchema }];
 }>();
 
 const store = useDesignerStore();
@@ -48,6 +58,12 @@ onMounted(() => {
   window.addEventListener("keydown", onKeydown);
   window.addEventListener("beforeunload", onBeforeUnload);
 });
+
+watch(
+  () => props.repository,
+  (repo) => store.setRepository(repo ?? null),
+  { immediate: true },
+);
 
 watch(
   () => props.pageId,
@@ -146,19 +162,48 @@ function download(filename: string, content: string, type: string): void {
   URL.revokeObjectURL(link.href);
 }
 
-function exportJSON(): void {
+/* ---------------- 对宿主暴露：导入 / 导出 / 保存 ---------------- */
+
+/** 导出页面 JSON（含事件抛出，宿主可归档） */
+function exportSchema(): string {
   const json = store.exportJSON();
   download(`${store.page.meta?.title ?? "page"}.json`, json, "application/json");
   void navigator.clipboard?.writeText(json);
+  emit("export-schema", { kind: "json", content: json, schema: JSON.parse(json) as PageSchema });
   ElMessage.success("已导出 JSON 并复制到剪贴板");
+  return json;
 }
 
 /** 导出静态 HTML：同一份 Schema 在浏览器外也能渲染，证明 core 与框架解耦 */
-function exportHtml(): void {
+function exportHtml(): string {
   const html = toHtml(store.page);
   download(`${store.page.meta?.title ?? "page"}.html`, html, "text/html");
+  emit("export-schema", { kind: "html", content: html, schema: store.page });
   ElMessage.success("已导出静态 HTML");
+  return html;
 }
+
+/**
+ * 导入页面 JSON（字符串）。走与文件导入完全同一条链路：
+ * 迁移旧版本 → 校验 → 替换（可撤销）。
+ */
+function importSchema(json: string): boolean {
+  try {
+    const { schema, applied } = migratePage(json);
+    const result = validatePage(schema, KNOWN_COMPONENTS);
+    if (!result.valid) {
+      throw new Error(result.errors.map((e) => `${e.path}: ${e.message}`).join("；"));
+    }
+    store.replaceWith(schema);
+    ElMessage.success(applied.length ? `已导入（执行迁移 ${applied.join(", ")}）` : "已导入，记得保存");
+    return true;
+  } catch (error) {
+    ElMessage.error(`导入失败：${(error as Error).message}`);
+    return false;
+  }
+}
+
+defineExpose({ exportSchema, exportHtml, importSchema, save });
 
 function triggerImport(): void {
   fileInput.value?.click();
@@ -171,17 +216,7 @@ function onFileChange(event: Event): void {
 
   const reader = new FileReader();
   reader.onload = () => {
-    try {
-      const { schema, applied } = migratePage(reader.result);
-      const result = validatePage(schema, KNOWN_COMPONENTS);
-      if (!result.valid) {
-        throw new Error(result.errors.map((e) => `${e.path}: ${e.message}`).join("；"));
-      }
-      store.replaceWith(schema);
-      ElMessage.success(applied.length ? `已导入（执行迁移 ${applied.join(", ")}）` : "已导入，记得保存");
-    } catch (error) {
-      ElMessage.error(`导入失败：${(error as Error).message}`);
-    }
+    importSchema(String(reader.result));
     input.value = "";
   };
   reader.readAsText(file);
@@ -229,7 +264,7 @@ function backToList(): void {
       <div class="spacer" />
 
       <el-button size="small" @click="triggerImport">导入</el-button>
-      <el-button size="small" @click="exportJSON">导出 JSON</el-button>
+      <el-button size="small" @click="exportSchema">导出 JSON</el-button>
       <el-button size="small" @click="exportHtml">导出 HTML</el-button>
       <el-button size="small" @click="preview">预览</el-button>
       <el-button size="small" type="primary" @click="save">保存</el-button>
