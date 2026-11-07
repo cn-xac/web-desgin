@@ -15,9 +15,30 @@ const props = withDefaults(
     stripe?: boolean;
     emptyText?: string;
     rowKey?: string;
+    /** 之前写死 size="default"，属性面板上的「尺寸」设了不生效，这里接回来 */
+    size?: "large" | "default" | "small";
+    height?: number | string;
+    maxHeight?: number | string;
+    showHeader?: boolean;
+    highlightCurrentRow?: boolean;
   }>(),
-  { border: true, stripe: false, emptyText: "暂无数据" },
+  {
+    border: true,
+    stripe: false,
+    emptyText: "暂无数据",
+    size: "default",
+    height: "",
+    maxHeight: "",
+    showHeader: true,
+    highlightCurrentRow: false,
+  },
 );
+
+/** 空串要当作「不设置」，否则 ElTable 会收到 0 高度 */
+function sizeOf(value: number | string | undefined): number | string | undefined {
+  if (value === "" || value === undefined || value === null) return undefined;
+  return value;
+}
 
 const emit = defineEmits<{ (e: "row-click", row: Record<string, unknown>, index: number): void }>();
 
@@ -68,7 +89,11 @@ function display(row: Record<string, unknown>, prop: string): string {
     :stripe="stripe"
     :row-key="rowKey || undefined"
     :empty-text="emptyText"
-    size="default"
+    :size="size"
+    :height="sizeOf(height)"
+    :max-height="sizeOf(maxHeight)"
+    :show-header="showHeader"
+    :highlight-current-row="highlightCurrentRow"
     @row-click="(row: Record<string, unknown>, index: number) => emit('row-click', row, index)"
   >
     <el-table-column
