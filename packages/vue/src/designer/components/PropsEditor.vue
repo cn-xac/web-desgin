@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, type Component } from "vue";
-import type { PropField } from "@x-ac/design-core";
+import { computed, reactive, type Component } from "vue";
+import type { PropField, PropFieldGroup } from "@x-ac/design-core";
+import { FIELD_GROUP_LABELS, fieldOptions, groupFields } from "@x-ac/design-core";
 import UiControl from "../ui/UiControl.vue";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
@@ -30,6 +31,25 @@ const material = computed(() => (node.value ? catalog.get(node.value.component) 
 const effective = computed(() => (node.value ? catalog.defaults(node.value.component, node.value.props) : {}));
 const customKeys = computed(() => new Set(Object.keys(node.value?.props ?? {})));
 const stateKeys = computed(() => Object.keys(store.page.state ?? {}));
+
+/**
+ * 分组折叠状态：`advanced` 默认收起。
+ * UI 库组件动辄二十几个属性，全平铺会让面板变成需要不停滚动的长列表，
+ * 而其中大半（autofocus / tabindex / nativeType）一年也改不到一次。
+ */
+const collapsed = reactive<Record<PropFieldGroup, boolean>>({
+  basic: false,
+  content: false,
+  data: false,
+  style: false,
+  advanced: true,
+});
+
+const sections = computed(() => (material.value ? groupFields(material.value.fields) : []));
+
+function toggle(group: PropFieldGroup): void {
+  collapsed[group] = !collapsed[group];
+}
 
 function value(key: string): unknown {
   return effective.value[key];
@@ -113,102 +133,120 @@ function copyId(): void {
 
     <div v-if="material.hint" class="props__hint">{{ material.hint }}</div>
 
-    <div v-for="field in material.fields" :key="field.key" class="props__row">
-      <div class="props__label">
-        <span>{{ field.label }}</span>
-        <span v-if="isCustom(field.key)" class="props__dot" title="与默认值不同，会写入 Schema">●</span>
-        <span v-if="isBound(value(field.key))" class="props__bind">绑定</span>
-      </div>
+    <section v-for="section in sections" :key="section.group" class="props__group">
+      <button
+        class="props__group-head"
+        :class="{ 'is-collapsed': collapsed[section.group] }"
+        type="button"
+        @click="toggle(section.group)"
+      >
+        <span class="props__group-arrow">▾</span>
+        <span class="props__group-name">{{ FIELD_GROUP_LABELS[section.group] }}</span>
+        <span class="props__group-count">{{ section.fields.length }}</span>
+      </button>
 
-      <!-- 适配包覆盖优先：给了就用它的控件，没给走下面的内置实现 -->
-      <component
-        v-if="editorFor(field)"
-        :is="editorFor(field)"
-        :model-value="value(field.key)"
-        :field="field"
-        @update:model-value="(v: unknown) => set(field.key, v)"
-      />
-
-      <UiControl as="Switch"
-        v-else-if="field.type === 'boolean'"
-        :model-value="Boolean(value(field.key))"
-        size="small"
-        @update:model-value="(v: unknown) => set(field.key, v)"
-      />
-
-      <UiControl as="NumberInput"
-        v-else-if="field.type === 'number'"
-        :model-value="Number(value(field.key) ?? 0)"
-        :controls="false"
-        size="small"
-        style="width: 100%"
-        @update:model-value="(v: unknown) => set(field.key, Number(v ?? 0))"
-      />
-
-      <UiControl
-        v-else-if="field.type === 'select'"
-        as="Select"
-        :model-value="value(field.key) as string | number"
-        :options="(field.options ?? []).map((option) => ({ label: String(option), value: option }))"
-        size="small"
-        style="width: 100%"
-        @update:model-value="(v: unknown) => set(field.key, v)"
-      />
-
-      <!-- 取色：业务物料的主题色 / 标签色都靠它，缺了只能手写十六进制 -->
-      <UiControl as="ColorInput"
-        v-else-if="field.type === 'color'"
-        :model-value="String(value(field.key) ?? '')"
-        size="small"
-        @update:model-value="(v: unknown) => set(field.key, v)"
-      />
-
-      <UiControl as="Input"
-        v-else-if="field.type === 'textarea'"
-        type="textarea"
-        :rows="3"
-        size="small"
-        :model-value="String(value(field.key) ?? '')"
-        @update:model-value="(v: unknown) => set(field.key, v)"
-      />
-
-      <UiControl as="Input"
-        v-else-if="field.type === 'text' || field.type === 'options'"
-        size="small"
-        :model-value="String(value(field.key) ?? '')"
-        @update:model-value="(v: unknown) => set(field.key, v)"
-      />
-
-      <template v-if="field.type === 'columns'">
-        <div class="columns">
-          <div v-for="(column, index) in columnsOf(field.key)" :key="index" class="columns__row">
-            <UiControl as="Input"
-              size="small"
-              :model-value="column.label"
-              placeholder="列名"
-              @update:model-value="(v: unknown) => updateColumn(field.key, index, 'label', String(v))"
-            />
-            <UiControl as="Input"
-              size="small"
-              :model-value="column.prop"
-              placeholder="字段"
-              @update:model-value="(v: unknown) => updateColumn(field.key, index, 'prop', String(v))"
-            />
-            <button class="columns__del" title="删除该列" @click="removeColumn(field.key, index)">×</button>
+      <div v-show="!collapsed[section.group]" class="props__group-body">
+        <div v-for="field in section.fields" :key="field.key" class="props__row">
+          <div class="props__label">
+            <span>{{ field.label }}</span>
+            <span v-if="isCustom(field.key)" class="props__dot" title="与默认值不同，会写入 Schema">●</span>
+            <span v-if="isBound(value(field.key))" class="props__bind">绑定</span>
           </div>
-          <UiControl as="Button" size="small" text type="primary" @click="addColumn(field.key)">+ 添加列</UiControl>
+
+          <!-- 适配包覆盖优先：给了就用它的控件，没给走下面的内置实现 -->
+          <component
+            v-if="editorFor(field)"
+            :is="editorFor(field)"
+            :model-value="value(field.key)"
+            :field="field"
+            @update:model-value="(v: unknown) => set(field.key, v)"
+          />
+
+          <UiControl as="Switch"
+            v-else-if="field.type === 'boolean'"
+            :model-value="Boolean(value(field.key))"
+            size="small"
+            @update:model-value="(v: unknown) => set(field.key, v)"
+          />
+
+          <UiControl as="NumberInput"
+            v-else-if="field.type === 'number'"
+            :model-value="Number(value(field.key) ?? 0)"
+            :controls="false"
+            :min="field.min"
+            :max="field.max"
+            :step="field.step"
+            size="small"
+            style="width: 100%"
+            @update:model-value="(v: unknown) => set(field.key, Number(v ?? 0))"
+          />
+
+          <UiControl
+            v-else-if="field.type === 'select'"
+            as="Select"
+            :model-value="value(field.key) as string | number"
+            :options="fieldOptions(field)"
+            size="small"
+            style="width: 100%"
+            @update:model-value="(v: unknown) => set(field.key, v)"
+          />
+
+          <!-- 取色：业务物料的主题色 / 标签色都靠它，缺了只能手写十六进制 -->
+          <UiControl as="ColorInput"
+            v-else-if="field.type === 'color'"
+            :model-value="String(value(field.key) ?? '')"
+            size="small"
+            @update:model-value="(v: unknown) => set(field.key, v)"
+          />
+
+          <UiControl as="Input"
+            v-else-if="field.type === 'textarea'"
+            type="textarea"
+            :rows="3"
+            size="small"
+            :model-value="String(value(field.key) ?? '')"
+            @update:model-value="(v: unknown) => set(field.key, v)"
+          />
+
+          <UiControl as="Input"
+            v-else-if="field.type === 'text' || field.type === 'options'"
+            size="small"
+            :model-value="String(value(field.key) ?? '')"
+            @update:model-value="(v: unknown) => set(field.key, v)"
+          />
+
+          <template v-if="field.type === 'columns'">
+            <div class="columns">
+              <div v-for="(column, index) in columnsOf(field.key)" :key="index" class="columns__row">
+                <UiControl as="Input"
+                  size="small"
+                  :model-value="column.label"
+                  placeholder="列名"
+                  @update:model-value="(v: unknown) => updateColumn(field.key, index, 'label', String(v))"
+                />
+                <UiControl as="Input"
+                  size="small"
+                  :model-value="column.prop"
+                  placeholder="字段"
+                  @update:model-value="(v: unknown) => updateColumn(field.key, index, 'prop', String(v))"
+                />
+                <button class="columns__del" title="删除该列" @click="removeColumn(field.key, index)">×</button>
+              </div>
+              <UiControl as="Button" size="small" text type="primary" @click="addColumn(field.key)">+ 添加列</UiControl>
+            </div>
+          </template>
+
+          <div v-if="field.tip" class="props__tip">{{ field.tip }}</div>
+
+          <div v-if="field.key === 'modelValue' && stateKeys.length" class="props__vars">
+            <span class="props__vars-label">可用变量</span>
+            <button v-for="key in stateKeys" :key="key" class="props__var" @click="insertBinding('modelValue', `${key}.`)">
+              {{ key }}
+            </button>
+          </div>
         </div>
-      </template>
-
-      <div v-if="field.tip" class="props__tip">{{ field.tip }}</div>
-
-      <div v-if="field.key === 'modelValue' && stateKeys.length" class="props__vars">
-        <span class="props__vars-label">可用变量</span>
-        <button v-for="key in stateKeys" :key="key" class="props__var" @click="insertBinding('modelValue', `${key}.`)">
-          {{ key }}
-        </button>
       </div>
-    </div>
+    </section>
 
     <div v-if="!material.fields.length" class="props__empty">该组件没有可配置属性</div>
   </div>
@@ -253,6 +291,50 @@ function copyId(): void {
 }
 .props__row {
   margin-bottom: 14px;
+}
+.props__group {
+  margin-bottom: 4px;
+}
+.props__group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 0;
+  border: none;
+  border-bottom: 1px solid var(--wb-line-soft);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--wb-ink3);
+  text-align: left;
+  cursor: pointer;
+}
+.props__group-head:hover {
+  color: var(--wb-text);
+}
+.props__group-arrow {
+  display: inline-block;
+  font-size: 9px;
+  transition: transform 0.12s ease;
+}
+.props__group-head.is-collapsed .props__group-arrow {
+  transform: rotate(-90deg);
+}
+.props__group-name {
+  flex: 1;
+}
+.props__group-count {
+  font-weight: 500;
+  color: var(--wb-ink3);
+  background: var(--wb-bg-soft, #f2f4f8);
+  border-radius: 8px;
+  padding: 0 6px;
+  line-height: 16px;
+}
+.props__group-body {
+  padding-top: 10px;
 }
 .props__label {
   display: flex;
