@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { materialsByCategory } from "@x-ac/design-core";
+import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
+const catalog = useMaterialCatalog();
 const keyword = ref("");
 
 const groups = computed(() => {
-  const all = materialsByCategory();
+  const all = catalog.byCategory();
   const key = keyword.value.trim().toLowerCase();
   if (!key) return all;
   return all

@@ -11,6 +11,7 @@
 import "./styles/tokens.css";
 
 export * from "./renderer";
+export { useMaterialCatalog } from "./materials/catalog";
 export { createVueDesign, VueDesignPlugin } from "./plugin";
 export type { VueDesignOptions } from "./plugin";
 

@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import { defineStore } from "pinia";
 import type { ActionSchema, DeviceType, NodeSchema, PageSchema, ValidationRule } from "@x-ac/design-core";
 import { createEmptyPage, normalizeRules } from "@x-ac/design-core";
@@ -14,7 +14,7 @@ import {
   removeNode,
   type DropPosition,
 } from "@x-ac/design-core";
-import { getMaterial } from "@x-ac/design-core";
+import { createRegistry, MATERIALS, type MaterialRegistry } from "@x-ac/design-core";
 import { compactPage, toJSON } from "@x-ac/design-core";
 import { writeSpacing, type SpacingBox, type SpacingKey } from "@x-ac/design-core";
 import { getPageRepository, type PageRepository } from "../persistence/repo";
@@ -29,6 +29,22 @@ export interface DropHint {
 const MAX_HISTORY = 80;
 
 export const useDesignerStore = defineStore("designer", () => {
+  /**
+   * 当前生效的物料目录，由 DesignerView 用 useMaterialCatalog() 注入。
+   * 默认回落 core 通用清单 —— store 在组件上下文之外（单测、独立调用）也能工作，
+   * 而自定义物料在注入适配包目录后即可被 addNode / 结构判断识别。
+   */
+  const catalog = shallowRef<MaterialRegistry>(createRegistry(MATERIALS));
+
+  function setMaterialCatalog(next: MaterialRegistry): void {
+    catalog.value = next;
+  }
+
+  /** 统一入口：所有物料查询都走当前目录，不再散落 core 全局函数 */
+  function materialOf(component: string) {
+    return catalog.value.get(component);
+  }
+
   const page = ref<PageSchema>(createEmptyPage());
   const selectedId = ref<string | null>(null);
   /** 组件树悬停的节点：画布上同步高亮，方便在嵌套容器里「先看清、再点中」 */
@@ -160,7 +176,7 @@ export const useDesignerStore = defineStore("designer", () => {
   /* ---------------- 节点操作 ---------------- */
 
   function createNode(component: string): NodeSchema | null {
-    const material = getMaterial(component);
+    const material = materialOf(component);
     if (!material) return null;
     const node: NodeSchema = { id: createNodeId(), component, props: {} };
     if (material.acceptsChildren) node.children = [];
@@ -179,16 +195,16 @@ export const useDesignerStore = defineStore("designer", () => {
     const node = createNode(component);
     if (!node) return;
     pushHistory();
-    insertNode(page.value.children, node, targetId, position, (c) => Boolean(getMaterial(c)?.acceptsChildren));
+    insertNode(page.value.children, node, targetId, position, (c) => Boolean(materialOf(c)?.acceptsChildren));
     selectedId.value = node.id;
   }
 
   /** 点击物料：优先放进当前选中的容器，否则追加到根 */
   function addNodeSmart(component: string): void {
-    const material = getMaterial(component);
+    const material = materialOf(component);
     if (!material) return;
     const target = selectedNode.value;
-    if (target && getMaterial(target.component)?.acceptsChildren) {
+    if (target && materialOf(target.component)?.acceptsChildren) {
       addNode(component, target.id, "inside");
       return;
     }
@@ -202,7 +218,7 @@ export const useDesignerStore = defineStore("designer", () => {
       id,
       targetId,
       position,
-      (c) => Boolean(getMaterial(c)?.acceptsChildren),
+      (c) => Boolean(materialOf(c)?.acceptsChildren),
     );
     if (!moved) history.value.pop();
   }
@@ -242,8 +258,8 @@ export const useDesignerStore = defineStore("designer", () => {
     const location = selectedLocation.value;
     pushHistory();
     const copy = cloneWithNewIds(clipboard.value);
-    if (location && getMaterial(location.node.component)?.acceptsChildren) {
-      insertNode(page.value.children, copy, location.node.id, "inside", (c) => Boolean(getMaterial(c)?.acceptsChildren));
+    if (location && materialOf(location.node.component)?.acceptsChildren) {
+      insertNode(page.value.children, copy, location.node.id, "inside", (c) => Boolean(materialOf(c)?.acceptsChildren));
     } else if (location) {
       location.list.splice(location.index + 1, 0, copy);
     } else {
@@ -260,7 +276,7 @@ export const useDesignerStore = defineStore("designer", () => {
     pushHistory(`prop:${node.id}:${key}`);
     node.props = node.props ?? {};
 
-    const material = getMaterial(node.component);
+    const material = materialOf(node.component);
     const defaultValue = material?.defaultProps?.[key];
     const shouldDrop =
       value === undefined ||
@@ -398,6 +414,7 @@ export const useDesignerStore = defineStore("designer", () => {
     undo,
     redo,
     setRepository,
+    setMaterialCatalog,
     load,
     save,
     setPage,

@@ -6,10 +6,11 @@
 import { computed, inject } from "vue";
 import type { CSSProperties, Component } from "vue";
 import type { NodeSchema } from "@x-ac/design-core";
-import { DEFAULT_BINDING, getMaterial, materialKey, resolveDefaults } from "@x-ac/design-core";
+import { DEFAULT_BINDING, materialKey } from "@x-ac/design-core";
 import FieldShell from "./FieldShell.vue";
 import { extractPath, getByPath, isBindable, isRequired, resolveBoolean, resolveNodeStyle, resolveValue, setByPath } from "@x-ac/design-core";
-import { DESIGNER_SCENE, materialFrom, RENDER_CONTEXT, useUiAdapter } from "./context";
+import { DESIGNER_SCENE, RENDER_CONTEXT, useUiAdapter } from "./context";
+import { useMaterialCatalog } from "../materials/catalog";
 import { runNodeActions } from "./runActions";
 
 const props = withDefaults(
@@ -27,8 +28,9 @@ const scene = inject(DESIGNER_SCENE, null);
 const renderCtx = inject(RENDER_CONTEXT, null);
 /** 当前 UI 适配包：组件实现、双向绑定通道、动作副作用都从这里取 */
 const adapter = useUiAdapter();
+const catalog = useMaterialCatalog();
 
-const material = computed(() => materialFrom(adapter, materialKey(props.node.component)) ?? getMaterial(props.node.component));
+const material = computed(() => catalog.get(props.node.component));
 const isUnknown = computed(() => !material.value || !resolved.value);
 const resolved = computed<Component | string | null>(() => {
   const key = materialKey(props.node.component);
@@ -69,7 +71,7 @@ const hiddenByShow = computed(() =>
 
 /* ---------------- 属性 ---------------- */
 
-const effective = computed(() => resolveDefaults(props.node.component, props.node.props));
+const effective = computed(() => catalog.defaults(props.node.component, props.node.props));
 
 const bindProps = computed<Record<string, unknown>>(() => {
   const out: Record<string, unknown> = {};

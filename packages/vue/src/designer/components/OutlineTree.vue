@@ -8,7 +8,7 @@
  * 所以「从物料面板拖新组件扔到树上某一行」也是合法操作。
  */
 import type { NodeSchema } from "@x-ac/design-core";
-import { getMaterial } from "@x-ac/design-core";
+import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 
 const props = defineProps<{
@@ -19,9 +19,10 @@ const props = defineProps<{
 }>();
 
 const store = useDesignerStore();
+const catalog = useMaterialCatalog();
 
 function materialOf(node: NodeSchema) {
-  return getMaterial(node.component);
+  return catalog.get(node.component);
 }
 
 function labelOf(node: NodeSchema): string {

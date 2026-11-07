@@ -3,16 +3,17 @@ import { computed } from "vue";
 import UiControl from "../ui/UiControl.vue";
 import type { ActionSchema } from "@x-ac/design-core";
 import { ACTION_OPTIONS } from "@x-ac/design-core";
-import { getMaterial } from "@x-ac/design-core";
+import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 import { useNotify } from "../ui/kit";
 
 const notify = useNotify();
 
 const store = useDesignerStore();
+const catalog = useMaterialCatalog();
 
 const node = computed(() => store.selectedNode);
-const material = computed(() => (node.value ? getMaterial(node.value.component) : undefined));
+const material = computed(() => (node.value ? catalog.get(node.value.component) : undefined));
 const events = computed(() => material.value?.events ?? []);
 
 const DEFAULT_ARGS: Record<string, Record<string, unknown>> = {

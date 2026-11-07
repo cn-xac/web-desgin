@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { effectiveRules, getMaterial, resolveDefaults } from "@x-ac/design-core";
+import { effectiveRules } from "@x-ac/design-core";
+import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 import UiControl from "../ui/UiControl.vue";
 import PropsEditor from "./PropsEditor.vue";
@@ -11,6 +12,7 @@ import RulesEditor from "./RulesEditor.vue";
 import PageSettings from "./PageSettings.vue";
 
 const store = useDesignerStore();
+const catalog = useMaterialCatalog();
 
 type TabKey = "props" | "style" | "rules" | "events" | "schema";
 const TABS: Array<{ key: TabKey; label: string }> = [
@@ -24,7 +26,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 const tab = ref<TabKey>("props");
 const hasSelection = computed(() => Boolean(store.selectedNode));
 
-const selectedMaterial = computed(() => getMaterial(store.selectedNode?.component ?? ""));
+const selectedMaterial = computed(() => catalog.get(store.selectedNode?.component ?? ""));
 /** 只有表单控件才有校验面板 */
 const isField = computed(() => Boolean(selectedMaterial.value?.isFormControl));
 
@@ -33,7 +35,7 @@ const visibleTabs = computed(() => TABS.filter((item) => item.key !== "rules" ||
 const ruleCount = computed(() => {
   const node = store.selectedNode;
   if (!node) return 0;
-  return effectiveRules(node, resolveDefaults(node.component, node.props)).length;
+  return effectiveRules(node, catalog.defaults(node.component, node.props)).length;
 });
 
 watch(hasSelection, (selected) => {
@@ -47,7 +49,7 @@ watch(isField, (field) => {
 
 const breadcrumbText = computed(() =>
   store.breadcrumb
-    .map((node) => getMaterial(node.component)?.title ?? node.component)
+    .map((node) => catalog.get(node.component)?.title ?? node.component)
     .join(" / "),
 );
 

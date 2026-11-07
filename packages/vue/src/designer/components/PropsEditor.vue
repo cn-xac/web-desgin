@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import UiControl from "../ui/UiControl.vue";
-import { getMaterial, resolveDefaults } from "@x-ac/design-core";
+import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 import { useNotify } from "../ui/kit";
 
 const notify = useNotify();
 
 const store = useDesignerStore();
+const catalog = useMaterialCatalog();
 
 const node = computed(() => store.selectedNode);
-const material = computed(() => (node.value ? getMaterial(node.value.component) : undefined));
-const effective = computed(() => (node.value ? resolveDefaults(node.value.component, node.value.props) : {}));
+const material = computed(() => (node.value ? catalog.get(node.value.component) : undefined));
+const effective = computed(() => (node.value ? catalog.defaults(node.value.component, node.value.props) : {}));
 const customKeys = computed(() => new Set(Object.keys(node.value?.props ?? {})));
 const stateKeys = computed(() => Object.keys(store.page.state ?? {}));
 
@@ -300,5 +301,26 @@ function copyId(): void {
 }
 .columns__del:hover {
   color: var(--el-color-danger);
+}
+
+/* 属性字段数由适配包决定（core 119 / EP 更多），行数不固定：
+   窄屏收敛留白，超长时面板自身可滚动，避免把画布挤出视口。 */
+@media (max-width: 1100px) {
+  .props {
+    padding: 10px 10px 16px;
+  }
+  .props__row {
+    margin-bottom: 10px;
+    padding: 6px 8px;
+  }
+}
+@media (max-width: 720px) {
+  .props {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .props__row {
+    margin-bottom: 8px;
+  }
 }
 </style>

@@ -9,7 +9,7 @@ import CanvasStage from "./components/CanvasStage.vue";
 import InspectorPanel from "./components/InspectorPanel.vue";
 import { migratePage } from "@x-ac/design-core";
 import { validatePage } from "@x-ac/design-core";
-import { KNOWN_COMPONENTS } from "@x-ac/design-core";
+import { useMaterialCatalog } from "../materials/catalog";
 import { toHtml } from "@x-ac/design-core";
 import type { DeviceType, PageSchema } from "@x-ac/design-core";
 import type { PageRepository } from "../persistence/repo";
@@ -43,6 +43,9 @@ const emit = defineEmits<{
 
 const store = useDesignerStore();
 const notify = useNotify();
+/** 设计器与 store 共用当前适配包的物料目录，保证自定义物料可拖入、可校验 */
+const catalog = useMaterialCatalog();
+store.setMaterialCatalog(catalog);
 const ready = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
@@ -199,7 +202,7 @@ function exportHtml(): string {
 function importSchema(json: string): boolean {
   try {
     const { schema, applied } = migratePage(json);
-    const result = validatePage(schema, KNOWN_COMPONENTS);
+    const result = validatePage(schema, catalog.knownComponents());
     if (!result.valid) {
       throw new Error(result.errors.map((e) => `${e.path}: ${e.message}`).join("；"));
     }

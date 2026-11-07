@@ -10,20 +10,21 @@ import {
   compilePattern,
   effectiveRules,
   getRuleDefinition,
-  resolveDefaults,
   ruleMessage,
   ruleTypesFor,
   type RuleType,
   type ValidationRule,
 } from "@x-ac/design-core";
 import { useDesignerStore } from "../store";
+import { useMaterialCatalog } from "../../materials/catalog";
 import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
+const catalog = useMaterialCatalog();
 
 const node = computed(() => store.selectedNode);
 const component = computed(() => node.value?.component ?? "");
-const effectiveProps = computed(() => (node.value ? resolveDefaults(component.value, node.value.props) : {}));
+const effectiveProps = computed(() => (node.value ? catalog.defaults(component.value, node.value.props) : {}));
 const label = computed(() => String(effectiveProps.value.label ?? ""));
 const rules = computed<ValidationRule[]>(() => (node.value ? effectiveRules(node.value, effectiveProps.value) : []));
 const required = computed(() => rules.value.some((rule) => rule.type === "required"));

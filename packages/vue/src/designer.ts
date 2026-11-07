@@ -13,6 +13,7 @@ export { default as DesignerView } from "./designer/DesignerView.vue";
 export { default as SchemaDesigner } from "./designer/DesignerView.vue";
 import "./designer/ui/ui.css";
 export { useDesignerStore } from "./designer/store";
+export { useMaterialCatalog } from "./materials/catalog";
 export type { DropHint, DragPayload } from "./designer/store";
 export { createMemoryRepository, getPageRepository, setPageRepository } from "./persistence/repo";
 export type { PageRecord, PageRepository } from "./persistence/repo";
