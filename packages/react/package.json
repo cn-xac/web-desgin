@@ -1,6 +1,6 @@
 {
   "name": "@x-ac/design-react",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "React 适配层：用同一份 PageSchema 渲染页面，内置表单校验与数据导出（无 UI 库依赖，物料可整表替换）",
   "license": "MIT",

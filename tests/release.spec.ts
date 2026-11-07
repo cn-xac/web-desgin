@@ -41,7 +41,7 @@ describe("可发布包发现与版本一致性", () => {
       "@x-ac/design-vue",
       "@x-ac/design-vue-element-plus",
     ]);
-    expect(packages.every((pkg) => pkg.version === "0.3.0")).toBe(true);
+    expect(packages.every((pkg) => pkg.version === "0.4.0")).toBe(true);
   });
 
   it("全部同版本时判定对齐", () => {
@@ -101,7 +101,7 @@ describe("改写 package.json", () => {
     const packages = release.discoverPackages();
     const changed = release.writeVersions(packages, "0.9.9", { dryRun: true });
     expect(changed).toHaveLength(4);
-    expect(release.assertAligned(release.discoverPackages()).version).toBe("0.3.0");
+    expect(release.assertAligned(release.discoverPackages()).version).toBe("0.4.0");
   });
 });
 

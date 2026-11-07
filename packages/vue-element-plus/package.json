@@ -1,6 +1,6 @@
 {
   "name": "@x-ac/design-vue-element-plus",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Element Plus 适配包：物料实现 + 双向绑定通道 + 动作副作用（供 @x-ac/design-vue 使用）",
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "@x-ac/design-vue",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Vue 3 适配层：Schema 渲染器 + 可视化设计器 + Element Plus 物料 + 表单校验",
   "license": "MIT",

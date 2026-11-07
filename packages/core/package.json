@@ -1,6 +1,6 @@
 {
   "name": "@x-ac/design-core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "框架无关的可视化搭建内核：Schema、表达式、树操作、校验规则、数据导出、样式与动作协议",
   "license": "MIT",
