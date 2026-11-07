@@ -188,7 +188,8 @@ function exportSchema(): string {
 
 /** 导出静态 HTML：同一份 Schema 在浏览器外也能渲染，证明 core 与框架解耦 */
 function exportHtml(): string {
-  const html = toHtml(store.page);
+  // 目录要带上：适配包追加的 defaultStyle 与业务物料的占位判定都依赖它
+  const html = toHtml(store.page, { materials: catalog });
   download(`${store.page.meta?.title ?? "page"}.html`, html, "text/html");
   emit("export-schema", { kind: "html", content: html, schema: store.page });
   notify("已导出静态 HTML", "success");

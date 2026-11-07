@@ -1,12 +1,30 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, inject, ref } from "vue";
+import { materialKey } from "@x-ac/design-core";
 import { useMaterialCatalog } from "../../materials/catalog";
+import { UI_ADAPTER } from "../../renderer/context";
 import { useDesignerStore } from "../store";
 import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
 const catalog = useMaterialCatalog();
 const keyword = ref("");
+
+/**
+ * 当前适配包的组件表。
+ *
+ * 物料目录（catalog）与组件表（components）是两个来源：前者描述「有哪些物料」，
+ * 后者描述「当前这个 UI 库实现了哪些」。切库后 Schema 里可能残留别的库的物料，
+ * 这类物料要置灰——能看见、能理解，但不允许再拖进来。
+ */
+const adapter = inject(UI_ADAPTER, null);
+
+function unavailable(component: string): boolean {
+  const components = adapter?.components;
+  // 没注入适配包时不拦：渲染器那边会统一降级为占位，面板再全灰只会让人没法操作
+  if (!components) return false;
+  return !(materialKey(component) in components) && !(component in components);
+}
 
 const groups = computed(() => {
   const all = catalog.byCategory();
@@ -22,7 +40,25 @@ const groups = computed(() => {
     .filter((group) => group.items.length > 0);
 });
 
+const unavailableCount = computed(() =>
+  groups.value.reduce((sum, group) => sum + group.items.filter((item) => unavailable(item.component)).length, 0),
+);
+
+function itemTitle(title: string, hint: string | undefined, component: string): string {
+  if (unavailable(component)) return `${title}：当前 UI 库未提供该物料，换适配包后再用`;
+  return hint ?? title;
+}
+
+function onAdd(component: string): void {
+  if (unavailable(component)) return;
+  store.addNodeSmart(component);
+}
+
 function onDragStart(event: DragEvent, component: string): void {
+  if (unavailable(component)) {
+    event.preventDefault();
+    return;
+  }
   store.beginDrag({ kind: "new", component });
   if (!event.dataTransfer) return;
   event.dataTransfer.setData("text/plain", JSON.stringify({ kind: "new", component }));
@@ -43,11 +79,12 @@ function onDragStart(event: DragEvent, component: string): void {
           v-for="item in group.items"
           :key="item.component"
           class="palette__item"
-          draggable="true"
-          :title="item.hint ?? item.title"
+          :class="{ 'is-disabled': unavailable(item.component) }"
+          :draggable="!unavailable(item.component)"
+          :title="itemTitle(item.title, item.hint, item.component)"
           @dragstart="onDragStart($event, item.component)"
           @dragend="store.clearDrag()"
-          @click="store.addNodeSmart(item.component)"
+          @click="onAdd(item.component)"
         >
           <span class="palette__icon">{{ item.icon }}</span>
           <span class="palette__name">{{ item.title }}</span>
@@ -58,7 +95,12 @@ function onDragStart(event: DragEvent, component: string): void {
       <div v-if="!groups.length" class="palette__empty">没有匹配的组件</div>
     </div>
 
-    <div class="palette__foot">拖入画布，或点击添加到选中容器</div>
+    <div class="palette__foot">
+      拖入画布，或点击添加到选中容器
+      <template v-if="unavailableCount">
+        <br />灰色物料当前 UI 库未实现，换适配包后可用（{{ unavailableCount }} 个）
+      </template>
+    </div>
   </aside>
 </template>
 
@@ -108,6 +150,15 @@ function onDragStart(event: DragEvent, component: string): void {
 }
 .palette__item:active {
   cursor: grabbing;
+}
+/* 当前 UI 库没有实现的物料：看得见、拖不动、点不了 */
+.palette__item.is-disabled,
+.palette__item.is-disabled:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--wb-ink3);
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .palette__icon {
   width: 16px;
