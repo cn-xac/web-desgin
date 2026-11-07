@@ -5,7 +5,7 @@
  *   node scripts/rename-scope.mjs @acme                   # 只换 scope，保留原包名后缀
  *   node scripts/rename-scope.mjs @acme --prefix design-  # 顺带给包名加前缀
  *
- * 会同步改写：三个包的 name、包间依赖 key、源码 / 配置 / 文档里的 import 与提及，
+ * 会同步改写：各可发布包的 name、包间依赖 key、源码 / 配置 / 文档里的 import 与提及，
  * 覆盖范围包括 project/ 下的 packages|apps|tests|docs|scripts、仓库根目录的
  * README.md / PROJECT.md / docs/。
  *

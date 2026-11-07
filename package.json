@@ -10,7 +10,10 @@
     "dev:vue": "pnpm --filter playground dev",
     "dev:react": "pnpm --filter react-demo dev",
     "build": "pnpm build:lib && pnpm --filter playground build && pnpm --filter react-demo build",
-    "build:lib": "pnpm --filter @x-ac/design-core build && pnpm --filter @x-ac/design-vue build && pnpm --filter @x-ac/design-vue-element-plus build && pnpm --filter @x-ac/design-react build",
+    "build:lib": "node scripts/release.mjs check && pnpm --filter @x-ac/design-core build && pnpm --filter @x-ac/design-vue build && pnpm --filter @x-ac/design-vue-element-plus build && pnpm --filter @x-ac/design-react build",
+    "release:check": "node scripts/release.mjs check",
+    "release:version": "node scripts/release.mjs version",
+    "release:publish": "node scripts/release.mjs publish",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "pnpm --filter @x-ac/design-core typecheck && pnpm --filter @x-ac/design-vue typecheck && pnpm --filter @x-ac/design-vue-element-plus typecheck && pnpm --filter @x-ac/design-react typecheck && pnpm --filter playground typecheck && pnpm --filter react-demo typecheck"
