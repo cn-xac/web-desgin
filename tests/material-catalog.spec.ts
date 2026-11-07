@@ -15,7 +15,7 @@ import {
   type Material,
 } from "@x-ac/design-core";
 import { UI_ADAPTER } from "@x-ac/design-vue";
-import { elementPlusAdapter, elementPlusMaterials } from "@x-ac/design-vue-element-plus";
+import { elementPlusAdapter, elementPlusMaterials, EP_FIELD_PATCHES } from "@x-ac/design-vue-element-plus";
 import { useDesignerStore } from "@/designer/store";
 import PropsEditor from "@/designer/components/PropsEditor.vue";
 
@@ -79,19 +79,45 @@ describe("core 通用物料清单", () => {
 });
 
 describe("Element Plus 适配包物料清单", () => {
-  it("在通用清单上追加专有字段，物料数与结构字段不变", () => {
-    expect(elementPlusMaterials).toHaveLength(MATERIALS.length);
+  it("core 物料全部保留并追加 EP 专有属性", () => {
+    // 打补丁不是替换：core 的每个物料都必须还在清单里
+    for (const material of MATERIALS) {
+      expect(elementPlusMaterials.some((item) => item.component === material.component)).toBe(true);
+    }
+    expect(elementPlusMaterials.length).toBeGreaterThan(MATERIALS.length);
     expect(epFields.length).toBeGreaterThan(coreFields.length);
     expect(elementPlusAdapter.materials).toBe(elementPlusMaterials);
     expect(fieldOf(elementPlusMaterials, "ec-input", "showWordLimit")).toBeTruthy();
     expect(fieldOf(elementPlusMaterials, "ec-button", "loading")).toBeTruthy();
   });
 
-  it("专有字段也带 portability，且以 visual 为主", () => {
-    const extra = epFields.slice(coreFields.length);
-    expect(extra.length).toBeGreaterThan(0);
-    expect(extra.every((field) => Boolean(field.portability))).toBe(true);
-    expect(extra.filter((field) => field.portability === "visual").length).toBeGreaterThan(0);
+  it("EP 专有物料统一标 portable: false", () => {
+    const extras = elementPlusMaterials.filter(
+      (item) => !MATERIALS.some((core) => core.component === item.component),
+    );
+    expect(extras.length).toBeGreaterThan(30);
+    expect(extras.every((item) => item.portable === false)).toBe(true);
+    expect(extras.every((item) => item.owner === "adapter")).toBe(true);
+    // 专有物料也要参与分类与物料面板，不能是「注册了但拖不出来」
+    expect(extras.every((item) => Boolean(item.category) && Boolean(item.title))).toBe(true);
+  });
+
+  it("专有字段都带 portability 与分组", () => {
+    // 补丁表里的字段：属性面板靠 group 分组，靠 portability 做跨库取舍，
+    // 缺一个就会「默默归到基础组」或「默默当成视觉差异」
+    const patchFields = Object.values(EP_FIELD_PATCHES).flat();
+    expect(patchFields.length).toBeGreaterThan(60);
+    expect(patchFields.filter((field) => !field.group).map((field) => `${field.key}`)).toEqual([]);
+    expect(patchFields.filter((field) => !field.portability).map((field) => field.key)).toEqual([]);
+
+    // EP 专有物料的字段同样要有分组与档位
+    const extraMaterials = elementPlusMaterials.filter(
+      (item) => !MATERIALS.some((core) => core.component === item.component),
+    );
+    const extraFields = extraMaterials.flatMap((item) => item.fields);
+    expect(extraFields.length).toBeGreaterThan(100);
+    expect(extraFields.filter((field) => !field.group).map((field) => field.key)).toEqual([]);
+    expect(extraFields.filter((field) => !field.portability).map((field) => field.key)).toEqual([]);
   });
 
   it("core 清单不含任何 EP 专有字段", () => {
