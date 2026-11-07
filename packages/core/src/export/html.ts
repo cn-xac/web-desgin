@@ -7,7 +7,9 @@
 
 import type { NodeSchema, PageSchema } from "../schema/types";
 import { resolveBoolean, resolveValue } from "../schema/expression";
-import { getMaterial, resolveDefaults } from "../materials/catalog";
+import { registry as globalRegistry } from "../materials/catalog";
+import type { MaterialRegistry } from "../materials/registry";
+import type { Material } from "../materials/types";
 import { bareKey } from "../materials/keys";
 import { resolveNodeStyle, styleToCssText, kebab } from "../style/style";
 import { isRequired } from "../validation/rules";
@@ -20,6 +22,11 @@ export interface HtmlExportOptions {
   state?: Record<string, unknown>;
   /** 追加的全局 CSS */
   css?: string;
+  /**
+   * 物料目录：适配包 + 业务物料。不传则用全局 registry。
+   * 传了之后，适配包追加的 `defaultStyle` 与业务物料的元数据在静态导出里同样生效。
+   */
+  materials?: MaterialRegistry;
 }
 
 type Scope = Record<string, unknown>;
@@ -32,8 +39,14 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function styleAttr(component: string, props: Record<string, unknown>, style: Record<string, unknown> | undefined, scope: Scope): string {
-  const css = resolveNodeStyle(component, props, style, (value) => resolveValue(value, scope));
+function styleAttr(
+  component: string,
+  props: Record<string, unknown>,
+  style: Record<string, unknown> | undefined,
+  scope: Scope,
+  material?: Material,
+): string {
+  const css = resolveNodeStyle(component, props, style, (value) => resolveValue(value, scope), material);
   const text = styleToCssText(css);
   return text ? ` style="${escapeHtml(text)}"` : "";
 }
@@ -101,7 +114,7 @@ function renderTable(props: Record<string, unknown>, scope: Scope, style: string
   return `<table class="ux-table"${style}><thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="${Math.max(1, columns.length)}">暂无数据</td></tr>`}</tbody></table>`;
 }
 
-function renderNode(node: NodeSchema, scope: Scope): string {
+function renderNode(node: NodeSchema, scope: Scope, materials: MaterialRegistry): string {
   const directives = node.directives ?? [];
   if (directives.some((d) => d.name === "if" && !resolveBoolean(d.value, scope))) return "";
 
@@ -112,16 +125,22 @@ function renderNode(node: NodeSchema, scope: Scope): string {
     const itemKey = forDirective.itemKey ?? "item";
     const indexKey = forDirective.indexKey ?? "index";
     return items
-      .map((item, index) => renderNode({ ...node, directives: directives.filter((d) => d.name !== "for") }, { ...scope, [itemKey]: item, [indexKey]: index }))
+      .map((item, index) =>
+        renderNode(
+          { ...node, directives: directives.filter((d) => d.name !== "for") },
+          { ...scope, [itemKey]: item, [indexKey]: index },
+          materials,
+        ),
+      )
       .join("");
   }
 
-  const material = getMaterial(node.component);
-  const props = resolveDefaults(node.component, node.props);
+  const material = materials.get(node.component);
+  const props = materials.defaults(node.component, node.props);
   const hidden = directives.some((d) => d.name === "show" && !resolveBoolean(d.value, scope));
-  const style = styleAttr(node.component, props, node.style, scope) || (hidden ? ' style="display:none"' : "");
+  const style = styleAttr(node.component, props, node.style, scope, material) || (hidden ? ' style="display:none"' : "");
   const styleWithHidden = hidden && !style.includes("display:none") ? `${style.replace(/"$/, "")}${style ? ";" : ' style="'}display:none"` : style;
-  const children = (node.children ?? []).map((child) => renderNode(child, scope)).join("");
+  const children = (node.children ?? []).map((child) => renderNode(child, scope, materials)).join("");
   const title = material?.title ?? node.component;
 
   switch (bareKey(node.component)) {
@@ -153,6 +172,12 @@ function renderNode(node: NodeSchema, scope: Scope): string {
       break;
   }
 
+  // 不可移植的物料（业务自研组件）在静态导出里无从渲染：
+  // 拿原生 input 冒充它比给占位更糟——占位至少诚实，不会让人以为导出的能直接用。
+  if (material && !material.portable) {
+    return `<div class="ux-unknown"${styleWithHidden} data-component="${escapeHtml(node.component)}">${escapeHtml(title)}（业务物料，不可静态导出）</div>`;
+  }
+
   if (material?.kind === "field") {
     return renderField(node, title, props, scope, styleWithHidden);
   }
@@ -182,8 +207,9 @@ body{margin:0;padding:24px;background:#f4f5f7;color:#1f2430;font:14px/1.6 -apple
 /** PageSchema → 可独立打开的 HTML 文档 */
 export function toHtml(page: PageSchema, options: HtmlExportOptions = {}): string {
   const scope: Scope = { ...(page.state ?? {}), ...(options.state ?? {}) };
+  const materials = options.materials ?? globalRegistry;
   const title = options.title ?? String(page.meta?.title ?? "页面");
-  const body = page.children.map((node) => renderNode(node, scope)).join("\n");
+  const body = page.children.map((node) => renderNode(node, scope, materials)).join("\n");
 
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(options.lang ?? "zh-CN")}">
