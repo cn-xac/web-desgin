@@ -2,13 +2,13 @@ import { Fragment, createElement } from "react";
 import type { ReactNode } from "react";
 import {
   ACTION_REGISTRY,
+  DEFAULT_BINDING,
   extractPath,
   getByPath,
-  getMaterial,
   isBindable,
   isRequired,
+  materialKey,
   resolveBoolean,
-  resolveDefaults,
   resolveNodeStyle,
   resolveValue,
   runActions,
@@ -17,7 +17,6 @@ import type { ActionSchema, NodeSchema } from "@x-ac/design-core";
 import type { CSSProperties } from "react";
 import { RenderContext, useRenderContext } from "./context";
 import type { RenderContextValue } from "./context";
-import { resolveComponent } from "./components";
 
 const SKIP_PROPS = new Set(["label", "required", "tip", "block", "radius", "modelValue"]);
 
@@ -50,11 +49,16 @@ function FieldShell({
 
 function NodeBody({ node }: { node: NodeSchema }) {
   const ctx = useRenderContext();
-  const material = getMaterial(node.component);
-  const effective = resolveDefaults(node.component, node.props);
+  // 物料元数据来自当前适配包（含业务物料），不是 core 的全局清单
+  const material = ctx.catalog.get(node.component);
+  const effective = ctx.catalog.defaults(node.component, node.props);
 
-  const style = resolveNodeStyle(node.component, effective, node.style, (value) =>
-    resolveValue(value, ctx.scope),
+  const style = resolveNodeStyle(
+    node.component,
+    effective,
+    node.style,
+    (value) => resolveValue(value, ctx.scope),
+    material,
   ) as CSSProperties;
 
   const hidden = (node.directives ?? []).some((d) => d.name === "show" && !resolveBoolean(d.value, ctx.scope));
@@ -72,7 +76,8 @@ function NodeBody({ node }: { node: NodeSchema }) {
     );
   }
 
-  const Component = resolveComponent(node.component);
+  /* 组件实现同样来自适配包：业务物料用 registerMaterials() 注册后就能命中 */
+  const Component = ctx.ui.components[materialKey(node.component)] ?? null;
 
   /* 属性绑定：剔除面板专用字段与表达式求值 */
   const bound: Record<string, unknown> = {};
@@ -88,7 +93,8 @@ function NodeBody({ node }: { node: NodeSchema }) {
     void runActions(actions, ctx).then(() => ctx.flush());
   };
 
-  /* 双向绑定：{{path}} → value + onChange */
+  /* 双向绑定：通道名由适配包决定（React 缺省 value/onChange） */
+  const channel = ctx.ui.binding ?? DEFAULT_BINDING;
   const path = extractPath(effective.modelValue);
   const onChange = (next: unknown): void => {
     if (path) ctx.setValue(path, next, node.id);
@@ -96,10 +102,10 @@ function NodeBody({ node }: { node: NodeSchema }) {
     if (ctx.mode === "view" && actions?.length) runNodeActions(actions);
   };
 
-  if (path) bound.value = getByPath(ctx.scope, path);
-  else if (effective.modelValue !== undefined) bound.value = resolveValue(effective.modelValue, ctx.scope);
+  if (path) bound[channel.prop] = getByPath(ctx.scope, path);
+  else if (effective.modelValue !== undefined) bound[channel.prop] = resolveValue(effective.modelValue, ctx.scope);
   if (material.isFormControl) {
-    bound.onChange = onChange;
+    bound[channel.event] = onChange;
     // 失焦即校验：与 Vue 版行为对齐
     bound.onBlur = (): void => {
       if (ctx.mode === "view") ctx.validateField(node);

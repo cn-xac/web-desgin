@@ -322,6 +322,15 @@ export const COMPONENTS: Record<string, ComponentType<ControlProps>> = Object.fr
   Object.entries(COMPONENT_TABLE).map(([key, component]) => [materialKey(key), component]),
 );
 
-export function resolveComponent(component: string): ComponentType<ControlProps> | null {
-  return COMPONENTS[materialKey(component)] ?? COMPONENT_TABLE[component] ?? null;
+/**
+ * 按协议物料名查实现。
+ *
+ * 传了 `components` 就按那张表查 —— 渲染器实际走这条路径（适配包可能是换过的）。
+ * 不传则查内置表，保持历史调用兼容。
+ */
+export function resolveComponent(
+  component: string,
+  components: Record<string, ComponentType<ControlProps>> = COMPONENTS,
+): ComponentType<ControlProps> | null {
+  return components[materialKey(component)] ?? components[component] ?? null;
 }

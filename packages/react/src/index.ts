@@ -15,6 +15,8 @@ export { RenderContext, useRenderContext } from "./context";
 export type { RenderContextValue, RenderMode } from "./context";
 export { createReactAdapter, defaultAdapter } from "./actions";
 export type { ReactAdapterOptions } from "./actions";
+export { REACT_BINDING, createNativeAdapter, nativeAdapter } from "./adapter";
+export type { ReactMaterial } from "./adapter";
 export { usePageStore } from "./scope";
 export type { PageStore } from "./scope";
 
@@ -29,3 +31,23 @@ export {
   validateData,
 } from "@x-ac/design-core";
 export type { DataExportOptions, DataExportResult, FieldError, ValidationRule } from "@x-ac/design-core";
+
+// 适配包组合：宿主注册业务物料只需要这几样，不必直接依赖 core
+export {
+  MATERIALS,
+  createRegistry,
+  defineMaterial,
+  materialKey,
+  missingComponents,
+  registerMaterials,
+  withMaterials,
+} from "@x-ac/design-core";
+export type {
+  CustomMaterial,
+  CustomMaterialInput,
+  Material,
+  MaterialRegistry,
+  PropField,
+  PropFieldType,
+  UiAdapter,
+} from "@x-ac/design-core";

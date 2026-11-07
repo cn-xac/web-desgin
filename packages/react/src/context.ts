@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
-import type { ActionAdapter, NodeSchema, PageSchema } from "@x-ac/design-core";
+import type { ActionAdapter, MaterialRegistry, NodeSchema, PageSchema, UiAdapter } from "@x-ac/design-core";
+import type { ReactMaterial } from "./adapter";
 
 export type RenderMode = "view" | "edit";
 
@@ -8,7 +9,12 @@ export interface RenderContextValue {
   scope: Record<string, unknown>;
   errors: Record<string, string>;
   mode: RenderMode;
+  /** 动作副作用适配（提示 / 确认框） */
   adapter: ActionAdapter;
+  /** UI 适配包：组件实现、物料元数据、双向绑定通道都从这里取 */
+  ui: UiAdapter<ReactMaterial>;
+  /** 由 ui.materials 建的只读目录：物料元数据与默认属性的查询入口 */
+  catalog: MaterialRegistry;
   navigate: (to: string) => void;
   resetScope: (paths?: string[]) => void;
   flush: () => void;

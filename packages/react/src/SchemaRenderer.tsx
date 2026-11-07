@@ -4,22 +4,33 @@ import type {
   ActionAdapter,
   DataExportOptions,
   DataExportResult,
+  Material,
+  MaterialRegistry,
   NodeSchema,
   PageSchema,
+  UiAdapter,
 } from "@x-ac/design-core";
-import { exportData, validateData, validateNodeField } from "@x-ac/design-core";
+import { createRegistry, exportData, validateData, validateNodeField } from "@x-ac/design-core";
 import { SchemaNode } from "./SchemaNode";
 import { RenderContext } from "./context";
 import type { RenderContextValue, RenderMode } from "./context";
 import { defaultAdapter } from "./actions";
+import { nativeAdapter, type ReactMaterial } from "./adapter";
 import { usePageStore } from "./scope";
 
 export interface SchemaRendererProps {
   page: PageSchema;
-  /** view：挂事件、跑动作；edit：只渲染（供设计器包裹交互） */
+  /** view：挂事件、跑动作；edit：只渲染 */
   mode?: RenderMode;
   /** 动作里的「页面跳转」交给宿主，组件自身不承担路由 */
   navigate?: (to: string) => void;
+  /**
+   * UI 适配包：组件实现 + 物料元数据 + 双向绑定通道。
+   * 缺省用内置的原生实现（nativeAdapter）；传 `registerMaterials(nativeAdapter, [...])`
+   * 的结果即可让业务物料参与渲染与校验。
+   */
+  ui?: UiAdapter<ReactMaterial>;
+  /** 只覆盖动作副作用（提示 / 确认框）；缺省取 ui.actions，再缺省 console + window.confirm */
   adapter?: ActionAdapter;
   className?: string;
   style?: CSSProperties;
@@ -38,6 +49,22 @@ export interface SchemaRendererHandle {
 }
 
 /**
+ * 物料目录缓存：以 materials 数组引用为键。
+ * 同一个 adapter 反复渲染不会重复建表；换适配包自然命中新键。
+ * （与 Vue 版 useMaterialCatalog 的 WeakMap 缓存同源，避免两边行为分叉）
+ */
+const registryCache = new WeakMap<Material[], MaterialRegistry>();
+
+function registryFor(materials: Material[]): MaterialRegistry {
+  let registry = registryCache.get(materials);
+  if (!registry) {
+    registry = createRegistry(materials);
+    registryCache.set(materials, registry);
+  }
+  return registry;
+}
+
+/**
  * 用一份 PageSchema 渲染页面。
  *
  * ```tsx
@@ -48,26 +75,29 @@ export interface SchemaRendererHandle {
  * ```
  */
 export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererProps>(function SchemaRenderer(
-  { page, mode = "view", navigate, adapter = defaultAdapter, className, style },
+  { page, mode = "view", navigate, ui = nativeAdapter, adapter, className, style },
   ref,
 ) {
   const store = usePageStore(page);
+  const catalog = registryFor(ui.materials);
+  const actions = adapter ?? ui.actions ?? defaultAdapter;
 
   /** 失焦校验：只算当前字段，改完立即消红 */
   const validateField = (node: NodeSchema): void => {
-    const issue = validateNodeField(node, store.scope);
+    const issue = validateNodeField(node, store.scope, undefined, catalog);
     store.patchError(node.id, issue ? issue.message : null);
   };
 
   useImperativeHandle(ref, () => ({
     validate() {
       const errors: Record<string, string> = { ...store.errors };
-      const result = validateData(page, store.scope, { errors });
+      const result = validateData(page, store.scope, { errors, materials: catalog });
       store.setErrors(errors);
       return result.valid;
     },
     getData(options?: DataExportOptions) {
-      return exportData(page, store.scope, options);
+      // 目录必须带上：否则业务物料（isFormControl）会被当成非表单组件，字段直接丢
+      return exportData(page, store.scope, { ...options, materials: catalog });
     },
     getErrors() {
       return { ...store.errors };
@@ -85,7 +115,9 @@ export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererPro
     scope: store.scope,
     errors: store.errors,
     mode,
-    adapter,
+    adapter: actions,
+    ui,
+    catalog,
     navigate: navigate ?? (() => undefined),
     resetScope: store.resetScope,
     flush: store.flush,
