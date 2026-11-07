@@ -19,6 +19,7 @@ export * from "./validation/engine";
 
 export * from "./materials/types";
 export * from "./materials/keys";
+export * from "./materials/fields";
 export * from "./materials/portability";
 export * from "./materials/adapter";
 export * from "./materials/define";

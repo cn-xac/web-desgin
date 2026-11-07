@@ -1,6 +1,7 @@
-import type { Material, Portability, PropField } from "./types";
+import type { Material, Portability, PropField, PropFieldGroup } from "./types";
 import { materialKey } from "./keys";
 import { tagPortability } from "./portability";
+import { mergeFields } from "./fields";
 import { createRegistry, type MaterialRegistry } from "./registry";
 
 /**
@@ -570,18 +571,61 @@ const PORTABILITY_OVERRIDES: Record<string, Record<string, Portability>> = {
 };
 
 /**
+ * 字段分组（未列出的走 basic）。集中在这里而不是逐条写进 fields：
+ * 分组是「属性面板怎么摆」，不是「组件是什么」，混进物料定义会淹没真正的信息。
+ */
+const FIELD_GROUP_OVERRIDES: Record<string, Record<string, PropFieldGroup>> = {
+  container: { padding: "style", background: "style", borderRadius: "style" },
+  grid: { columns: "style", gap: "style", columnGap: "style" },
+  card: { title: "content", shadow: "style" },
+  space: { direction: "style", size: "style", wrap: "style" },
+  title: { text: "content", level: "style", align: "style" },
+  text: { text: "content", size: "style", muted: "style" },
+  divider: { contentPosition: "style", direction: "style", borderStyle: "style" },
+  tag: { text: "content", type: "style", effect: "style" },
+  alert: {
+    title: "content",
+    description: "content",
+    type: "style",
+    showIcon: "style",
+    effect: "style",
+    center: "style",
+  },
+  image: { src: "content", alt: "content", width: "style", fit: "style", radius: "style", lazy: "advanced", preview: "advanced" },
+  table: { columns: "content", data: "data", emptyText: "content", border: "style", stripe: "style", size: "style", rowKey: "advanced" },
+  input: { modelValue: "data", maxlength: "advanced", size: "style" },
+  textarea: { modelValue: "data", rows: "basic", resize: "style" },
+  number: { modelValue: "data", precision: "advanced" },
+  select: { options: "content", modelValue: "data" },
+  radio: { options: "content", modelValue: "data" },
+  checkbox: { options: "content", modelValue: "data" },
+  switch: { modelValue: "data", activeText: "content", inactiveText: "content" },
+  date: { modelValue: "data", valueFormat: "data", format: "data" },
+  rate: { modelValue: "data", allowHalf: "advanced" },
+  slider: { modelValue: "data" },
+  button: { text: "content", type: "style", plain: "style", size: "style", block: "style" },
+  link: { text: "content", href: "content", type: "style", underline: "style" },
+  "org-picker": { modelValue: "data", checkStrictly: "advanced" },
+  "dict-select": { modelValue: "data" },
+  "amount-input": { modelValue: "data", precision: "advanced" },
+};
+
+/**
  * 对外物料清单：组件名统一加 `ec-` 前缀，补齐通用字段与 owner / portable 默认值，
  * 并把每个字段的 portability 固化成显式值。
  * 历史 Schema 里的裸名（`input`）仍可解析 —— 归一化在 registry 查询时完成。
  */
 export const MATERIALS: Material[] = MATERIALS_RAW.map((raw) => {
   const overrides = PORTABILITY_OVERRIDES[raw.component] ?? {};
-  const fields: PropField[] = [
-    ...raw.fields.map((field) =>
+  const groups = FIELD_GROUP_OVERRIDES[raw.component] ?? {};
+  // 通用字段用 mergeFields 合并：同名键就地覆盖，不产生两个写同一 prop 的输入框
+  const fields = mergeFields(
+    raw.fields.map((field) =>
       overrides[field.key] ? { ...field, portability: overrides[field.key] } : field,
     ),
-    ...(COMMON_FIELDS[raw.component] ?? []),
-  ];
+    COMMON_FIELDS[raw.component] ?? [],
+  ).map((field) => (groups[field.key] ? { ...field, group: groups[field.key] } : field));
+
   return tagPortability({
     ...raw,
     component: materialKey(raw.component),

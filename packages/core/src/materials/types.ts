@@ -2,7 +2,7 @@
  * 物料协议。新增组件 = 写一个 Vue 组件 + 在此登记一份 meta，不改设计器内核。
  */
 
-export type MaterialCategory = "布局" | "展示" | "表单" | "交互" | "业务";
+export type MaterialCategory = "布局" | "展示" | "表单" | "交互" | "导航" | "业务";
 
 export type MaterialKind = "layout" | "display" | "field" | "action";
 
@@ -16,15 +16,36 @@ export type PropFieldType =
   | "options"
   | "columns";
 
+/**
+ * 属性分组。属性面板按组折叠：UI 库组件的属性动辄二十几个，
+ * 全平铺会让面板变成一个需要不停滚动的长列表。
+ */
+export type PropFieldGroup = "basic" | "content" | "data" | "style" | "advanced";
+
 /** 属性可移植性：行为/内容缺失是缺陷，视觉缺失是可接受的外观差异（详见 portability.ts） */
 export type Portability = "behavior" | "content" | "visual";
+
+/** select 的候选项；`value` 是写进 Schema 的值，`label` 是面板上显示的文字 */
+export interface PropOption {
+  label: string;
+  value: string | number;
+}
 
 export interface PropField {
   key: string;
   label: string;
   type: PropFieldType;
-  /** select 的候选值 */
-  options?: Array<string | number>;
+  /** select 的候选值：裸值直接用，需要中文展示时用 { label, value } */
+  options?: Array<string | number | PropOption>;
+  /**
+   * 所属分组，缺省 basic。
+   * `advanced` 组默认折叠，用来收纳「能设但少用」的属性。
+   */
+  group?: PropFieldGroup;
+  /** number 类型的上下限与步长（仅约束面板输入，不改变运行时行为） */
+  min?: number;
+  max?: number;
+  step?: number;
   tip?: string;
   /**
    * 跨库映射等级。缺省按键名推断（见 fieldPortability），
