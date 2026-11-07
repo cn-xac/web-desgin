@@ -50,3 +50,5 @@ export { COMPONENT_MAP, resolveComponent };
 export { elementAdapter, runActions };
 export { designerKit };
 export { elementPlusMaterials };
+// 补丁表本身也导出：宿主可以用它生成属性文档，测试用它校验字段元数据完整性
+export { EP_FIELD_PATCHES } from "./materials";
