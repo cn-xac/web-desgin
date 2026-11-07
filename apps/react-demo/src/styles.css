@@ -124,3 +124,30 @@ body {
   overflow-y: auto;
   max-height: 100vh;
 }
+
+/* 业务物料示例（biz-priority）：宿主自己的样式，引擎不参与 */
+.demo-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.demo-priority--high {
+  background: #fff1f0;
+  color: #cf1322;
+}
+
+.demo-priority--mid {
+  background: #fff7e6;
+  color: #ad6800;
+}
+
+.demo-priority--low {
+  background: #f6ffed;
+  color: #237804;
+}

@@ -3,7 +3,35 @@ import { SchemaRenderer } from "@x-ac/design-react";
 import type { SchemaRendererHandle } from "@x-ac/design-react";
 import { toDataJSON, toHtml, toJSON } from "@x-ac/design-core";
 import type { NodeSchema, PageSchema } from "@x-ac/design-core";
+import { demoAdapter } from "./adapter";
 import { createDemoPage } from "./page";
+
+/**
+ * 把一个业务物料节点插进表单卡片。
+ *
+ * 刻意不放进 createDemoPage()：那份页面要和 Vue 示例逐字一致（跨框架用例在比对），
+ * 而 biz-priority 只有 React 侧注册了实现。
+ */
+function withPriorityNode(page: PageSchema): PageSchema {
+  return {
+    ...page,
+    children: page.children.map((node) =>
+      node.id === "rt_card"
+        ? {
+            ...node,
+            children: [
+              ...(node.children ?? []),
+              {
+                id: "rt_priority",
+                component: "biz-priority",
+                props: { level: "高" },
+              },
+            ],
+          }
+        : node,
+    ),
+  };
+}
 
 /** 在示例里演示「通用间距」：直接改 Schema 的 style，渲染立即生效 */
 function patchNode(page: PageSchema, id: string, patch: Partial<NodeSchema>): PageSchema {
@@ -33,7 +61,7 @@ function patchCardChildren(page: PageSchema, cardId: string, gap: number): PageS
 const GAPS = [0, 8, 12, 16, 24];
 
 export default function App() {
-  const [page, setPage] = useState<PageSchema>(createDemoPage);
+  const [page, setPage] = useState<PageSchema>(() => withPriorityNode(createDemoPage()));
   const [mountKey, setMountKey] = useState(0);
   const [gap, setGap] = useState(12);
   const [report, setReport] = useState("");
@@ -148,6 +176,7 @@ export default function App() {
           key={mountKey}
           ref={renderer}
           page={page}
+          ui={demoAdapter}
           navigate={(to) => console.info("[demo] navigate:", to)}
           style={{ maxWidth: 780 }}
         />
