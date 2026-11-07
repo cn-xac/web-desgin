@@ -1,14 +1,29 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, type Component } from "vue";
+import type { PropField } from "@x-ac/design-core";
 import UiControl from "../ui/UiControl.vue";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 import { useNotify } from "../ui/kit";
+import { useUiAdapter } from "../../renderer/context";
 
 const notify = useNotify();
 
 const store = useDesignerStore();
 const catalog = useMaterialCatalog();
+const uiAdapter = useUiAdapter();
+
+/**
+ * 字段编辑器覆盖：适配包可以用自己库的控件替换某一类字段的编辑器。
+ * 契约只要求「接受 modelValue、抛 update:modelValue」，所以引擎给的是同一份绑定。
+ *
+ * 刻意不做成 computed：computed 会把组件对象包成 reactive 代理，
+ * Vue 会为此报「component made a reactive object」告警，且带来无谓的代理开销。
+ */
+function editorFor(field: PropField): Component | null {
+  if (field.type === "columns") return null; // 结构化编辑器由引擎内置，不走覆盖
+  return (uiAdapter?.editors?.[field.type] as Component | undefined) ?? null;
+}
 
 const node = computed(() => store.selectedNode);
 const material = computed(() => (node.value ? catalog.get(node.value.component) : undefined));
@@ -105,8 +120,17 @@ function copyId(): void {
         <span v-if="isBound(value(field.key))" class="props__bind">绑定</span>
       </div>
 
+      <!-- 适配包覆盖优先：给了就用它的控件，没给走下面的内置实现 -->
+      <component
+        v-if="editorFor(field)"
+        :is="editorFor(field)"
+        :model-value="value(field.key)"
+        :field="field"
+        @update:model-value="(v: unknown) => set(field.key, v)"
+      />
+
       <UiControl as="Switch"
-        v-if="field.type === 'boolean'"
+        v-else-if="field.type === 'boolean'"
         :model-value="Boolean(value(field.key))"
         size="small"
         @update:model-value="(v: unknown) => set(field.key, v)"
@@ -128,6 +152,14 @@ function copyId(): void {
         :options="(field.options ?? []).map((option) => ({ label: String(option), value: option }))"
         size="small"
         style="width: 100%"
+        @update:model-value="(v: unknown) => set(field.key, v)"
+      />
+
+      <!-- 取色：业务物料的主题色 / 标签色都靠它，缺了只能手写十六进制 -->
+      <UiControl as="ColorInput"
+        v-else-if="field.type === 'color'"
+        :model-value="String(value(field.key) ?? '')"
+        size="small"
         @update:model-value="(v: unknown) => set(field.key, v)"
       />
 

@@ -229,9 +229,14 @@ export const NativeColor = defineComponent({
   },
   emits: ["update:modelValue", "change"],
   setup(props, { emit, attrs }) {
-    return () =>
-      h("input", {
-        ...attrs,
+    return () => {
+      // size 是 UI 库的尺寸约定，原生 input[type=color] 没有这个属性，
+      // 直接透传会让 Vue 尝试往 DOM 属性上写并抛 DOMException（控制台刷屏）。
+      const passthrough = { ...attrs };
+      delete passthrough.size;
+
+      return h("input", {
+        ...passthrough,
         class: ["wbd-color", (attrs.class as string) ?? ""],
         type: "color",
         value: props.modelValue || "#ffffff",
@@ -239,5 +244,6 @@ export const NativeColor = defineComponent({
         onInput: (event: Event) => emit("update:modelValue", (event.target as HTMLInputElement).value),
         onChange: (event: Event) => emit("change", (event.target as HTMLInputElement).value),
       });
+    };
   },
 });

@@ -14,7 +14,7 @@
  * 生产环境的 /preview 只加载这一个组件树，不引入设计器。
  * SchemaPage 是本组件的语义化别名，二者完全等同。
  */
-import { computed, inject, provide, reactive, ref, useAttrs, watch } from "vue";
+import { computed, inject, markRaw, provide, reactive, ref, toRaw, useAttrs, watch } from "vue";
 import type { DataExportOptions, DataExportResult, NodeSchema, PageSchema, UiAdapter } from "@x-ac/design-core";
 import { exportData, createEmptyPage, migratePage, validateData, validateNodeField } from "@x-ac/design-core";
 import SchemaNode from "./SchemaNode.vue";
@@ -53,7 +53,16 @@ const attrs = useAttrs();
 /* ---------------- UI 适配包：prop 覆盖 > 全局注入 ---------------- */
 
 const inheritedAdapter = inject(UI_ADAPTER, null);
-const activeAdapter = computed(() => props.adapter ?? inheritedAdapter ?? null);
+/**
+ * 适配包是应用级单例，必须原样透出：
+ * - toRaw：宿主通过 props 传进来时可能已被 reactive 包一层（computed / 表单式状态都常见）；
+ * - markRaw：computed 对对象返回值会自动 toReactive，不标记的话 components 里的组件对象
+ *   也会被代理，渲染时 Vue 会告警「component made a reactive object」并产生无谓开销。
+ */
+const activeAdapter = computed(() => {
+  const adapter = props.adapter ?? inheritedAdapter ?? null;
+  return adapter ? (markRaw(toRaw(adapter)) as UiAdapter<unknown>) : null;
+});
 provide(UI_ADAPTER, activeAdapter.value);
 
 if (!activeAdapter.value) {

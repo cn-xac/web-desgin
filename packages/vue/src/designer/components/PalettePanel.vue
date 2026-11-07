@@ -51,6 +51,7 @@ function onDragStart(event: DragEvent, component: string): void {
         >
           <span class="palette__icon">{{ item.icon }}</span>
           <span class="palette__name">{{ item.title }}</span>
+          <span v-if="item.owner === 'user'" class="palette__own" title="业务物料：宿主注册，跨库可移植性由注册者负责">自</span>
         </div>
       </section>
 
@@ -115,9 +116,22 @@ function onDragStart(event: DragEvent, component: string): void {
   opacity: 0.7;
 }
 .palette__name {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* 业务物料标记：与官方物料区分，避免「以为能跨库用」 */
+.palette__own {
+  margin-left: auto;
+  flex: none;
+  padding: 0 3px;
+  border: 1px solid var(--wb-line);
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--wb-ink3);
 }
 .palette__empty {
   padding: 24px 8px;
