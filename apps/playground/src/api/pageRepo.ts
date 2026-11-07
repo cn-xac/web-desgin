@@ -7,12 +7,19 @@
 import type { PageSchema } from "@x-ac/design-core";
 import type { PageRepository } from "@x-ac/design-vue/designer";
 import { compactPage } from "@x-ac/design-core";
+import { createRegistry } from "@x-ac/design-core";
 import { migratePage } from "@x-ac/design-core";
 import { validatePage } from "@x-ac/design-core";
-import { KNOWN_COMPONENTS } from "@x-ac/design-core";
 import { employeeOnboardTemplate, ticketTemplate } from "@/data/templates";
+import { playgroundAdapter } from "../materials";
 
 const STORAGE_KEY = "vue-design:pages:v1";
+
+/**
+ * 校验用的组件集合必须取「当前适配包 + 业务物料」这一份，
+ * 而不是 core 的默认清单 —— 否则业务物料在每次保存时都会被当成未注册组件告警。
+ */
+const KNOWN_COMPONENTS = createRegistry(playgroundAdapter.materials).knownComponents();
 
 export interface PageRecord {
   id: string;

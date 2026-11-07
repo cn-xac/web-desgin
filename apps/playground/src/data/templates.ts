@@ -162,6 +162,12 @@ export const ticketTemplate = (): PageSchema =>
         props: { title: "工单信息" },
         children: [
           { id: "n_title_ticket", component: "ec-title", props: { text: "需求工单", level: 3 } },
+          // 业务物料（apps/playground/src/materials 注册）：证明自研组件与官方物料同处一条链路
+          {
+            id: "n_biz_risk",
+            component: "biz-risk-badge",
+            props: { text: "风险待评估", level: "中", round: true },
+          },
           {
             id: "n_alert_tip",
             component: "ec-alert",
