@@ -11,7 +11,7 @@
  *
  * 幂等：目标名字和现有名字完全一致时不动任何文件，可重复执行。
  */
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -90,16 +90,7 @@ const targets = [];
 // 整个 project/ 都扫（含根目录的 vite/vitest/tsconfig/pnpm-workspace 等配置），
 // 早期版本只扫了 packages|apps|tests|docs|scripts，漏掉过 vitest.config.ts 的 alias
 walk(projectRoot, targets);
-for (const file of [
-  join(repoRoot, "README.md"),
-  join(repoRoot, "PROJECT.md"),
-]) {
-  try {
-    if (statSync(file).isFile()) targets.push(file);
-  } catch {
-    /* 文件不存在就跳过 */
-  }
-}
+// docs/ 是独立仓库，README.md / PROJECT.md 也在其中，整目录扫即可覆盖
 walk(join(repoRoot, "docs"), targets);
 
 /* ---------- 执行替换 ---------- */
