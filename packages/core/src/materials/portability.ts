@@ -7,7 +7,7 @@
  *   - size / effect / variant 丢掉只是丑一点 —— 可以接受。
  * 所以属性必须分档，而不是笼统地「尽量映射」。
  */
-import type { Portability, PropField } from "./types";
+import type { Material, Portability, PropField } from "./types";
 
 export type { Portability };
 
@@ -38,6 +38,14 @@ const BEHAVIOR_KEYS = new Set([
   "valueFormat",
   "rows",
   "showWordLimit",
+  "modelValue",
+  "data",
+  "dict",
+  "checkStrictly",
+  "rowKey",
+  "allowHalf",
+  "closable",
+  "multiple",
 ]);
 
 /** 内容属性：缺失会让页面文案或选项丢失，跨库时必须映射 */
@@ -53,7 +61,28 @@ const CONTENT_KEYS = new Set([
   "href",
   "src",
   "alt",
+  "activeText",
+  "inactiveText",
+  "emptyText",
 ]);
+
+/**
+ * 给物料的每个字段固化一个显式 portability 值。
+ *
+ * 显式标注优先，未标注的按键名推断 —— 这样 97 个既有字段不必逐条手写，
+ * 运行时拿到的仍然全是有档位的字段；语义有歧义的同名字段（如 `type`
+ * 在日期里是数据格式、在按钮里是配色）由物料清单显式覆盖。
+ * 纯函数，不修改入参。
+ */
+export function tagPortability(material: Material): Material {
+  return {
+    ...material,
+    fields: material.fields.map((field) => ({
+      ...field,
+      portability: field.portability ?? fieldPortability(field),
+    })),
+  };
+}
 
 /**
  * 字段的可移植性。显式标注优先；未标注时按键名推断。

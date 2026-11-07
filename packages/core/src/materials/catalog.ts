@@ -1,5 +1,6 @@
-import type { Material } from "./types";
+import type { Material, Portability, PropField } from "./types";
 import { materialKey } from "./keys";
+import { tagPortability } from "./portability";
 import { createRegistry, type MaterialRegistry } from "./registry";
 
 /**
@@ -515,15 +516,80 @@ const MATERIALS_RAW: Material[] = [
 ];
 
 /**
- * 对外物料清单：组件名统一加 `ec-` 前缀，并补齐 owner / portable 默认值。
+ * 通用字段扩展：各 UI 库都有的能力，放在协议层；
+ * 库专有字段（effect / showWordLimit / loading 等）由适配包的 materials 追加。
+ * 这里用裸名作 key（与 MATERIALS_RAW 一致），归一化在构建时统一完成。
+ */
+const COMMON_FIELDS: Record<string, PropField[]> = {
+  input: [
+    { key: "maxlength", label: "最大长度", type: "number", portability: "behavior" },
+    { key: "size", label: "尺寸", type: "select", options: ["large", "default", "small"], portability: "visual" },
+  ],
+  textarea: [
+    { key: "maxlength", label: "最大长度", type: "number", portability: "behavior" },
+    { key: "disabled", label: "禁用", type: "boolean", portability: "behavior" },
+    { key: "resize", label: "缩放方向", type: "select", options: ["vertical", "none", "both", "horizontal"], portability: "visual" },
+  ],
+  number: [
+    { key: "step", label: "步长", type: "number", portability: "behavior" },
+    { key: "disabled", label: "禁用", type: "boolean", portability: "behavior" },
+  ],
+  select: [{ key: "disabled", label: "禁用", type: "boolean", portability: "behavior" }],
+  radio: [{ key: "disabled", label: "禁用", type: "boolean", portability: "behavior" }],
+  checkbox: [{ key: "disabled", label: "禁用", type: "boolean", portability: "behavior" }],
+  switch: [{ key: "disabled", label: "禁用", type: "boolean", portability: "behavior" }],
+  date: [
+    { key: "format", label: "显示格式", type: "text", portability: "behavior" },
+    { key: "clearable", label: "可清空", type: "boolean", portability: "behavior" },
+    { key: "disabled", label: "禁用", type: "boolean", portability: "behavior" },
+  ],
+  rate: [{ key: "disabled", label: "禁用", type: "boolean", portability: "behavior" }],
+  slider: [{ key: "disabled", label: "禁用", type: "boolean", portability: "behavior" }],
+  link: [
+    { key: "href", label: "链接地址", type: "text", portability: "content" },
+    { key: "disabled", label: "禁用", type: "boolean", portability: "behavior" },
+  ],
+  image: [{ key: "alt", label: "替代文本", type: "text", portability: "content" }],
+  table: [
+    { key: "rowKey", label: "行唯一键", type: "text", portability: "behavior" },
+    { key: "size", label: "尺寸", type: "select", options: ["large", "default", "small"], portability: "visual" },
+  ],
+  alert: [{ key: "showIcon", label: "显示图标", type: "boolean", portability: "visual" }],
+};
+
+/**
+ * 同名不同义的字段必须按物料显式覆盖，不能只靠键名推断：
+ * `type` 在日期里决定数据格式（behavior），在按钮/标签/提示条里只是配色（visual）。
+ */
+const PORTABILITY_OVERRIDES: Record<string, Record<string, Portability>> = {
+  date: { type: "behavior" },
+  button: { type: "visual" },
+  tag: { type: "visual" },
+  alert: { type: "visual" },
+  link: { type: "visual" },
+};
+
+/**
+ * 对外物料清单：组件名统一加 `ec-` 前缀，补齐通用字段与 owner / portable 默认值，
+ * 并把每个字段的 portability 固化成显式值。
  * 历史 Schema 里的裸名（`input`）仍可解析 —— 归一化在 registry 查询时完成。
  */
-export const MATERIALS: Material[] = MATERIALS_RAW.map((material) => ({
-  ...material,
-  component: materialKey(material.component),
-  owner: material.owner ?? "adapter",
-  portable: material.portable ?? true,
-}));
+export const MATERIALS: Material[] = MATERIALS_RAW.map((raw) => {
+  const overrides = PORTABILITY_OVERRIDES[raw.component] ?? {};
+  const fields: PropField[] = [
+    ...raw.fields.map((field) =>
+      overrides[field.key] ? { ...field, portability: overrides[field.key] } : field,
+    ),
+    ...(COMMON_FIELDS[raw.component] ?? []),
+  ];
+  return tagPortability({
+    ...raw,
+    component: materialKey(raw.component),
+    fields,
+    owner: raw.owner ?? "adapter",
+    portable: raw.portable ?? true,
+  });
+});
 
 export const registry: MaterialRegistry = createRegistry(MATERIALS);
 

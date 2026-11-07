@@ -18,6 +18,10 @@ export interface MaterialRegistry {
   byCategory(): Array<{ category: MaterialCategory; items: Material[] }>;
   /** 给定组件名清单，返回当前注册表里找不到的那些（跨库降级、历史数据迁移用） */
   missing(keys: string[]): string[];
+  /** 有效属性 = 该注册表的 defaultProps + 节点自身属性（默认值不落库） */
+  defaults(key: string, props?: Record<string, unknown>): Record<string, unknown>;
+  /** 已知组件名集合，供 validatePage 判断未知物料 */
+  knownComponents(): Set<string>;
 }
 
 export const CATEGORIES: MaterialCategory[] = ["布局", "展示", "表单", "交互", "业务"];
@@ -42,5 +46,7 @@ export function createRegistry(materials: Material[]): MaterialRegistry {
         items: [...byComponent.values()].filter((material) => material.category === category),
       })),
     missing: (keys) => keys.filter((key) => lookup(key) === undefined),
+    defaults: (key, props = {}) => ({ ...(lookup(key)?.defaultProps ?? {}), ...props }),
+    knownComponents: () => new Set(byComponent.keys()),
   };
 }
