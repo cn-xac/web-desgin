@@ -8,6 +8,7 @@
  * 组件引用一律用泛型占位，由 Vue / React 引擎各自收窄类型。
  */
 import type { ActionAdapter } from "../actions/registry";
+import { materialKey } from "./keys";
 import type { Material, PropFieldType } from "./types";
 
 /** 双向绑定通道：Vue 是 { prop, event }，例如 modelValue / onUpdate:modelValue */
@@ -63,11 +64,14 @@ export const DEFAULT_BINDING: BindingChannel = {
   event: "onUpdate:modelValue",
 };
 
-/** 适配包自身缺少哪些物料实现（用于启动期自检，不抛错，只报告） */
+/**
+ * 适配包自身缺少哪些物料实现（用于启动期自检，不抛错，只报告）。
+ * 两种键名都认：适配包写 `ec-input`（协议名）、业务物料写 `biz-rate`（自有前缀）都能命中。
+ */
 export function missingComponents<T>(adapter: UiAdapter<T>): string[] {
   return adapter.materials
     .map((material) => material.component)
-    .filter((key) => !(key in adapter.components));
+    .filter((key) => !(key in adapter.components) && !(materialKey(key) in adapter.components));
 }
 
 /**
