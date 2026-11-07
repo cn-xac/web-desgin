@@ -16,10 +16,11 @@
  */
 import { computed, inject, markRaw, provide, reactive, ref, toRaw, useAttrs, watch } from "vue";
 import type { DataExportOptions, DataExportResult, NodeSchema, PageSchema, UiAdapter } from "@x-ac/design-core";
-import { exportData, createEmptyPage, migratePage, validateData, validateNodeField } from "@x-ac/design-core";
+import { exportData, createEmptyPage, MATERIALS, migratePage, validateData, validateNodeField } from "@x-ac/design-core";
 import SchemaNode from "./SchemaNode.vue";
 import { RENDER_CONTEXT, UI_ADAPTER } from "./context";
 import { usePageScope } from "./usePageScope";
+import { registryForMaterials } from "../materials/catalog";
 
 const props = withDefaults(
   defineProps<{
@@ -129,19 +130,27 @@ watch(
 
 /* ---------------- 对宿主的命令式 API ---------------- */
 
+/**
+ * 物料目录：校验与数据导出必须用当前适配包的清单，
+ * 否则业务物料（isFormControl: true）会被当成非表单组件，required 之类的规则直接失效。
+ */
+const catalog = computed(() =>
+  registryForMaterials(activeAdapter.value?.materials?.length ? activeAdapter.value.materials : MATERIALS),
+);
+
 /** 校验整页数据，错误会直接显示到对应字段下方 */
 function validate(): boolean {
-  return validateData(pageRef.value, scope, { errors }).valid;
+  return validateData(pageRef.value, scope, { errors, materials: catalog.value }).valid;
 }
 
 /** 单字段校验：失焦时用，避免一次扫描整页 */
 function validateField(node: NodeSchema): void {
-  validateNodeField(node, scope, errors);
+  validateNodeField(node, scope, errors, catalog.value);
 }
 
 /** 收集表单数据（默认顺带校验） */
 function getData(options?: DataExportOptions): DataExportResult {
-  return exportData(pageRef.value, scope, options);
+  return exportData(pageRef.value, scope, { ...options, materials: catalog.value });
 }
 
 function getErrors(): Record<string, string> {

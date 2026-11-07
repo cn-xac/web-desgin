@@ -119,11 +119,13 @@ const fieldError = computed(() => renderCtx?.errors[props.node.id] ?? "");
 const mergedStyle = computed<CSSProperties>(() => {
   // 通用间距（margin / padding）与其余样式走同一条链路：
   // 组件契约样式 → 物料默认样式 → 节点 style（含表达式求值）
+  // 物料取自注入目录（适配包 + 业务物料），否则适配包的 defaultStyle 不生效
   const style = resolveNodeStyle(
     props.node.component,
     effective.value,
     props.node.style,
     (value) => resolveValue(value, props.scope),
+    material.value,
   ) as CSSProperties;
 
   if (hiddenByShow.value) style.display = "none";
