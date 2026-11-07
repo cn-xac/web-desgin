@@ -18,6 +18,7 @@ export default defineConfig({
       { find: "@/designer", replacement: r("./packages/vue/src/designer") },
       { find: "@/renderer", replacement: r("./packages/vue/src/renderer") },
       { find: "@/materials", replacement: r("./packages/vue/src/materials") },
+      { find: "@/demo-materials", replacement: r("./apps/playground/src/materials") },
       { find: "@/api", replacement: r("./apps/playground/src/api") },
       { find: "@/data", replacement: r("./apps/playground/src/data") },
       { find: "@/views", replacement: r("./apps/playground/src/views") },

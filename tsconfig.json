@@ -8,6 +8,7 @@
       "@/designer/*": ["packages/vue/src/designer/*"],
       "@/renderer/*": ["packages/vue/src/renderer/*"],
       "@/materials/*": ["packages/vue/src/materials/*"],
+      "@/demo-materials/*": ["apps/playground/src/materials/*"],
       "@/api/*": ["apps/playground/src/api/*"],
       "@/data/*": ["apps/playground/src/data/*"],
       "@/views/*": ["apps/playground/src/views/*"]
