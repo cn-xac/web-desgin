@@ -3,8 +3,12 @@ import { SchemaRenderer } from "@x-ac/design-react";
 import type { SchemaRendererHandle } from "@x-ac/design-react";
 import { toDataJSON, toHtml, toJSON } from "@x-ac/design-core";
 import type { NodeSchema, PageSchema } from "@x-ac/design-core";
+import { createRegistry } from "@x-ac/design-core";
 import { demoAdapter } from "./adapter";
 import { createDemoPage } from "./page";
+
+/** 静态导出也要认业务物料：目录由宿主适配包建一次，别在点击回调里反复建表 */
+const demoCatalog = createRegistry(demoAdapter.materials);
 
 /**
  * 把一个业务物料节点插进表单卡片。
@@ -158,7 +162,7 @@ export default function App() {
             <button onClick={() => download("react-demo.json", toJSON(page), "application/json")}>
               导出 JSON
             </button>
-            <button onClick={() => download("react-demo.html", toHtml(page), "text/html")}>
+            <button onClick={() => download("react-demo.html", toHtml(page, { materials: demoCatalog }), "text/html")}>
               导出静态 HTML
             </button>
             <button onClick={() => setMountKey((key) => key + 1)}>重置页面数据</button>
