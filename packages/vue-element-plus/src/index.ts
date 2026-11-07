@@ -11,8 +11,9 @@
  */
 import type { Component } from "vue";
 import { ElColorPicker, ElInput, ElInputNumber, ElMessage, ElSwitch } from "element-plus";
-import { MATERIALS, type DesignerKit, type UiAdapter } from "@x-ac/design-core";
+import { type DesignerKit, type UiAdapter } from "@x-ac/design-core";
 import { COMPONENT_MAP, resolveComponent } from "./components";
+import { elementPlusMaterials } from "./materials";
 import { elementAdapter, runActions } from "./actions";
 import EpButton from "./designer/EpButton.vue";
 import EpSegmented from "./designer/EpSegmented.vue";
@@ -39,7 +40,7 @@ const designerKit: DesignerKit<Component> = {
 export const elementPlusAdapter: UiAdapter<Component | string> = {
   name: "element-plus",
   components: COMPONENT_MAP,
-  materials: MATERIALS,
+  materials: elementPlusMaterials,
   designer: designerKit as unknown as DesignerKit<Component | string>,
   binding: { prop: "modelValue", event: "onUpdate:modelValue" },
   actions: elementAdapter,
@@ -48,3 +49,4 @@ export const elementPlusAdapter: UiAdapter<Component | string> = {
 export { COMPONENT_MAP, resolveComponent };
 export { elementAdapter, runActions };
 export { designerKit };
+export { elementPlusMaterials };
