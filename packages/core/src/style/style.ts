@@ -7,6 +7,7 @@
 import { normalizeLength, readSpacing, SPACING_SIDES, type SpacingKey } from "./spacing";
 import { resolveDefaultStyle } from "../materials/catalog";
 import { bareKey } from "../materials/keys";
+import type { Material } from "../materials/types";
 
 export type CssStyle = Record<string, string>;
 
@@ -121,12 +122,15 @@ function collapse(parts: string[]): string {
 /**
  * 渲染器最终样式：组件契约样式 → 物料默认样式（含通用间距）→ 节点 style（含表达式求值）。
  * `resolve` 由渲染层提供，core 不关心表达式在什么框架里求值。
+ *
+ * `material` 由渲染层从自己的物料目录取（适配包 + 业务物料），不传则回落全局 registry。
  */
 export function resolveNodeStyle(
   component: string,
   props: Record<string, unknown>,
   style: Record<string, unknown> | undefined,
   resolve: (value: unknown) => unknown = (value) => value,
+  material?: Material,
 ): CssStyle {
   const resolved: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(style ?? {})) {
@@ -135,7 +139,7 @@ export function resolveNodeStyle(
 
   return {
     ...propStyle(component, props),
-    ...normalizeStyle(resolveDefaultStyle(component, undefined)),
+    ...normalizeStyle(resolveDefaultStyle(component, undefined, material)),
     ...normalizeStyle(resolved),
   };
 }

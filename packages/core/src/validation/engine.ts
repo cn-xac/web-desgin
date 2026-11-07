@@ -9,7 +9,8 @@
 import type { NodeSchema, PageSchema } from "../schema/types";
 import type { Scope } from "../schema/expression";
 import { extractPath, getByPath, resolveBoolean, resolveValue } from "../schema/expression";
-import { getMaterial, resolveDefaults } from "../materials/catalog";
+import { registry as globalRegistry } from "../materials/catalog";
+import type { MaterialRegistry } from "../materials/registry";
 import { walk } from "../schema/tree";
 import {
   BUILTIN_PATTERNS,
@@ -69,12 +70,21 @@ function toNumber(value: unknown): number | null {
   return null;
 }
 
-/** 把一个节点描述成字段；非表单控件返回 null */
-export function describeField(node: NodeSchema, scope: Scope): FormField | null {
-  const material = getMaterial(node.component);
+/**
+ * 把一个节点描述成字段；非表单控件返回 null。
+ *
+ * `materials` 由渲染层注入（适配包 + 业务物料），不传则回落全局 registry：
+ * 业务物料 `isFormControl: true` 时，只有注入目录才认得出来。
+ */
+export function describeField(
+  node: NodeSchema,
+  scope: Scope,
+  materials: MaterialRegistry = globalRegistry,
+): FormField | null {
+  const material = materials.get(node.component);
   if (!material?.isFormControl) return null;
 
-  const props = resolveDefaults(node.component, node.props);
+  const props = materials.defaults(node.component, node.props);
   const path = extractPath(props.modelValue);
   const value = path ? getByPath(scope, path) : resolveValue(props.modelValue, scope);
   const rules = effectiveRules(node, props);
@@ -91,10 +101,14 @@ export function describeField(node: NodeSchema, scope: Scope): FormField | null 
 }
 
 /** 收集页面里所有表单字段（按渲染顺序） */
-export function collectFields(page: PageSchema, scope: Scope): FormField[] {
+export function collectFields(
+  page: PageSchema,
+  scope: Scope,
+  materials: MaterialRegistry = globalRegistry,
+): FormField[] {
   const fields: FormField[] = [];
   walk(page.children, (node) => {
-    const field = describeField(node, scope);
+    const field = describeField(node, scope, materials);
     if (field) fields.push(field);
   });
   return fields;
@@ -187,6 +201,8 @@ export interface ValidateDataOptions {
   errors?: Record<string, string>;
   /** 复用已采集的字段，避免重复 walk */
   fields?: FormField[];
+  /** 渲染层持有的物料目录；不传则用全局 registry */
+  materials?: MaterialRegistry;
 }
 
 /** 校验整页数据 */
@@ -195,7 +211,7 @@ export function validateData(
   scope: Scope,
   options: ValidateDataOptions = {},
 ): DataValidationResult {
-  const fields = options.fields ?? collectFields(page, scope);
+  const fields = options.fields ?? collectFields(page, scope, options.materials ?? globalRegistry);
   const errors: FieldError[] = [];
   const byNode: Record<string, string> = {};
   let checkedRules = 0;
@@ -232,8 +248,9 @@ export function validateNodeField(
   node: NodeSchema,
   scope: Scope,
   errors?: Record<string, string>,
+  materials: MaterialRegistry = globalRegistry,
 ): FieldError | null {
-  const field = describeField(node, scope);
+  const field = describeField(node, scope, materials);
   if (!field) return null;
 
   const issue = validateFieldValue(field, scope);

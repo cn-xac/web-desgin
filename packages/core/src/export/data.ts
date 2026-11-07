@@ -9,6 +9,7 @@
 import type { PageSchema } from "../schema/types";
 import type { Scope } from "../schema/expression";
 import { setByPath } from "../schema/expression";
+import type { MaterialRegistry } from "../materials/registry";
 import {
   collectFields,
   validateData,
@@ -23,6 +24,8 @@ export interface DataExportOptions {
   includeEmpty?: boolean;
   /** 导出时是否顺带校验，默认 true */
   validate?: boolean;
+  /** 渲染层持有的物料目录；不传则用全局 registry */
+  materials?: MaterialRegistry;
 }
 
 export interface ExportedField {
@@ -57,7 +60,7 @@ export function exportData(
   now: Date = new Date(),
 ): DataExportResult {
   const { includeEmpty = false, validate = true } = options;
-  const fields: FormField[] = collectFields(page, scope);
+  const fields: FormField[] = collectFields(page, scope, options.materials);
 
   const data: Record<string, unknown> = {};
   const flat: Record<string, unknown> = {};

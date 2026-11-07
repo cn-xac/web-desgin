@@ -612,12 +612,18 @@ export function resolveDefaults(component: string, props: Record<string, unknown
   return { ...(material?.defaultProps ?? {}), ...(props ?? {}) };
 }
 
-/** 物料默认样式：节点 style 里没写的键才回落，写了（哪怕写成 0）就以节点为准 */
+/**
+ * 物料默认样式：节点 style 里没写的键才回落，写了（哪怕写成 0）就以节点为准。
+ *
+ * `material` 用于注入式目录：渲染器持有的是当前适配包的物料表（含业务物料），
+ * 不传则退回全局 registry，保持历史调用兼容。
+ */
 export function resolveDefaultStyle(
   component: string,
   style: Record<string, unknown> | undefined,
+  material: Material | undefined = registry.get(component),
 ): Record<string, string> {
-  const defaults = registry.get(component)?.defaultStyle ?? {};
+  const defaults = material?.defaultStyle ?? {};
   const merged: Record<string, string> = { ...defaults };
   for (const [key, value] of Object.entries(style ?? {})) {
     if (value === undefined || value === null || value === "") continue;
