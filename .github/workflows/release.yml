@@ -8,15 +8,23 @@
 #   - 不用 scripts/release.mjs，直接 pnpm 发布当前 package.json 里的版本（即 latest）。
 #   - 三个可发布包（@x-ac/design-core / @x-ac/design-vue / @x-ac/design-react）
 #     走固定单版本组，永远共用一个版本号。
-#   - npm 发布需要仓库 Secret：NPM_TOKEN（在 npmjs.com 生成的 Automation Token）。
+#   - 发布走 npm Trusted Publishing（OIDC）：**不需要 NPM_TOKEN**，GitHub Actions
+#     用 OIDC 临时凭证直接发布，并生成「Built and signed with provenance」徽章。
 #   - Pages 部署需要仓库开启 Settings → Pages → Source = GitHub Actions。
 #
-# Provenance（npm 包「Built and signed with provenance」徽章）：
-#   - 发布步骤使用 `pnpm publish --provenance`，由 GitHub OIDC 生成签名溯源证明。
-#   - 前置条件：本工作流已声明 `id-token: write`（见 permissions），且运行于
-#     GitHub 官方托管 runner（ubuntu-latest），三库也在同一次运行内从源码构建。
-#   - 因发布使用 OIDC 临时凭证，无需在 npm 配置长期 token 之外的额外设置；
-#     NPM_TOKEN 仅用于鉴权，provenance 的来源与签名由 Actions 运行时提供。
+# 发布前置条件（一次性，在 npmjs.com 操作）：
+#   1. 每个包：包设置 → Publishing access → Add a trusted publisher → GitHub Actions，
+#      填 owner=cn-xac、repository=web-desgin、Workflow 文件名=release.yml。
+#   2. 三个包各自注册一次（monorepo 每个包独立）。
+#   3. 每个包 package.json 需有 repository 字段（1.0.0 已补）。
+#
+# 重要坑：新包首次发布（1.0.0）npm 不允许可信发布接管从未存在过的包，
+#   首版必须先用一次性 NPM_TOKEN 发一次；从第二个版本起才走 tokenless OIDC。
+#   本工作流为 tokenless 形态，若首个版本发布报 ENEEDAUTH，用一次性 token 兜底即可。
+#
+# 技术约束：OIDC 要求 npm >= 11.5.1，故 publish job 用 node-version: 24；
+#   setup-node 不写 registry-url（避免 .npmrc 与 OIDC 冲突）；
+#   本工作流已声明 `id-token: write`（见 permissions），且运行于官方 runner。
 #
 # 注意：本工作流只负责「构建 + 发布 + 部署」，不建 tag、不 push。
 # tag 由开发者本地按约定执行：git tag -s v1.0.0 -m "release 1.0.0" 后推送。
@@ -49,8 +57,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org/
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
@@ -66,17 +73,10 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Setup npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       # 直接 pnpm 发布：发布 packages/* 下所有非 private 包（当前即三个设计包）
-      # --provenance 生成 npm 溯源证明（需上面的 id-token: write 权限）。
+      # tokenless OIDC：不配置 NPM_TOKEN，靠 id-token: write + --provenance 完成发布与溯源证明。
       - name: Publish to npm
         run: pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   deploy-examples:
     name: Build & deploy examples to GitHub Pages

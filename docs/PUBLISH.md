@@ -154,25 +154,40 @@ git push origin v1.0.0
 ```
 
 ### 两个 job
-1. **publish**：装依赖 → 直接 `pnpm --filter @x-ac/design-core/@x-ac/design-vue/@x-ac/design-react build`（不经过 release.mjs）→ `pnpm test` → `pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance` 发布到 npmjs。认证读 `NPM_TOKEN`（仓库 Secret）。
+1. **publish**：装依赖 → 直接 `pnpm --filter @x-ac/design-core/@x-ac/design-vue/@x-ac/design-react build`（不经过 release.mjs）→ `pnpm test` → `pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance` 发布到 npmjs。**无需 NPM_TOKEN**：走 npm Trusted Publishing（OIDC），由 `id-token: write` 提供的临时凭证直接发布并生成 provenance。
 2. **deploy-examples**：构建并部署两个示例项目到 GitHub Pages（需开启 Settings → Pages → Source = GitHub Actions）：
    - `apps/vue-example` → 站点根 `/`；
    - `apps/react-example` → 站点子路径 `/react/`（其 vite `base` 已设为 `/react/`，与部署路径一致）。
 
-### npm 溯源证明（Provenance）
+### npm 溯源证明（Provenance）+ 无 Token 发布
 发布命令带 `--provenance`，发布成功后 npm 包详情会显示 **「Built and signed with provenance」** 徽章，证明包确实从该仓库源码、在本次 Actions 运行中构建并发布。
 
-前置条件（工作流已满足）：
-- `permissions` 含 `id-token: write`（OIDC 临时凭证来源，provenance 签名依赖它）；
-- `runs-on: ubuntu-latest`（GitHub 官方托管 runner）；
-- 三库在**同一次运行内**从源码构建后紧接着发布（不能是预发制品）。
+**无 Token 发布（npm Trusted Publishing）**：本工作流不配置 `NPM_TOKEN`，GitHub Actions 用 OIDC 临时凭证直接向 npmjs 发布，凭证由 Actions 运行时注入，发布命令本身只多一个 `--provenance`。
 
-本仓 pnpm 为 12.x，`--provenance` 已被支持；无需在 npm 额外配置，凭证由 Actions 运行时经 OIDC 注入。
+前置条件：
+- `permissions` 含 `id-token: write`（OIDC 凭证来源，已声明）；
+- `runs-on: ubuntu-latest`（官方托管 runner，OIDC 仅官方 runner 可用）；
+- publish job 用 `node-version: 24`（npm >= 11.5.1 才支持 OIDC；`setup-node` 不写 `registry-url`，避免 .npmrc 与 OIDC 冲突）；
+- 三库在**同一次运行内**从源码构建后紧接着发布（不能是预发制品）；
+- 每个包的 `package.json` 有 `repository` 字段（1.0.0 已补）。
+
+**首次发布硬坑（务必读）**：npm 不允许可信发布接管从未存在过的包。三个包是全新 1.0.0，**首版必须先用一次性 `NPM_TOKEN` 发一次**（见下「首次发布兜底」）；从第二个版本起，本工作流的 tokenless OIDC 才会生效。
+
+**Trusted Publisher 一次性注册（在 npmjs.com）**：对每个包分别操作：
+1. 打开 `https://www.npmjs.com/package/@x-ac/design-core/access`（core / vue / react 各开一次）；
+2. 找到 Publishing access → **Add a trusted publisher** → 选 **GitHub Actions**；
+3. 填 `owner=cn-xac`、`repository=web-desgin`、`Workflow 文件名=release.yml`、`Environment` 留空；
+4. 保存。三个包各自注册一次（monorepo 每个包独立）。
 
 ### 需要的仓库 Secret / 设置
-- `NPM_TOKEN`：npmjs.com 生成的 **Automation** Token，用于 `pnpm publish` 认证；
+- **无 NPM_TOKEN 常态依赖**：日常发版走 OIDC，仓库 Secrets 里不需要 NPM_TOKEN。
+- **首次发布兜底 token**：仅在发 1.0.0 首版时临时需要一个 `NPM_TOKEN`（Automation Token），发完可删除。一次性命令：
+  ```bash
+  # 本地对三个包各发一次（需先 build），用 token 鉴权
+  NPM_TOKEN=<一次性token> pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance
+  ```
 - Pages：仓库 Settings → Pages → Source 选「GitHub Actions」；
-- 如需 provenance：`id-token: write` 权限已写入工作流（见 `permissions`），无需额外 Secret。
+- `id-token: write` 权限已写入工作流（见 `permissions`），这是 OIDC 发布的唯一权限前提。
 
 ### 决策记录
 - 三包版本定为 **1.0.0**（核心渲染 / 设计器能力已具备，功能层与 Vue 版对齐）；每个 `package.json` 同时补了 `repository` / `homepage` / `bugs`，指向 `cn-xac/web-desgin`。
