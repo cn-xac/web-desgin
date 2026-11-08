@@ -1,8 +1,8 @@
 # @x-ac/design-react
 
-React 适配层：用同一份 `PageSchema` 渲染页面，内置表单校验与数据导出。
+React 适配层：用同一份 `PageSchema` 渲染页面，内置表单校验与数据导出，并给 `react-*` 扩展仓提供组件作者 SDK（`@x-ac/design-react/kit`）。
 
-没有绑定任何 UI 库——默认映射到原生元素（input / select / table / button），所以只有 4 KB gzip；要换 antd / MUI，只改 `components.tsx` 一张表。
+没有绑定任何 UI 库——默认映射到原生元素（input / select / table / button），所以只有 4 KB gzip；要换 antd / MUI，用 `/kit` 组装独立扩展仓即可。
 
 ## 安装
 
@@ -121,10 +121,29 @@ COMPONENTS.input = (props) => <Input {...props} />;
 
 约束只有一条：**组件必须把 `style` 应用到根元素**，否则通用 margin / padding 失效。
 
+## 给 react-* 扩展仓用的适配层 SDK
+
+`react-*` 扩展仓（未来的 `react-ant` 等）基于 `/kit` 子入口实现，与 Vue 侧 `@x-ac/design-vue/kit` 对称：
+
+```tsx
+import { defineReactAdapter, useFieldModel, REACT_BINDING } from "@x-ac/design-react/kit";
+
+export const antAdapter = defineReactAdapter({
+  name: "antd",
+  components: prefixedComponents(COMPONENT_TABLE),
+  materials: antMaterials,
+  actions: antActions,
+  binding: REACT_BINDING, // value / onChange
+});
+```
+
+`/kit` 是纯 TS 子入口，不加载 `styles.css` 与渲染器 Context；框架无关的协议与工具统一在 `@x-ac/design-core`。`nativeAdapter` 本身也由 `defineReactAdapter` 组装，可作为扩展仓的基座。
+
 ## 与 Vue 版差异
 
 | 项 | Vue | React |
 |---|---|---|
+| 扩展仓 SDK | `@x-ac/design-vue/kit`：`defineVueAdapter` / `useFieldModel` | `@x-ac/design-react/kit`：`defineReactAdapter` / `useFieldModel` |
 | 适配包注入 | `app.use(createVueDesign({ adapter }))` + `UI_ADAPTER` InjectionKey | `<ReactDesignProvider adapter>` / `createReactDesign()` + `UI_ADAPTER_CONTEXT` |
 | 未注入时 | 降级为未知组件占位 | 回落内置 `nativeAdapter`（原生元素） |
 | 双向绑定 | `modelValue` + `@update:modelValue` | `value` + `onChange` |

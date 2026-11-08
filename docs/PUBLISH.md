@@ -4,23 +4,23 @@
 
 | 包 | 作用 | 依赖 | peerDependencies |
 |---|---|---|---|
-| `@x-ac/design-core` | 协议与内核（Schema / 物料 meta / 表达式 / 校验 / 数据导出 / 静态 HTML） | 无 | 无 |
-| `@x-ac/design-vue` | Vue 3 适配层（渲染器 + 设计器 + 原生控件兜底） | `@x-ac/design-core` | `vue`、`pinia`（仅设计器，可选） |
-| `@x-ac/design-react` | React 适配层（渲染器 + 原生元素物料） | `@x-ac/design-core` | `react` |
+| `@x-ac/design-core` | 协议与内核（Schema / 物料 meta / 表达式 / 校验 / 导出 / 静态 HTML）+ 框架无关的通用工具（`parsePairs` / `defineAdapter` / `prefixedComponents` / `bindModel`） | 无 | 无 |
+| `@x-ac/design-vue` | Vue 适配层：渲染器 + 设计器 + `/kit` 组件作者 SDK（多入口 `index` / `designer` / `kit`） | `@x-ac/design-core` | `vue`、`pinia`（仅设计器，可选） |
+| `@x-ac/design-react` | React 适配层：渲染器 + `/kit` 组件作者 SDK（多入口 `index` / `kit`） | `@x-ac/design-core` | `react` |
 
 私有包 `vue-design-workspace`（根）、`playground`、`react-demo` 不参与发布，版本号独立。
 
 ### 扩展包（独立仓库）
 
-`vue-*` / `react-*` 扩展不属于本仓，各自一个仓库独立维护，只依赖对应框架的适配层：
+`vue-*` / `react-*` 扩展不属于本仓，各自一个仓库独立维护，**真实基于对应适配层的 `/kit` 子入口实现**：
 
-| 扩展仓 | 依赖 | peerDependencies |
+| 扩展仓 | 运行时 import | peerDependencies |
 |---|---|---|
-| `design-vue-element-plus` | — | `@x-ac/design-core`、`@x-ac/design-vue`、`vue`、`element-plus` |
-| 后续 `vue-icon-xxxx` | — | `@x-ac/design-core`、`@x-ac/design-vue`、`vue`、图标库 |
-| 后续 `react-ant` | — | `@x-ac/design-core`、`@x-ac/design-react`、`react`、`antd` |
+| `design-vue-element-plus` | `@x-ac/design-vue/kit`（`defineVueAdapter` / `createDesignerKit` / `useFieldModel`）+ `@x-ac/design-core` | `@x-ac/design-core`、`@x-ac/design-vue`、`vue`、`element-plus` |
+| 后续 `vue-icon-xxxx` | 同上 | `@x-ac/design-core`、`@x-ac/design-vue`、`vue`、图标库 |
+| 后续 `react-ant` | `@x-ac/design-react/kit`（`defineReactAdapter`）+ `@x-ac/design-core` | `@x-ac/design-core`、`@x-ac/design-react`、`react`、`antd` |
 
-`UI_ADAPTER` 注入符号由 `@x-ac/design-vue` 提供，**必须**声明为 peer 而不是普通依赖：装出两份引擎时 `provide/inject` 的 symbol 不同，适配包会静默失效。扩展仓版本号与核心仓保持同一条版本线，发布顺序为 `core → vue/react → 扩展`。
+扩展包把引擎声明为 peer 是**版本配套 + 防多副本**：`UI_ADAPTER` 注入符号由 `@x-ac/design-vue` 内部持有，扩展包不 import 它，因此不存在「扩展包与宿主各持一份 symbol」的问题；真正需要去重的是 `vue` 与 UI 库本体。`/kit` 子入口不加载 CSS / 渲染器，扩展包产物里它保持 external。扩展仓版本号与核心仓同一条版本线，发布顺序 `core → vue/react → 扩展`。
 
 ## 1. 版本治理脚本
 

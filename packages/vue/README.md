@@ -1,6 +1,7 @@
 # @x-ac/design-vue
 
-Vue 3 适配层：Schema 渲染器 + 可视化设计器 + Element Plus 物料 + 表单校验。
+Vue 3 适配层：Schema 渲染器 + 可视化设计器 + 给 `vue-*` 扩展仓用的组件作者 SDK（`@x-ac/design-vue/kit`）。
+具体 UI 库的物料实现放在独立扩展仓（如 `design-vue-element-plus`），本包不内置任何 UI 库物料。
 
 与 `@x-ac/design-core` 共享同一份 Schema 与校验引擎，换到 React（`@x-ac/design-react`）时页面 JSON 不用改。
 
@@ -79,9 +80,24 @@ const repo: PageRepository = { /* list / get / save / remove，对接你的接�
 
 右侧「校验」面板可以配置必填、最短 / 最长长度、最小 / 最大值、自定义正则、邮箱、手机号、整数，并支持自定义文案与 `when` 条件。
 
-## 物料与组件映射
+## 给 vue-* 扩展仓用的适配层 SDK
 
-24 个物料（布局 / 展示 / 表单 / 交互 / 业务）映射到 Element Plus。替换或新增物料只需改 `src/materials/components.ts` 与 `packages/core` 的物料清单，渲染器与设计器内核不用改。
+`vue-*` 扩展仓（Element Plus、图标库、ant-design-vue 等）都基于本包的 `/kit` 子入口实现，而不是自己拼 `UiAdapter` 字面量：
+
+```ts
+import { defineVueAdapter, createDesignerKit, useFieldModel, VUE_BINDING } from "@x-ac/design-vue/kit";
+
+export const myAdapter = defineVueAdapter({
+  name: "my-ui",
+  components: prefixedComponents(COMPONENT_TABLE), // 归一化工具来自 core
+  materials: myMaterials,
+  designer: createDesignerKit({ Button: MyButton /* ... */ }),
+  actions: myActions,
+  binding: VUE_BINDING,
+});
+```
+
+`/kit` 是纯 TS 子入口：不加载渲染器、设计器、CSS 与 pinia，产物约 0.74 kB，扩展仓组件可在 jsdom / SSR 独立挂载。框架无关的契约（`UiAdapter` / `DesignerControlProps`）与工具（`parsePairs` / `prefixedComponents` / `defineAdapter` / `bindModel`）统一在 `@x-ac/design-core`。
 
 **约束**：自定义物料必须接收并应用 `style`，否则通用 margin / padding 会失效。
 
