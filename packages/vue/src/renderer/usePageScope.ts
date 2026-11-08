@@ -1,10 +1,6 @@
 import { onBeforeUnmount, onMounted, reactive, ref, watch, type Ref } from "vue";
 import type { PageSchema } from "@x-ac/design-core";
-import { setByPath } from "@x-ac/design-core";
-
-function deepClone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value ?? {})) as T;
-}
+import { deepClone, loadPageData, setByPath } from "@x-ac/design-core";
 
 export interface PageScopeApi {
   scope: Record<string, unknown>;
@@ -15,12 +11,11 @@ export interface PageScopeApi {
 }
 
 /**
- * 页面作用域：
- *   state 初值 + dataSource 取数结果 → 一个 reactive 对象，渲染器所有表达式都从这个 scope 求值。
- * 只监听 page.id，避免设计器改属性时把用户填的数据冲掉。
+ * 页面作用域：state 初值 + dataSource 取数结果 → 一个 reactive 对象。
+ * 取数逻辑已下沉到 core（loadPageData），与 React 侧共用同一份实现；
+ * 这里只负责 Vue 生命周期、AbortController 与响应式状态。
  *
- * seed：宿主通过 v-model:data 传入的外部数据，优先级高于 page.state——
- * 这样「设计时 state 初值」与「运行时回填数据」两条路都能走。
+ * seed：宿主通过 v-model:data 传入的外部数据，优先级高于 page.state。
  */
 export function usePageScope(
   page: Ref<PageSchema>,
@@ -50,40 +45,17 @@ export function usePageScope(
   }
 
   async function loadData(): Promise<void> {
-    const config = page.value.dataSource ?? {};
-    const entries = Object.entries(config);
-    if (!entries.length) return;
-
     controller?.abort();
     controller = new AbortController();
-    loading.value = entries.some(([, item]) => item.type === "http" && item.auto !== false);
-
-    for (const [key, item] of entries) {
-      if (item.type === "static") {
-        scope[key] = deepClone(item.data);
-        continue;
-      }
-      if (item.type === "http" && item.auto === false) continue;
-      if (!item.url) continue;
-
-      try {
-        const response = await fetch(item.url, {
-          method: item.method ?? "GET",
-          signal: controller.signal,
-          headers: item.method === "POST" ? { "Content-Type": "application/json" } : undefined,
-          body: item.method === "POST" ? JSON.stringify(item.params ?? {}) : undefined,
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        scope[key] = await response.json();
-        dataError.value = "";
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return;
-        // 取数失败不应白屏：保留 scope 原值，只在控制台与顶部提示
-        dataError.value = `数据源 ${key} 加载失败：${(error as Error).message}`;
-        console.warn(`[vue-design][datasource] ${key} 加载失败`, error);
-      }
-    }
-    loading.value = false;
+    await loadPageData(page.value, scope, {
+      signal: controller.signal,
+      onLoading: (value) => {
+        loading.value = value;
+      },
+      onError: (message) => {
+        dataError.value = message;
+      },
+    });
   }
 
   onMounted(() => {

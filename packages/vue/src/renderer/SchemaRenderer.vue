@@ -15,7 +15,15 @@
  * SchemaPage 是本组件的语义化别名，二者完全等同。
  */
 import { computed, inject, markRaw, provide, reactive, ref, toRaw, useAttrs, watch } from "vue";
-import type { DataExportOptions, DataExportResult, NodeSchema, PageSchema, UiAdapter } from "@x-ac/design-core";
+import type {
+  DataExportOptions,
+  DataExportResult,
+  NodeSchema,
+  PageSchema,
+  UiAdapter,
+  UiEventHook,
+  UiEventPayload,
+} from "@x-ac/design-core";
 import { exportData, createEmptyPage, MATERIALS, migratePage, validateData, validateNodeField } from "@x-ac/design-core";
 import SchemaNode from "./SchemaNode.vue";
 import { RENDER_CONTEXT, UI_ADAPTER } from "./context";
@@ -37,6 +45,12 @@ const props = withDefaults(
      * 通常由 createVueDesign({ adapter }) 全局注入；此处是组件级覆盖。
      */
     adapter?: UiAdapter<unknown>;
+    /**
+     * 事件拦截钩子：每个节点事件触发时都会先收到完整 payload
+     * （事件名、节点、物料、页面、scope、组件原始参数、原生事件、动作清单）。
+     * 返回 false 或调用 payload.preventDefault() 可跳过该事件配置的预设动作。
+     */
+    onEvent?: UiEventHook;
   }>(),
   { mode: "view", design: false },
 );
@@ -47,6 +61,8 @@ const emit = defineEmits<{
   submit: [payload: Record<string, unknown>];
   /** 动作「页面跳转」：与 prop navigate 二选一接，事件更 Vue 化 */
   navigate: [to: string];
+  /** 节点事件只读通知：拿到的是同一个 UiEventPayload，不参与控制流 */
+  nodeEvent: [payload: UiEventPayload];
 }>();
 
 const attrs = useAttrs();
@@ -182,6 +198,11 @@ provide(RENDER_CONTEXT, {
     else if (!("onNavigate" in attrs)) console.warn(`[vue-design] 未提供跳转能力：${to}`);
   },
   onFormSubmit: (payload) => emit("submit", payload),
+  notifyEvent: (payload) => emit("nodeEvent", payload),
+  // getter：宿主后续替换 onEvent 时，子树无需重建即可生效
+  get onEvent() {
+    return props.onEvent;
+  },
 });
 
 const deviceWidth = computed(() => {

@@ -54,6 +54,53 @@ function onSubmit(payload: Record<string, unknown>) {
 
 字段失焦会自动单字段校验；修改输入时，已报错的字段会边改边验，改对即消红。
 
+## 节点事件回调
+
+每个节点事件触发时，渲染器先把组件派发的全部原始参数包装成一份 `UiEventPayload`，再交给开发者，最后才执行 Schema 里配置的动作。三个层次的个性化入口，按需选一个即可：
+
+| 入口 | 适用场景 | 能否阻断预设动作 |
+|---|---|---|
+| Schema 表达式 `$event` / `$args` / `$value` | 只读事件参数，不写代码 | 否 |
+| `:on-event="fn"` | 业务侧接管、按参数改写状态 | 是（返回 `false` 或 `preventDefault()`） |
+| `adapter.onEvent` | 扩展仓统一归一化自家 UI 库的事件参数 | 是 |
+
+`@node-event` 是只读通知（拿到同一个 payload），用于埋点 / 日志，不参与控制流。
+
+```vue
+<script setup lang="ts">
+import { SchemaPage } from "@x-ac/design-vue";
+import type { UiEventPayload } from "@x-ac/design-vue";
+
+function onEvent(p: UiEventPayload): void | false {
+  // p.args 是组件派发的原始参数，如 el-table 的 (row, column, event)
+  const [row] = p.args as [{ id: number }?];
+  if (!row) return false;               // 跳过该事件配置的预设动作
+
+  p.scope.currentId = row.id;           // scope 就是页面状态，可直接写
+  // p.node / p.material / p.page / p.value / p.nativeEvent / p.actions 均可读
+}
+</script>
+
+<template>
+  <SchemaPage :page="page" :on-event="onEvent" @node-event="track" />
+</template>
+```
+
+Schema 里也能直接引用，无需写 JS：
+
+```json
+{
+  "events": {
+    "row-click": [
+      { "action": "setState", "args": { "path": "form.name", "value": "{{$event.value.name}}" } },
+      { "action": "toast", "args": { "text": "第 {{$args[1]}} 行" } }
+    ]
+  }
+}
+```
+
+事件名写 kebab（`row-click`）即可，渲染器内部转成 Vue 的 `rowClick`；React 侧同名的 `onEvent` 钩子拿到**形状完全一致**的 payload。`$event` 只叠加到表达式的读取作用域，不会写进 `page.state`，也不会出现在 `v-model:data` 的回传数据里。
+
 ## 内嵌设计器（标签即用）
 
 ```vue

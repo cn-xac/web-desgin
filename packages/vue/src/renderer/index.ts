@@ -24,10 +24,13 @@ export {
   validateData,
   validateRequired,
 } from "@x-ac/design-core";
+export { camelizeEventName, createEventPayload } from "@x-ac/design-core";
 export type {
   ActionAdapter,
   ActionContext,
   ActionSchema,
+  UiEventHook,
+  UiEventPayload,
   DataExportOptions,
   DataExportResult,
   FieldError,

@@ -6,7 +6,7 @@
 import { computed, inject } from "vue";
 import type { CSSProperties, Component } from "vue";
 import type { NodeSchema } from "@x-ac/design-core";
-import { DEFAULT_BINDING, materialKey } from "@x-ac/design-core";
+import { DEFAULT_BINDING, camelizeEventName, createEventPayload, materialKey, runEventHooks } from "@x-ac/design-core";
 import FieldShell from "./FieldShell.vue";
 import { extractPath, getByPath, isBindable, isRequired, resolveBoolean, resolveNodeStyle, resolveValue, setByPath } from "@x-ac/design-core";
 import { DESIGNER_SCENE, RENDER_CONTEXT, useUiAdapter } from "./context";
@@ -141,9 +141,26 @@ const eventHandlers = computed<Record<string, (...args: unknown[]) => void>>(() 
   for (const [name, actions] of Object.entries(props.node.events ?? {})) {
     // v-on 对象绑定的 key 用事件名本身（Vue 内部会补 on 前缀并转驼峰），
     // 所以 row-click 要写成 rowClick，不能写 onClick。
-    const eventName = name.replace(/-([a-z])/g, (_match, char: string) => char.toUpperCase());
+    const handlerName = camelizeEventName(name);
 
-    out[eventName] = () => {
+    out[handlerName] = (...args: unknown[]) => {
+      // 组件派发的原始参数不再丢弃：开发者可在钩子里读取 / 归一化，
+      // 动作参数表达式也能通过 $event / $args / $value 引用。
+      const payload = createEventPayload({
+        name,
+        handlerName,
+        node: props.node,
+        material: material.value ?? undefined,
+        page: renderCtx.page,
+        scope: props.scope,
+        args,
+        actions,
+      });
+
+      const shouldRun = runEventHooks(payload, [adapter?.onEvent, renderCtx.onEvent]);
+      renderCtx.notifyEvent(payload);
+      if (!shouldRun) return;
+
       void runNodeActions(
         actions,
         {
@@ -153,6 +170,7 @@ const eventHandlers = computed<Record<string, (...args: unknown[]) => void>>(() 
           resetScope: renderCtx.resetScope,
           navigate: renderCtx.navigate,
           onFormSubmit: renderCtx.onFormSubmit,
+          event: payload,
         },
         adapter?.actions,
       );

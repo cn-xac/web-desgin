@@ -1,5 +1,5 @@
 import { inject, type InjectionKey } from "vue";
-import type { NodeSchema, Material, PageSchema, UiAdapter } from "@x-ac/design-core";
+import type { NodeSchema, Material, PageSchema, UiAdapter, UiEventHook, UiEventPayload } from "@x-ac/design-core";
 
 /** 渲染上下文：动作执行、字段校验、跨页跳转都从这里拿 */
 export interface RenderContext {
@@ -12,6 +12,10 @@ export interface RenderContext {
   validateField: (node: NodeSchema) => void;
   /** submitForm 动作提交成功时回调（抛给宿主的 @submit 事件） */
   onFormSubmit: (payload: Record<string, unknown>) => void;
+  /** @node-event 只读通知（不参与控制流，方便模板监听） */
+  notifyEvent: (payload: UiEventPayload) => void;
+  /** 宿主传入的可拦截钩子：返回 false 或 payload.preventDefault() 阻断预设动作 */
+  onEvent?: UiEventHook;
 }
 
 export const RENDER_CONTEXT: InjectionKey<RenderContext> = Symbol("wb-render-context");
