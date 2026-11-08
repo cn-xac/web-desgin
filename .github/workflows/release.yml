@@ -1,0 +1,122 @@
+# 发布工作流
+#
+# 触发：
+#   - 推送 v* tag（如 v1.0.0）时自动执行「发布 npm + 部署示例到 Pages」
+#   - 也支持在 Actions 页面手动 workflow_dispatch 触发
+#
+# 说明：
+#   - 不用 scripts/release.mjs，直接 pnpm 发布当前 package.json 里的版本（即 latest）。
+#   - 三个可发布包（@x-ac/design-core / @x-ac/design-vue / @x-ac/design-react）
+#     走固定单版本组，永远共用一个版本号。
+#   - npm 发布需要仓库 Secret：NPM_TOKEN（在 npmjs.com 生成的 Automation Token）。
+#   - Pages 部署需要仓库开启 Settings → Pages → Source = GitHub Actions。
+#
+# Provenance（npm 包「Built and signed with provenance」徽章）：
+#   - 发布步骤使用 `pnpm publish --provenance`，由 GitHub OIDC 生成签名溯源证明。
+#   - 前置条件：本工作流已声明 `id-token: write`（见 permissions），且运行于
+#     GitHub 官方托管 runner（ubuntu-latest），三库也在同一次运行内从源码构建。
+#   - 因发布使用 OIDC 临时凭证，无需在 npm 配置长期 token 之外的额外设置；
+#     NPM_TOKEN 仅用于鉴权，provenance 的来源与签名由 Actions 运行时提供。
+#
+# 注意：本工作流只负责「构建 + 发布 + 部署」，不建 tag、不 push。
+# tag 由开发者本地按约定执行：git tag -s v1.0.0 -m "release 1.0.0" 后推送。
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish packages to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 直接构建三库（不调用 scripts/release.mjs）
+      - name: Build libraries
+        run: |
+          pnpm --filter @x-ac/design-core build
+          pnpm --filter @x-ac/design-vue build
+          pnpm --filter @x-ac/design-react build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Setup npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # 直接 pnpm 发布：发布 packages/* 下所有非 private 包（当前即三个设计包）
+      # --provenance 生成 npm 溯源证明（需上面的 id-token: write 权限）。
+      - name: Publish to npm
+        run: pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  deploy-examples:
+    name: Build & deploy examples to GitHub Pages
+    needs: publish
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 两个示例各自独立构建：vue-example 在站点根，react-example 在 /react/
+      - name: Build vue-example
+        run: pnpm --filter vue-example build
+
+      - name: Build react-example
+        run: pnpm --filter react-example build
+
+      - name: Stage Pages artifact
+        run: |
+          rm -rf .pages-stage
+          mkdir -p .pages-stage/react
+          cp -r apps/vue-example/dist/* .pages-stage/
+          cp -r apps/react-example/dist/* .pages-stage/react/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .pages-stage
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
