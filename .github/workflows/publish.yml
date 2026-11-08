@@ -14,14 +14,14 @@
 #
 # 发布前置条件（一次性，在 npmjs.com 操作）：
 #   1. 每个包：包设置 → Publishing access → Add a trusted publisher → GitHub Actions，
-#      填 owner=cn-xac、repository=web-desgin、Workflow 文件名=release.yml。
+#      填 owner=cn-xac、repository=web-desgin、Workflow 文件名=publish.yml。
 #   2. 三个包各自注册一次（monorepo 每个包独立）。
 #   3. 每个包 package.json 需有 repository 字段（1.0.0 已补）。
 #
 # 重要前提：可信发布要求包已在 npm 存在且已注册 Trusted Publisher。
 #   占位包已发、三包 Trusted Publisher 已配，故 1.0.0 即可直接 tokenless 发布。
 #   若发布报 ENEEDAUTH，先核对 npmjs 的 Trusted Publisher 的 owner/repository/Workflow 文件名
-#   是否与本仓库及本文件（release.yml）完全一致。
+#   是否与本仓库及本文件（publish.yml）完全一致。
 #
 # 技术约束：OIDC 要求 npm >= 11.5.1，故 publish job 用 node-version: 24；
 #   setup-node 不写 registry-url（避免 .npmrc 与 OIDC 冲突）；
