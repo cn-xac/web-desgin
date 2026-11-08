@@ -6,6 +6,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@x-ac/design-core": ["../../packages/core/src/index.ts"],
+      "@x-ac/design-react/designer": ["../../packages/react/src/designer.ts"],
       "@x-ac/design-react": ["../../packages/react/src/index.ts"]
     },
     "types": ["react", "react-dom", "vite/client", "node"]

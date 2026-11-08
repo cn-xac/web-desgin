@@ -9,6 +9,11 @@ body {
   font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+.demo__designer {
+  height: 100vh;
+  overflow: hidden;
+}
+
 .demo {
   display: grid;
   grid-template-columns: 380px 1fr;

@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: "@x-ac/design-core", replacement: r("../../packages/core/src/index.ts") },
+      // 子路径必须先于包别名匹配
+      { find: "@x-ac/design-react/designer", replacement: r("../../packages/react/src/designer.ts") },
       { find: "@x-ac/design-react", replacement: r("../../packages/react/src/index.ts") },
       { find: "@", replacement: r("./src") },
     ],

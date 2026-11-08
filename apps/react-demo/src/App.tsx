@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { SchemaRenderer } from "@x-ac/design-react";
 import type { SchemaRendererHandle } from "@x-ac/design-react";
+import { SchemaDesigner } from "@x-ac/design-react/designer";
 import { toDataJSON, toHtml, toJSON } from "@x-ac/design-core";
-import type { NodeSchema, PageSchema } from "@x-ac/design-core";
+import type { NodeSchema, PageRepository, PageSchema } from "@x-ac/design-core";
 import { createRegistry } from "@x-ac/design-core";
 import { demoAdapter } from "./adapter";
 import { createDemoPage } from "./page";
@@ -64,12 +65,44 @@ function patchCardChildren(page: PageSchema, cardId: string, gap: number): PageS
 
 const GAPS = [0, 8, 12, 16, 24];
 
+const DESIGNER_PAGE_ID = "react-demo";
+
+/** 设计器示例用 localStorage 当仓储：刷新不丢，单测里换内存实现即可 */
+const demoRepository: PageRepository = {
+  list: () => {
+    const raw = localStorage.getItem(DESIGNER_PAGE_ID);
+    if (!raw) return [];
+    try {
+      return [{ id: DESIGNER_PAGE_ID, schema: JSON.parse(raw) as PageSchema, updatedAt: Date.now() }];
+    } catch {
+      return [];
+    }
+  },
+  get: (id) => {
+    const raw = localStorage.getItem(DESIGNER_PAGE_ID);
+    if (raw) {
+      try {
+        return { id, schema: JSON.parse(raw) as PageSchema, updatedAt: Date.now() };
+      } catch {
+        /* 坏数据回落种子页，不让设计器白屏 */
+      }
+    }
+    return { id, schema: { ...createDemoPage(), id }, updatedAt: Date.now() };
+  },
+  save: (schema) => {
+    localStorage.setItem(DESIGNER_PAGE_ID, JSON.stringify(schema));
+    return { id: schema.id, schema, updatedAt: Date.now() };
+  },
+  remove: (id) => localStorage.removeItem(id),
+};
+
 export default function App() {
   const [page, setPage] = useState<PageSchema>(() => withPriorityNode(createDemoPage()));
   const [mountKey, setMountKey] = useState(0);
   const [gap, setGap] = useState(12);
   const [report, setReport] = useState("");
   const [reportValid, setReportValid] = useState<boolean | null>(null);
+  const [mode, setMode] = useState<"preview" | "design">("preview");
   const renderer = useRef<SchemaRendererHandle>(null);
 
   /** 校验：错误会显示到字段下方，这里同时把明细打到右侧面板 */
@@ -112,6 +145,18 @@ export default function App() {
     URL.revokeObjectURL(link.href);
   }
 
+  if (mode === "design") {
+    return (
+      <div className="demo__designer">
+        <SchemaDesigner
+          pageId={DESIGNER_PAGE_ID}
+          repository={demoRepository}
+          onBack={() => setMode("preview")}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="demo">
       <aside className="demo__panel">
@@ -119,6 +164,17 @@ export default function App() {
         <p className="demo__desc">
           组件只管渲染，不负责路由与页面切换；这里的「重置视图 / 导出」都是示例宿主自己的事。
         </p>
+
+        <section className="demo__group">
+          <h2>模式</h2>
+          <div className="demo__chips">
+            <button className="is-active">运行预览</button>
+            <button onClick={() => setMode("design")}>打开设计器</button>
+          </div>
+          <p className="demo__desc">
+            设计器与 Vue 版共用 core 状态机：拖拽、撤销重做、属性 / 样式 / 规则 / 事件编辑、导入导出与页面保存。
+          </p>
+        </section>
 
         <section className="demo__group">
           <h2>通用间距</h2>
