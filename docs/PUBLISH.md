@@ -1,25 +1,36 @@
 # 发布到 npm
 
-四个可发布包采用 **fixed 单版本组**：永远共用一个版本号，一次发布同时出四个 tarball。依据见 `ADR-15`（`docs/TASKS.md`）——版本不同步会产生兼容矩阵，维护成本远高于多打几个 tarball。
+本仓（核心仓）发布三个可发布包，采用 **fixed 单版本组**：永远共用一个版本号，一次发布同时出三个 tarball。依据见 `ADR-15`（`docs/TASKS.md`）——版本不同步会产生兼容矩阵，维护成本远高于多打几个 tarball。
 
-| 包 | 作用 | peerDependencies |
-|---|---|---|
-| `@x-ac/design-core` | 协议与内核（Schema / 物料 meta / 表达式 / 校验 / 数据导出 / 静态 HTML） | 无 |
-| `@x-ac/design-vue` | Vue 3 引擎（渲染器 + 设计器 + 原生控件兜底） | `vue`、`pinia`（仅设计器，可选） |
-| `@x-ac/design-vue-element-plus` | Element Plus 适配包（物料、绑定通道、动作、设计器控件） | `vue`、`element-plus` |
-| `@x-ac/design-react` | React 引擎（渲染器 + 原生元素物料） | `react` |
+| 包 | 作用 | 依赖 | peerDependencies |
+|---|---|---|---|
+| `@x-ac/design-core` | 协议与内核（Schema / 物料 meta / 表达式 / 校验 / 数据导出 / 静态 HTML） | 无 | 无 |
+| `@x-ac/design-vue` | Vue 3 适配层（渲染器 + 设计器 + 原生控件兜底） | `@x-ac/design-core` | `vue`、`pinia`（仅设计器，可选） |
+| `@x-ac/design-react` | React 适配层（渲染器 + 原生元素物料） | `@x-ac/design-core` | `react` |
 
 私有包 `vue-design-workspace`（根）、`playground`、`react-demo` 不参与发布，版本号独立。
 
+### 扩展包（独立仓库）
+
+`vue-*` / `react-*` 扩展不属于本仓，各自一个仓库独立维护，只依赖对应框架的适配层：
+
+| 扩展仓 | 依赖 | peerDependencies |
+|---|---|---|
+| `design-vue-element-plus` | — | `@x-ac/design-core`、`@x-ac/design-vue`、`vue`、`element-plus` |
+| 后续 `vue-icon-xxxx` | — | `@x-ac/design-core`、`@x-ac/design-vue`、`vue`、图标库 |
+| 后续 `react-ant` | — | `@x-ac/design-core`、`@x-ac/design-react`、`react`、`antd` |
+
+`UI_ADAPTER` 注入符号由 `@x-ac/design-vue` 提供，**必须**声明为 peer 而不是普通依赖：装出两份引擎时 `provide/inject` 的 symbol 不同，适配包会静默失效。扩展仓版本号与核心仓保持同一条版本线，发布顺序为 `core → vue/react → 扩展`。
+
 ## 1. 版本治理脚本
 
-`scripts/release.mjs` 动态发现 `packages/*` 下所有非 private 包，不维护硬编码清单，新增包自动纳入。
+`scripts/release.mjs` 动态发现 `packages/*` 下所有非 private 包，不维护硬编码清单，新增核心包自动纳入（扩展包在各自仓库单独发布）。
 
 ```bash
 cd project
 node scripts/release.mjs check                      # 校验一致性；不一致退出码 1
 node scripts/release.mjs version minor --dry-run   # 只看计划，不写文件
-node scripts/release.mjs version 0.4.0             # 批量改 4 个 package.json 的 version
+node scripts/release.mjs version 0.4.0             # 批量改 3 个 package.json 的 version
 node scripts/release.mjs publish                   # 只打印发布计划（默认 dry-run）
 node scripts/release.mjs publish --yes             # 真正发布（必须单独批准）
 ```
@@ -32,7 +43,7 @@ node scripts/release.mjs publish --yes             # 真正发布（必须单独
 
 ## 2. 包名与 scope
 
-四个包已定为 `@x-ac/design-*`。发布前先确认 scope 归属：
+三个包已定为 `@x-ac/design-*`。发布前先确认 scope 归属：
 
 ```bash
 npm login
@@ -52,15 +63,14 @@ pnpm install && pnpm build:lib && pnpm typecheck && pnpm test
 
 ```bash
 cd project
-pnpm release:check   # 四包同版本
+pnpm release:check   # 三包同版本
 pnpm test            # 全部用例
-pnpm typecheck       # 六个包类型检查
-pnpm build:lib       # 构建 core / vue / vue-element-plus / react
+pnpm typecheck       # 五个包类型检查（core / vue / react / playground / react-demo）
+pnpm build:lib       # 构建 core / vue / react
 
 # 检查 tarball 内容（不会真的发布）
 pnpm --filter @x-ac/design-core pack --pack-destination ../tmp/packs
 pnpm --filter @x-ac/design-vue pack --pack-destination ../tmp/packs
-pnpm --filter @x-ac/design-vue-element-plus pack --pack-destination ../tmp/packs
 pnpm --filter @x-ac/design-react pack --pack-destination ../tmp/packs
 ```
 
@@ -81,9 +91,11 @@ node scripts/release.mjs publish       # 先看计划
 node scripts/release.mjs publish --yes # 单独批准后执行
 ```
 
-实际执行的是 `pnpm -r --filter "./packages/*" publish --access public`，顺序由 pnpm 按依赖拓扑自动决定（core → 引擎 → 适配包）。发布前会跑各包 `prepack`，等于再构建一次。
+实际执行的是 `pnpm -r --filter "./packages/*" publish --access public`，顺序由 pnpm 按依赖拓扑自动决定（core → 两个适配层）。发布前会跑各包 `prepack`，等于再构建一次。
 
 只想发某一个包时可直接 `pnpm --filter <name> publish --access public`，但**不要**让它脱离统一版本——下一次 `version` 会把所有包拉回同一版本号。
+
+扩展仓在各自仓库执行 `pnpm publish --access public`；发版前先确认核心仓对应版本已在 npm 上，否则 peer 依赖解析不到。
 
 ## 5. 发布后验证
 
@@ -96,7 +108,7 @@ node -e "import('@x-ac/design-core').then(m=>console.log(Object.keys(m).length))
 Vue / React 侧建议各跑一次 SSR 渲染：
 
 ```js
-// Vue（需同时装 @x-ac/design-vue + @x-ac/design-vue-element-plus 并注入 adapter）
+// Vue：装 @x-ac/design-vue + 扩展仓的 @x-ac/design-vue-element-plus，并注入 adapter
 const html = await renderToString(createSSRApp({ render: () => h(SchemaRenderer, { page }) }));
 // React
 const html = renderToStaticMarkup(createElement(SchemaRenderer, { page }));
@@ -120,3 +132,5 @@ const html = renderToStaticMarkup(createElement(SchemaRenderer, { page }));
 - **页面全是占位块**：宿主没注入 `UiAdapter`，用 `app.use(createVueDesign({ adapter: elementPlusAdapter }))`。
 - **设计器报缺 pinia**：pinia 是可选 peer，只有用设计器才需要安装。
 - **撤回**：`npm unpublish <pkg>@0.3.0 --force` 仅在发布 72 小时内可用，之后只能发新版本。
+- **扩展包 peer 多副本**：扩展仓必须把 `@x-ac/design-vue`（或 `design-react`）声明为 peer，`pnpm install` 后才装；若宿主与扩展各装一份，`UI_ADAPTER` 的 symbol 不同，页面会全是占位块。
+- **本地联调**：核心仓 `playground` 与 `tests` 用 `link:../../design-vue-element-plus` 加 vite/tsconfig 别名指向兄弟仓源码；扩展仓反向 `link:` 到本仓 `packages/core` / `packages/vue`。发版后把 `link:` 替换为版本号并移除别名，即可解绑。
