@@ -80,7 +80,8 @@ pnpm --filter @x-ac/design-react pack --pack-destination ../tmp/packs
 - `dist` 无上次构建残留（各包 `build` 会先跑 `scripts/clean-dist.mjs`）；
 - tarball 内 `dependencies` 的 `workspace:*` 已被替换为具体版本号（pnpm 在 pack/publish 时完成）；
 - `dist/*.d.ts` 与 `exports` 声明的路径一一对应；
-- Vue 侧 `index.js`（渲染器）不含设计器与 UI 库代码，设计器从 `./designer` 按需引入。
+- Vue 侧 `index.js`（渲染器）不含设计器与 UI 库代码，设计器从 `./designer` 按需引入；React 侧同构：`dist/index.js` 约 1.3 kB，`dist/designer.js` 约 55 kB，`dist/style.css` 同时含渲染器与设计器样式；
+- 两仓的 `./designer`、`./kit`、`./style.css` 三类子入口都在 `exports` 里声明，且 `dist/*.d.ts` 齐全（core 的 `DesignerStore` / `PageRepository` 类型由 core 发布，不在适配层重复声明）。
 
 ## 4. 发布
 
