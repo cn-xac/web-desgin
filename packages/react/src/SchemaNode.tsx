@@ -1,5 +1,6 @@
 import { Fragment, createElement } from "react";
-import type { ReactNode } from "react";
+import type { DragEvent, FocusEvent, ReactNode } from "react";
+import type { DropPosition } from "@x-ac/design-core";
 import {
   ACTION_REGISTRY,
   DEFAULT_BINDING,
@@ -23,21 +24,107 @@ import type { RenderContextValue } from "./context";
 
 const SKIP_PROPS = new Set(["label", "required", "tip", "block", "radius", "modelValue"]);
 
+/** 与 Vue 的 positionFromEvent 同一套阈值：容器上下 1/4 为 before/after，中间 inside */
+function positionFromEvent(event: DragEvent<HTMLDivElement>, acceptsChildren: boolean): DropPosition {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const ratio = (event.clientY - rect.top) / (rect.height || 1);
+  if (acceptsChildren) {
+    if (ratio < 0.25) return "before";
+    if (ratio > 0.75) return "after";
+    return "inside";
+  }
+  return ratio < 0.5 ? "before" : "after";
+}
+
+/**
+ * 设计态节点外壳（对齐 Vue 的 div.wb-node）。
+ * 只在 design=true 时包一层 DOM；运行时走原路径，不改变任何布局。
+ */
+function DesignerWrap({ node, children }: { node: NodeSchema; children: ReactNode }) {
+  const ctx = useRenderContext();
+  const scene = ctx.designer;
+  if (!ctx.design || !scene) return <>{children}</>;
+
+  const material = ctx.catalog.get(node.component);
+  const accepts = Boolean(material?.acceptsChildren);
+  const hint = scene.hintFor(node.id);
+  const className = [
+    "ux-node",
+    "ux-node--design",
+    scene.selectedId() === node.id ? "is-selected" : "",
+    scene.hoveredId() === node.id ? "is-hovered" : "",
+    hint ? `is-hint-${hint}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div
+      className={className}
+      data-node-id={node.id}
+      data-node-label={material?.title ?? node.component}
+      draggable
+      onClick={(event) => {
+        event.stopPropagation();
+        scene.select(node.id);
+      }}
+      onMouseEnter={(event) => {
+        event.stopPropagation();
+        scene.hoverNode(node.id);
+      }}
+      onMouseLeave={(event) => {
+        event.stopPropagation();
+        scene.hoverNode(null);
+      }}
+      onDragStart={(event) => {
+        event.stopPropagation();
+        event.dataTransfer.setData("text/plain", JSON.stringify({ kind: "move", id: node.id }));
+        event.dataTransfer.effectAllowed = "move";
+        scene.onNodeDragStart(node.id);
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        scene.onNodeDragOver({ id: node.id, position: positionFromEvent(event, accepts) });
+      }}
+      onDragLeave={(event) => {
+        event.stopPropagation();
+        scene.onNodeDragLeave(node.id);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        scene.onNodeDrop({ id: node.id, position: positionFromEvent(event, accepts) });
+      }}
+    >
+      <span className="ux-node__tag">{material?.title ?? node.component}</span>
+      {hint ? <span className={`ux-drop ux-drop--${hint}`} /> : null}
+      {accepts && !node.children?.length ? (
+        <div className="ux-node__empty">空容器 · 点击选中，或把组件拖进来</div>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
 function FieldShell({
   label,
   required,
   error,
   style,
+  onBlur,
   children,
 }: {
   label: string;
   required: boolean;
   error: string;
   style: CSSProperties;
+  /** React 的 onBlur 由 focusout 模拟，会冒泡，不依赖具体 UI 库派发 blur */
+  onBlur?: (event: FocusEvent<HTMLDivElement>) => void;
   children: ReactNode;
 }) {
   return (
-    <div className={`ux-field${error ? " is-error" : ""}`} style={style}>
+    <div className={`ux-field${error ? " is-error" : ""}`} style={style} onBlur={onBlur}>
       {label ? (
         <span className="ux-field__label">
           {label}
@@ -145,12 +232,8 @@ function NodeBody({ node }: { node: NodeSchema }) {
       if (path) ctx.setValue(path, args[0], node.id);
       changePreset?.(...args);
     };
-    // 失焦即校验：与 Vue 版行为对齐
-    const blurPreset = handlers.onBlur;
-    handlers.onBlur = (...args: unknown[]) => {
-      if (ctx.mode === "view") ctx.validateField(node);
-      blurPreset?.(...args);
-    };
+    // 失焦校验改由 FieldShell 的 onBlur（focusout 冒泡）承担，与 Vue 版一致：
+    // 不依赖各 UI 库是否转发 onBlur，组件自带的 events.blur 动作也照常派发。
   }
 
   /* 正文：textProp 优先，其次是子节点 */
@@ -175,6 +258,14 @@ function NodeBody({ node }: { node: NodeSchema }) {
         required={isRequired(node, effective)}
         error={ctx.errors[node.id] ?? ""}
         style={style}
+        onBlur={(event) => {
+          if (ctx.mode !== "view" || ctx.design || !material.isFormControl) return;
+          const wrapper = event.currentTarget;
+          const next = event.relatedTarget as Node | null;
+          // 同一字段内部移动焦点（例如点到清除按钮）不算失焦
+          if (next && wrapper.contains(next)) return;
+          ctx.validateField(node);
+        }}
       >
         {control}
       </FieldShell>
@@ -193,7 +284,12 @@ export function SchemaNode({ node }: { node: NodeSchema }) {
   if (directives.some((d) => d.name === "if" && !resolveBoolean(d.value, ctx.scope))) return null;
 
   const loop = directives.find((d) => d.name === "for");
-  if (!loop) return <NodeBody node={node} />;
+  if (!loop)
+    return (
+      <DesignerWrap node={node}>
+        <NodeBody node={node} />
+      </DesignerWrap>
+    );
 
   const list = resolveValue(loop.value ?? "", ctx.scope);
   const items = Array.isArray(list) ? list : [];
@@ -208,7 +304,9 @@ export function SchemaNode({ node }: { node: NodeSchema }) {
           key={`${node.id}-${index}`}
           value={{ ...rest, scope: { ...ctx.scope, [itemKey]: item, [indexKey]: index } }}
         >
-          <NodeBody node={{ ...node, directives: directives.filter((d) => d.name !== "for") }} />
+          <DesignerWrap node={node}>
+            <NodeBody node={{ ...node, directives: directives.filter((d) => d.name !== "for") }} />
+          </DesignerWrap>
         </RenderContext.Provider>
       ))}
     </>

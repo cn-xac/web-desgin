@@ -23,7 +23,7 @@ import {
 } from "@x-ac/design-core";
 import { SchemaNode } from "./SchemaNode";
 import { RenderContext } from "./context";
-import type { RenderContextValue, RenderMode } from "./context";
+import type { RenderContextValue, RenderMode, RendererDesignerScene } from "./context";
 import { defaultAdapter } from "./actions";
 import { nativeAdapter, type ReactMaterial } from "./adapter";
 import { useUiAdapter } from "./provider";
@@ -61,6 +61,13 @@ export interface SchemaRendererProps {
    * 方便做埋点、日志、外部状态镜像，而不必担心影响预设动作。
    */
   onNodeEvent?: (payload: UiEventPayload) => void;
+  /**
+   * 设计态：画布节点带选中 / 悬停 / 拖拽能力（对齐 Vue 的 design prop）。
+   * 仅在 SchemaDesigner 内部使用，普通运行时不传。
+   */
+  design?: boolean;
+  /** 设计器注入的画布场景；与 design 成对出现 */
+  designer?: RendererDesignerScene;
   className?: string;
   style?: CSSProperties;
 }
@@ -107,7 +114,7 @@ function deviceMaxWidth(page: PageSchema): number {
 }
 
 export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererProps>(function SchemaRenderer(
-  { page, mode = "view", navigate, ui, adapter, data, onDataChange, onSubmit, onEvent, onNodeEvent, className, style },
+  { page, mode = "view", navigate, ui, adapter, data, onDataChange, onSubmit, onEvent, onNodeEvent, design = false, designer, className, style },
   ref,
 ) {
   // Hook 必须无条件调用：prop 显式传入时仍读一次 Context，但不会用它
@@ -222,6 +229,8 @@ export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererPro
     validateField,
     onEvent,
     notifyEvent: (payload) => onNodeEvent?.(payload),
+    design,
+    designer,
     onFormSubmit: onSubmit ? (payload) => onSubmit(payload) : undefined,
   };
 
