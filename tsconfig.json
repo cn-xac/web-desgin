@@ -11,11 +11,7 @@
       "@x-ac/design-vue-element-plus": ["../design-vue-element-plus/src/index.ts"],
       "@/designer/*": ["packages/vue/src/designer/*"],
       "@/renderer/*": ["packages/vue/src/renderer/*"],
-      "@/materials/*": ["packages/vue/src/materials/*"],
-      "@/demo-materials/*": ["apps/playground/src/materials/*"],
-      "@/api/*": ["apps/playground/src/api/*"],
-      "@/data/*": ["apps/playground/src/data/*"],
-      "@/views/*": ["apps/playground/src/views/*"]
+      "@/materials/*": ["packages/vue/src/materials/*"]
     },
     "types": ["vite/client", "node"]
   },
