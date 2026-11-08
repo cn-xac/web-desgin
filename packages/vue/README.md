@@ -127,6 +127,8 @@ const repo: PageRepository = { /* list / get / save / remove，对接你的接�
 
 右侧「校验」面板可以配置必填、最短 / 最长长度、最小 / 最大值、自定义正则、邮箱、手机号、整数，并支持自定义文案与 `when` 条件。
 
+设计器的状态机（`DesignerStore`）与页面仓储契约（`PageRepository`）已下沉到 `@x-ac/design-core`，本包的 `useDesignerStore()` 只是它的 pinia 薄包装；React 侧 `@x-ac/design-react/designer` 用 `useSyncExternalStore` 消费同一个内核。撤销栈、拖拽落点、属性编辑、导入导出因此不会在两框架间漂移。
+
 ## 给 vue-* 扩展仓用的适配层 SDK
 
 `vue-*` 扩展仓（Element Plus、图标库、ant-design-vue 等）都基于本包的 `/kit` 子入口实现，而不是自己拼 `UiAdapter` 字面量：
