@@ -17,8 +17,10 @@ const sfcFs = {
 
 export default defineConfig({
   plugins: [vue({ script: { fs: sfcFs } })],
-  // Vite 8 用 oxc 取代 esbuild；esbuild 选项已废弃，JSX 必须在这里声明
-  oxc: { jsx: "automatic" },
+  // Vite 8 用 oxc 取代 esbuild；esbuild 选项已废弃，JSX 必须在这里声明。
+  // 用对象形态 { runtime: "automatic" }：vue 插件会把 jsx 选项原样传给 oxc，
+  // 字符串 "automatic" 会被 oxc 校验拒绝（仅 .tsx 路径会自动转换），对象形态两条路径都合法。
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     // 扩展仓源码在兄弟目录，其 import 会落到对方 node_modules；
     // 强制去重到本仓的 vue / element-plus，避免双 Vue 运行时导致 provide/inject 失效
@@ -39,10 +41,11 @@ export default defineConfig({
       { find: "@/designer", replacement: r("./packages/vue/src/designer") },
       { find: "@/renderer", replacement: r("./packages/vue/src/renderer") },
       { find: "@/materials", replacement: r("./packages/vue/src/materials") },
-      { find: "@/demo-materials", replacement: r("./apps/playground/src/materials") },
-      { find: "@/api", replacement: r("./apps/playground/src/api") },
-      { find: "@/data", replacement: r("./apps/playground/src/data") },
-      { find: "@/views", replacement: r("./apps/playground/src/views") },
+      // 测试 fixture（精简 apps 后从 playground/react-demo 迁入 tests/fixtures）
+      { find: "@/demo-materials", replacement: r("./tests/fixtures") },
+      { find: "@/api", replacement: r("./tests/fixtures") },
+      { find: "@/data", replacement: r("./tests/fixtures") },
+      { find: "@/fixtures", replacement: r("./tests/fixtures") },
     ],
   },
   test: {

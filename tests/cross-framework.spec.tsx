@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ElementPlus from "element-plus";
 import { SchemaRenderer as VueRenderer } from "@x-ac/design-vue";
 import { SchemaRenderer as ReactRenderer } from "@x-ac/design-react";
-import { createDemoPage } from "../apps/react-demo/src/page";
+import { createDemoPage } from "@/fixtures/createDemoPage";
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {
