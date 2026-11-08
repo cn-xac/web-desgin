@@ -1,9 +1,17 @@
 {
   "name": "@x-ac/design-react",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "React 适配层：Schema 渲染器 + 可视化设计器 + react-* 扩展仓组件作者 SDK（/kit）",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cn-xac/web-desgin.git"
+  },
+  "homepage": "https://github.com/cn-xac/web-desgin#readme",
+  "bugs": {
+    "url": "https://github.com/cn-xac/web-desgin/issues"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

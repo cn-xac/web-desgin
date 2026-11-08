@@ -1,9 +1,17 @@
 {
   "name": "@x-ac/design-core",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "框架无关的可视化搭建内核：Schema、表达式、树操作、校验规则、数据导出、样式与动作协议",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cn-xac/web-desgin.git"
+  },
+  "homepage": "https://github.com/cn-xac/web-desgin#readme",
+  "bugs": {
+    "url": "https://github.com/cn-xac/web-desgin/issues"
+  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

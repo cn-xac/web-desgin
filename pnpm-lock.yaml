@@ -283,6 +283,62 @@ importers:
         specifier: ^8.3.6
         version: 8.3.6(@types/node@26.6.6)
 
+  apps/react-example:
+    dependencies:
+      '@x-ac/design-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@x-ac/design-react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: ^6.2.1
+        version: 6.2.1(vite@8.3.6(@types/node@26.6.6))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.3.6
+        version: 8.3.6(@types/node@26.6.6)
+
+  apps/vue-example:
+    dependencies:
+      '@x-ac/design-core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@x-ac/design-vue':
+        specifier: workspace:*
+        version: link:../../packages/vue
+      vue:
+        specifier: ^3.5.45
+        version: 3.5.45(typescript@5.9.3)
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.6(@types/node@26.6.6))(vue@3.5.45(typescript@5.9.3))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.3.6
+        version: 8.3.6(@types/node@26.6.6)
+      vue-tsc:
+        specifier: ^3.3.14
+        version: 3.3.14(typescript@5.9.3)
+
   packages/core: {}
 
   packages/react:
