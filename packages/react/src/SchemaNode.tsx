@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   ACTION_REGISTRY,
   DEFAULT_BINDING,
+  createEventPayload,
   extractPath,
   getByPath,
   isBindable,
@@ -12,8 +13,10 @@ import {
   resolveNodeStyle,
   resolveValue,
   runActions,
+  runEventHooks,
+  toReactHandlerName,
 } from "@x-ac/design-core";
-import type { ActionSchema, NodeSchema } from "@x-ac/design-core";
+import type { NodeSchema } from "@x-ac/design-core";
 import type { CSSProperties } from "react";
 import { RenderContext, useRenderContext } from "./context";
 import type { RenderContextValue } from "./context";
@@ -88,35 +91,62 @@ function NodeBody({ node }: { node: NodeSchema }) {
     bound[key] = isBindable(key) ? resolveValue(value, ctx.scope) : value;
   }
 
-  /** 动作可能就地修改 scope / errors，跑完强制刷新一次 */
-  const runNodeActions = (actions: ActionSchema[]): void => {
-    void runActions(actions, ctx).then(() => ctx.flush());
-  };
+  /**
+   * 事件泛化：Schema 里写任意事件名都挂得上（row-click → onRowClick），
+   * 组件派发的原始参数完整交给开发者钩子与动作系统，不再被吞掉。
+   */
+  const handlers: Record<string, (...args: unknown[]) => void> = {};
+  if (ctx.mode === "view") {
+    for (const [name, actions] of Object.entries(node.events ?? {})) {
+      const handlerName = toReactHandlerName(name);
+      handlers[handlerName] = (...args: unknown[]) => {
+        const payload = createEventPayload({
+          name,
+          handlerName,
+          node,
+          material: material ?? undefined,
+          page: ctx.page,
+          scope: ctx.scope,
+          args,
+          actions,
+        });
+        const shouldRun = runEventHooks(payload, [ctx.ui.onEvent, ctx.onEvent]);
+        if (!shouldRun) return;
+
+        void runActions(actions, {
+          scope: ctx.scope,
+          page: ctx.page,
+          errors: ctx.errors,
+          resetScope: ctx.resetScope,
+          navigate: ctx.navigate,
+          adapter: ctx.adapter,
+          onFormSubmit: ctx.onFormSubmit,
+          event: payload,
+        }).then(() => ctx.flush());
+      };
+    }
+  }
 
   /* 双向绑定：通道名由适配包决定（React 缺省 value/onChange） */
   const channel = ctx.ui.binding ?? DEFAULT_BINDING;
   const path = extractPath(effective.modelValue);
-  const onChange = (next: unknown): void => {
-    if (path) ctx.setValue(path, next, node.id);
-    const actions = node.events?.change;
-    if (ctx.mode === "view" && actions?.length) runNodeActions(actions);
-  };
-
   if (path) bound[channel.prop] = getByPath(ctx.scope, path);
   else if (effective.modelValue !== undefined) bound[channel.prop] = resolveValue(effective.modelValue, ctx.scope);
+
   if (material.isFormControl) {
-    bound[channel.event] = onChange;
+    // Schema 的 events.change 与受控通道共用 onChange：先写回状态，再派发动作
+    const changePreset = handlers[channel.event];
+    handlers[channel.event] = (...args: unknown[]) => {
+      if (path) ctx.setValue(path, args[0], node.id);
+      changePreset?.(...args);
+    };
     // 失焦即校验：与 Vue 版行为对齐
-    bound.onBlur = (): void => {
+    const blurPreset = handlers.onBlur;
+    handlers.onBlur = (...args: unknown[]) => {
       if (ctx.mode === "view") ctx.validateField(node);
+      blurPreset?.(...args);
     };
   }
-
-  const onClick = (): void => {
-    const actions = node.events?.click;
-    if (ctx.mode === "view" && actions?.length) runNodeActions(actions);
-  };
-  bound.onClick = onClick;
 
   /* 正文：textProp 优先，其次是子节点 */
   const text = material.textProp ? resolveValue(effective[material.textProp], ctx.scope) : undefined;
@@ -126,7 +156,7 @@ function NodeBody({ node }: { node: NodeSchema }) {
       : (node.children ?? []).map((child) => <SchemaNode key={child.id} node={child} />);
 
   const control = Component ? (
-    createElement(Component, { ...bound, key: node.id }, children)
+    createElement(Component, { ...bound, ...handlers, key: node.id }, children)
   ) : (
     <div className="ux-unknown" data-component={node.component}>
       未映射的物料 {node.component}
@@ -147,7 +177,7 @@ function NodeBody({ node }: { node: NodeSchema }) {
   }
 
   // 非表单组件把样式挂在自身；display 为 none 时同样生效
-  return <Fragment>{createElement(Component ?? "div", { ...bound, style }, children)}</Fragment>;
+  return <Fragment>{createElement(Component ?? "div", { ...bound, ...handlers, style }, children)}</Fragment>;
 }
 
 /** 递归渲染入口：先处理 if / for，再渲染节点本体 */

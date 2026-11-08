@@ -23,6 +23,10 @@ export type { ReactDesignProviderProps } from "./provider";
 export { usePageStore } from "./scope";
 export type { PageStore } from "./scope";
 
+// 事件协议从 core 透出：宿主只装一个适配层包也能写强类型钩子
+export { createEventPayload, toReactHandlerName } from "@x-ac/design-core";
+export type { UiEventHook, UiEventPayload } from "@x-ac/design-core";
+
 // 校验 / 数据导出与 Vue 层共用 core 实现，这里透出一份，宿主不必再装 core
 export {
   RULE_DEFINITIONS,

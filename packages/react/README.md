@@ -139,15 +139,57 @@ export const antAdapter = defineReactAdapter({
 
 `/kit` 是纯 TS 子入口，不加载 `styles.css` 与渲染器 Context；框架无关的协议与工具统一在 `@x-ac/design-core`。`nativeAdapter` 本身也由 `defineReactAdapter` 组装，可作为扩展仓的基座。
 
+## 节点事件回调
+
+每个节点事件触发时，组件派发的原始参数会被包装成 `UiEventPayload`，**形状与 Vue 侧完全一致**，跨框架写业务钩子不用改代码。三个入口按需选：
+
+| 入口 | 适用场景 | 能否阻断预设动作 |
+|---|---|---|
+| Schema 表达式 `$event` / `$args` / `$value` | 只读事件参数，不写代码 | 否 |
+| `onEvent={fn}` | 业务侧接管、按参数改写状态 | 是（返回 `false` 或 `preventDefault()`） |
+| `adapter.onEvent` | 扩展仓统一归一化自家 UI 库的事件参数 | 是 |
+
+```tsx
+import { SchemaRenderer } from "@x-ac/design-react";
+import type { UiEventPayload } from "@x-ac/design-react";
+
+function onEvent(p: UiEventPayload): void | false {
+  const [row] = p.args as [{ id: number }?];
+  if (!row) return false;
+  p.scope.currentId = row.id;  // scope 就是页面状态，可直接写
+}
+
+<SchemaRenderer page={page} ui={adapter} onEvent={onEvent} />;
+```
+
+事件名写 kebab（`row-click`）即可，渲染器内部转成 React 的 `onRowClick`。Schema 里也能直接引用，无需写 JS：
+
+```json
+{ "events": { "row-click": [
+  { "action": "setState", "args": { "path": "form.name", "value": "{{$event.value.name}}" } }
+] } }
+```
+
+`$event` 只叠加到表达式的读取作用域，不会写进 `page.state`，也不会出现在 `onDataChange` 的回传数据里。
+
+## 运行时能力（与 Vue 对齐）
+
+同一份 `PageSchema` 在两框架行为一致：`if` / `for` / `show` 指令、表达式、物料默认值、样式合并、双向绑定、动作、校验、数据导出、任意事件名与完整事件 payload、`dataSource`（http / static，取数逻辑共用 core 的 `loadPageData`）、`data` + `onDataChange` 双向同步（带防回环）、`onSubmit` 出口、字符串 Schema 自动迁移、按 `meta.device` 设置画布宽度、失焦单字段校验。
+
+ref API：`validate()` / `getData()` / `exportData()` / `getErrors()` / `reset()` / `setData()` / `reload()` / `scope`。
+
 ## 与 Vue 版差异
 
 | 项 | Vue | React |
 |---|---|---|
 | 扩展仓 SDK | `@x-ac/design-vue/kit`：`defineVueAdapter` / `useFieldModel` | `@x-ac/design-react/kit`：`defineReactAdapter` / `useFieldModel` |
 | 适配包注入 | `app.use(createVueDesign({ adapter }))` + `UI_ADAPTER` InjectionKey | `<ReactDesignProvider adapter>` / `createReactDesign()` + `UI_ADAPTER_CONTEXT` |
+| 事件钩子 | `:on-event` / `@node-event`（只读通知） | `onEvent` prop |
+| 外部数据 | `v-model:data` / `@submit` | `data` + `onDataChange` / `onSubmit` |
 | 未注入时 | 降级为未知组件占位 | 回落内置 `nativeAdapter`（原生元素） |
 | 双向绑定 | `modelValue` + `@update:modelValue` | `value` + `onChange` |
 | 响应式 | `reactive(scope)` 自动重渲染 | 手动 `flush()`（core 的 `setByPath` 只改对象） |
+| 失焦校验 | 外层 `focusout` 冒泡，不依赖 UI 库派发 blur | 组件 `onBlur`，依赖控件转发该事件 |
 | 设计器 | 有，支持 `DesignerKit` 换肤 | 暂无；`UiAdapter.designer / editors / provider / propAliases` 在 React 侧尚未消费 |
 
 ## License
