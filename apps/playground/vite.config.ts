@@ -15,6 +15,7 @@ export default defineConfig({
       // 必须在包别名之前：否则 `@x-ac/design-vue/style.css` 会被拼成 `src/index.ts/style.css`
       { find: "@x-ac/design-vue/style.css", replacement: r("../../packages/vue/src/styles/tokens.css") },
       { find: "@x-ac/design-vue/designer", replacement: r("../../packages/vue/src/designer.ts") },
+      { find: "@x-ac/design-vue/kit", replacement: r("../../packages/vue/src/kit.ts") },
       { find: "@x-ac/design-vue", replacement: r("../../packages/vue/src/index.ts") },
       // 扩展包在兄弟仓库，开发期直接挂源码，不必先构建它的 dist
       { find: "@x-ac/design-vue-element-plus", replacement: r("../../../design-vue-element-plus/src/index.ts") },

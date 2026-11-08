@@ -15,7 +15,11 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: fileURLToPath(new URL("./src/index.ts", import.meta.url)),
+      // index → 渲染器（带 styles.css）；kit → 扩展仓适配层 SDK（纯净、无 CSS 副作用）
+      entry: {
+        index: fileURLToPath(new URL("./src/index.ts", import.meta.url)),
+        kit: fileURLToPath(new URL("./src/kit.ts", import.meta.url)),
+      },
       formats: ["es"],
     },
     cssCodeSplit: false,
@@ -23,7 +27,7 @@ export default defineConfig({
     emptyOutDir: false,
     rollupOptions: {
       external: ["react", "react-dom", "react/jsx-runtime", "@x-ac/design-core"],
-      output: { entryFileNames: "index.js", assetFileNames: "style.css" },
+      output: { entryFileNames: "[name].js", assetFileNames: "style.css" },
     },
   },
 });

@@ -22,6 +22,7 @@ export * from "./materials/keys";
 export * from "./materials/fields";
 export * from "./materials/portability";
 export * from "./materials/adapter";
+export * from "./materials/parse";
 export * from "./materials/define";
 export * from "./materials/registry";
 export * from "./materials/catalog";

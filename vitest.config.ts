@@ -14,7 +14,11 @@ export default defineConfig({
     // 顺序敏感：前缀更具体的别名必须放在前面
     alias: [
       { find: "@x-ac/design-core", replacement: r("./packages/core/src/index.ts") },
+      // 顺序敏感：子路径必须先于包别名
+      { find: "@x-ac/design-react/kit", replacement: r("./packages/react/src/kit.ts") },
       { find: "@x-ac/design-react", replacement: r("./packages/react/src/index.ts") },
+      // 扩展仓基于适配层 SDK 子入口；必须在 @x-ac/design-vue 之前匹配
+      { find: "@x-ac/design-vue/kit", replacement: r("./packages/vue/src/kit.ts") },
       // 扩展包已拆到兄弟仓库 design-vue-element-plus，本地联调直接吃它的源码
       { find: "@x-ac/design-vue-element-plus", replacement: r("../design-vue-element-plus/src/index.ts") },
       { find: "@x-ac/design-vue/designer", replacement: r("./packages/vue/src/designer.ts") },

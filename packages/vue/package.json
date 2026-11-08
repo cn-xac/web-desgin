@@ -2,7 +2,7 @@
   "name": "@x-ac/design-vue",
   "version": "0.4.0",
   "type": "module",
-  "description": "Vue 3 适配层：Schema 渲染器 + 可视化设计器 + Element Plus 物料 + 表单校验",
+  "description": "Vue 3 适配层：Schema 渲染器 + 可视化设计器 + vue-* 扩展仓组件作者 SDK（/kit）",
   "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -17,6 +17,11 @@
       "types": "./dist/designer.d.ts",
       "import": "./dist/designer.js",
       "default": "./dist/designer.js"
+    },
+    "./kit": {
+      "types": "./dist/kit.d.ts",
+      "import": "./dist/kit.js",
+      "default": "./dist/kit.js"
     },
     "./style.css": "./dist/style.css",
     "./package.json": "./package.json"

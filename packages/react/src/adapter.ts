@@ -18,25 +18,21 @@ import type { UiAdapter } from "@x-ac/design-core";
 import { MATERIALS } from "@x-ac/design-core";
 import { defaultAdapter } from "./actions";
 import { COMPONENTS, type ControlProps } from "./components";
+import { defineReactAdapter } from "./kit";
 
 /** React 引擎认的组件实现：React 组件，或原生标签名（"div" / "span"） */
 export type ReactMaterial = ComponentType<ControlProps> | string;
 
-/**
- * React 的受控组件通道：`value` + `onChange`。
- * 与 Vue 的 `modelValue` + `onUpdate:modelValue` 是同一件事的不同拼写，
- * 所以 Schema 里始终写通用的 `modelValue: "{{form.name}}"`，由适配包翻译成本库的写法。
- */
-export const REACT_BINDING = { prop: "value", event: "onChange" } as const;
+/** 绑定通道常量由适配层 SDK 统一持有，内置包与 react-* 扩展仓共用 */
+export { REACT_BINDING } from "./kit";
 
 /** 内置适配包：原生元素实现 + core 通用物料元数据 */
-export const nativeAdapter: UiAdapter<ReactMaterial> = {
+export const nativeAdapter: UiAdapter<ReactMaterial> = defineReactAdapter<ReactMaterial>({
   name: "react-native",
   components: COMPONENTS,
   materials: MATERIALS,
-  binding: REACT_BINDING,
   actions: defaultAdapter,
-};
+});
 
 /**
  * 只给原生标签做映射的最小适配包：物料元数据仍然来自 core，

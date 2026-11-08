@@ -84,3 +84,104 @@ export function withMaterials<T>(adapter: UiAdapter<T>, materials: Material[]): 
   for (const material of materials) merged.set(material.component, material);
   return { ...adapter, materials: [...merged.values()] };
 }
+
+/* ---------------- 通用组件契约与组装工具（框架无关） ---------------- */
+
+/**
+ * 设计器控件的归一化属性契约。
+ *
+ * 扩展包实现 Button / Select / Segmented 时必须接受这一组语义，
+ * 引擎侧只发归一化值（default / primary / danger / text），由扩展包翻译成自家 UI 库属性。
+ * 放在 core 是为了让 Vue 与 React 扩展仓共用同一份契约，不各自手写一遍。
+ */
+export interface DesignerControlProps {
+  type?: "default" | "primary" | "danger" | "text";
+  size?: "small" | "default";
+  disabled?: boolean;
+}
+
+/** 设计器可替换的控件槽位。DesignerKit 的键由它派生，避免两处清单漂移 */
+export const DESIGNER_SLOTS = [
+  "Button",
+  "Input",
+  "NumberInput",
+  "Select",
+  "Switch",
+  "Segmented",
+  "ColorInput",
+] as const;
+
+export type DesignerSlot = (typeof DESIGNER_SLOTS)[number];
+
+export interface AdapterOptions<TComponent = unknown> {
+  name: string;
+  components: Record<string, TComponent>;
+  materials: Material[];
+  binding?: BindingChannel;
+  actions?: ActionAdapter;
+  designer?: DesignerKit<TComponent>;
+  editors?: Partial<Record<PropFieldType, TComponent>>;
+  provider?: TComponent;
+  propAliases?: Record<string, string>;
+}
+
+/**
+ * 组装一份 UiAdapter：集中处理可选项与默认绑定通道。
+ *
+ * 纯函数，不认识框架、不读全局状态。各框架适配层的 defineXxxAdapter 只是
+ * 在它外面做类型收窄，扩展仓因此不必自己拼对象字面量、也不会漏掉 binding。
+ */
+export function defineAdapter<TComponent = unknown>(options: AdapterOptions<TComponent>): UiAdapter<TComponent> {
+  const adapter: UiAdapter<TComponent> = {
+    name: options.name,
+    components: options.components,
+    materials: options.materials,
+    binding: options.binding ?? DEFAULT_BINDING,
+  };
+  if (options.actions) adapter.actions = options.actions;
+  if (options.designer) adapter.designer = options.designer;
+  if (options.editors) adapter.editors = options.editors;
+  if (options.provider !== undefined) adapter.provider = options.provider;
+  if (options.propAliases) adapter.propAliases = options.propAliases;
+  return adapter;
+}
+
+/**
+ * 裸名映射表 → 协议名映射表。
+ *
+ * Vue 与 React 适配层原先各写一遍 Object.fromEntries + materialKey，
+ * 上移到协议层，保证「Schema 里写 ec-input、映射表写 input」这条约定只有一处实现。
+ */
+export function prefixedComponents<TComponent>(table: Record<string, TComponent>): Record<string, TComponent> {
+  return Object.fromEntries(Object.entries(table).map(([key, value]) => [materialKey(key), value]));
+}
+
+/**
+ * 生成目标 UI 库的受控属性片段。
+ *
+ * Schema 里始终写通用的 `modelValue`，由适配包声明的 binding 通道翻译成
+ * Vue 的 `modelValue / onUpdate:modelValue` 或 React 的 `value / onChange`。
+ * 纯函数，Vue 与 React 扩展仓共用，可直接 `v-bind` 或 `{...spread}`。
+ */
+export function bindModel<T>(
+  channel: BindingChannel,
+  value: T | undefined,
+  onUpdate: (next: T) => void,
+): Record<string, unknown> {
+  return { [channel.prop]: value, [channel.event]: onUpdate };
+}
+
+/** 启动期自检结果：只报告，不抛错（缺实现时渲染器会降级占位） */
+export interface AdapterReport {
+  name: string;
+  missing: string[];
+  slots: DesignerSlot[];
+  ok: boolean;
+}
+
+export function inspectAdapter<T>(adapter: UiAdapter<T>): AdapterReport {
+  const missing = missingComponents(adapter);
+  const kit = (adapter.designer ?? {}) as Record<string, unknown>;
+  const slots = DESIGNER_SLOTS.filter((slot) => kit[slot] !== undefined);
+  return { name: adapter.name, missing, slots, ok: missing.length === 0 };
+}

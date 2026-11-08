@@ -5,7 +5,7 @@
  * 设计器的按钮、输入框、下拉也是 Element Plus；换成别的库同理，引擎不改一行。
  */
 import { inject, type Component } from "vue";
-import type { DesignerKit } from "@x-ac/design-core";
+import { DESIGNER_SLOTS, type DesignerKit, type DesignerSlot } from "@x-ac/design-core";
 import { UI_ADAPTER } from "../../renderer/context";
 import {
   NativeButton,
@@ -17,9 +17,7 @@ import {
   NativeSwitch,
 } from "./native";
 
-export type { DesignerKit };
-
-export type DesignerSlot = "Button" | "Input" | "NumberInput" | "Select" | "Switch" | "Segmented" | "ColorInput";
+export type { DesignerKit, DesignerSlot };
 
 export type DesignerNotifyType = "success" | "warning" | "error" | "info";
 
@@ -38,7 +36,7 @@ export function useDesignerUi(): Record<DesignerSlot, Component> {
   const adapter = inject(UI_ADAPTER, null);
   const kit = (adapter?.designer ?? {}) as DesignerKit;
   const resolved = {} as Record<DesignerSlot, Component>;
-  for (const slot of Object.keys(NATIVE) as DesignerSlot[]) {
+  for (const slot of DESIGNER_SLOTS) {
     resolved[slot] = (kit[slot] as Component) ?? NATIVE[slot];
   }
   return resolved;
