@@ -346,7 +346,7 @@ function copyId(): void {
   color: var(--wb-ink2);
 }
 .props__dot {
-  color: var(--el-color-warning);
+  color: var(--wb-warning);
   font-size: 8px;
 }
 .props__bind {
@@ -414,7 +414,7 @@ function copyId(): void {
   line-height: 1;
 }
 .columns__del:hover {
-  color: var(--el-color-danger);
+  color: var(--wb-danger);
 }
 
 /* 属性字段数由适配包决定（core 119 / EP 更多），行数不固定：

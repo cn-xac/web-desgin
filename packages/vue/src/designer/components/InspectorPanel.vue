@@ -167,6 +167,7 @@ const tabEvents = computed(() => selectedMaterial.value?.events ?? []);
   padding: 10px 12px;
   border-top: 1px solid var(--wb-line);
 }
+/* 可选增强：EP 按钮自带 margin-left，命中时抹平；其它 UI 库忽略本规则 */
 .inspector__footer :deep(.el-button) {
   flex: 1;
   margin-left: 0;

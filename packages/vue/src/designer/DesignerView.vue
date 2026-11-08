@@ -347,7 +347,7 @@ function backToList(): void {
 }
 .dirty {
   font-size: 8px;
-  color: var(--el-color-warning);
+  color: var(--wb-warning);
   margin-left: -4px;
 }
 .device {

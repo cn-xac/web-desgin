@@ -13,6 +13,14 @@
   --wb-primary: #2f4bff;
   --wb-primary-soft: #eef1ff;
   --wb-mono: "SFMono-Regular", Consolas, Menlo, monospace;
+
+  /* 语义色：优先取 UI 库的令牌，未安装该库时回落到默认值。
+     引擎源码只引用 --wb-*，换 UI 库不需要改样式。 */
+  --wb-danger: var(--el-color-danger, #f56c6c);
+  --wb-warning: var(--el-color-warning, #e6a23c);
+
+  /* 可选的主题对齐：宿主装了 Element Plus 时把主色收敛到设计令牌。
+     其它 UI 库会忽略这三个变量，不是渲染器的硬依赖。 */
   --el-color-primary: #2f4bff;
   --el-font-size-base: 13px;
   --el-border-radius-base: 5px;

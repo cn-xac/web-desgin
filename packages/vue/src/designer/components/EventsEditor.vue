@@ -180,7 +180,7 @@ function argsText(action: ActionSchema): string {
   line-height: 1;
 }
 .events__del:hover {
-  color: var(--el-color-danger);
+  color: var(--wb-danger);
 }
 .events__empty {
   font-size: 12px;

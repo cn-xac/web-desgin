@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
-import { createRef } from "react";
+import { act, createRef } from "react";
 import type { RefObject } from "react";
-import { act } from "react-dom/test-utils";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { SchemaRenderer } from "@x-ac/design-react";

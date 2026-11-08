@@ -278,7 +278,7 @@ function preview(rule: ValidationRule): string {
 }
 .rule__del:hover {
   background: #fef0f0;
-  color: var(--el-color-danger);
+  color: var(--wb-danger);
 }
 .rule__value {
   display: flex;
@@ -308,7 +308,7 @@ function preview(rule: ValidationRule): string {
 .rule__error {
   margin-bottom: 6px;
   font-size: 11px;
-  color: var(--el-color-danger);
+  color: var(--wb-danger);
 }
 .rule__preview {
   font-size: 11px;

@@ -163,7 +163,7 @@ function applyDataSource(): void {
 .settings__error {
   margin: 4px 0 6px;
   font-size: 11.5px;
-  color: var(--el-color-danger);
+  color: var(--wb-danger);
 }
 .settings__tip {
   margin-top: 14px;

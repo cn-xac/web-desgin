@@ -8,10 +8,9 @@
  *   - 换绑定通道时 Schema 不用改。
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { act } from "react-dom/test-utils";
+import { act, createRef } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { createRef } from "react";
 import type { RefObject } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
