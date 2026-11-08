@@ -1,0 +1,86 @@
+# GitHub Pages 部署工作流（示例演示站）
+#
+# 触发：
+#   - 推送 main 分支，且 apps / packages / 工作流 / 锁文件有改动时自动部署；
+#   - 也支持在 Actions 页面手动 workflow_dispatch 触发。
+#
+# 部署内容（vue+core / react+core 最小用法演示）：
+#   - apps/vue-example   → 站点根 /
+#   - apps/react-example → 站点子路径 /react/（其 vite base 已设为 /react/，与部署路径一致）
+#
+# 前置：仓库 Settings → Pages → Source = GitHub Actions。
+#
+# 说明：
+#   - 两个示例都通过 vite alias 直接消费 packages/* 源码（workspace:*），
+#     无需先 build 三个库，本工作流只构建示例本身。
+#   - 与 publish.yml 职责分离：publish.yml 只发 npm 三包，本工作流只管 Pages 演示站。
+
+name: Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - ".github/workflows/pages.yml"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build vue-example
+        run: pnpm --filter vue-example build
+
+      - name: Build react-example
+        run: pnpm --filter react-example build
+
+      - name: Stage Pages artifact
+        run: |
+          rm -rf .pages-stage
+          mkdir -p .pages-stage/react
+          cp -r apps/vue-example/dist/* .pages-stage/
+          cp -r apps/react-example/dist/* .pages-stage/react/
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .pages-stage
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
