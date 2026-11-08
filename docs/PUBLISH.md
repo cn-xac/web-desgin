@@ -4,7 +4,7 @@
 
 | 包 | 作用 | 依赖 | peerDependencies |
 |---|---|---|---|
-| `@x-ac/design-core` | 协议与内核（Schema / 物料 meta / 表达式 / 校验 / 导出 / 静态 HTML）+ 框架无关的通用工具（`parsePairs` / `defineAdapter` / `prefixedComponents` / `bindModel`） | 无 | 无 |
+| `@x-ac/design-core` | 协议与内核（Schema / 物料 meta / 表达式 / 校验 / 导出 / 静态 HTML）+ 框架无关的通用工具（`parsePairs` / `defineAdapter` / `prefixedComponents` / `bindModel`）+ `UiEventPayload` 事件协议与 `loadPageData` 数据源取数 | 无 | 无 |
 | `@x-ac/design-vue` | Vue 适配层：渲染器 + 设计器 + `/kit` 组件作者 SDK（多入口 `index` / `designer` / `kit`） | `@x-ac/design-core` | `vue`、`pinia`（仅设计器，可选） |
 | `@x-ac/design-react` | React 适配层：渲染器 + `/kit` 组件作者 SDK（多入口 `index` / `kit`） | `@x-ac/design-core` | `react` |
 
