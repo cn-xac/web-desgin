@@ -7,6 +7,10 @@
  */
 import { config } from "@vue/test-utils";
 
+// React 19 起 act() 要求显式声明测试环境，否则每个用例都会刷一条警告。
+// 统一在全局 setup 里声明，测试文件不必各自重复。
+(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
 if (typeof document !== "undefined") {
   const [{ elementPlusAdapter }, { UI_ADAPTER }] = await Promise.all([
     import("@x-ac/design-vue-element-plus"),

@@ -1,12 +1,24 @@
 import { fileURLToPath, URL } from "node:url";
+import { existsSync, readFileSync } from "node:fs";
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
+/**
+ * Vite 8 的 SSR 环境不再自动把 Node fs 交给 @vue/compiler-sfc，
+ * 而扩展仓的 defineProps<ImportedType>() 需要读文件解析类型，故显式提供。
+ * 只实现 compiler-sfc 需要的两个方法，不引入额外依赖。
+ */
+const sfcFs = {
+  fileExists: (file: string) => existsSync(file),
+  readFile: (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : undefined),
+};
+
 export default defineConfig({
-  plugins: [vue()],
-  esbuild: { jsx: "automatic" },
+  plugins: [vue({ script: { fs: sfcFs } })],
+  // Vite 8 用 oxc 取代 esbuild；esbuild 选项已废弃，JSX 必须在这里声明
+  oxc: { jsx: "automatic" },
   resolve: {
     // 扩展仓源码在兄弟目录，其 import 会落到对方 node_modules；
     // 强制去重到本仓的 vue / element-plus，避免双 Vue 运行时导致 provide/inject 失效
@@ -36,8 +48,11 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.spec.ts", "tests/**/*.spec.tsx"],
     setupFiles: ["tests/setup.ts"],
-    // 本机沙箱对 vite-node 的 ssr 临时写入受限，改用进程池可绕开该缓存
+    // Vitest 4 起 poolOptions 移除，单文件串行改用顶层 fileParallelism
     pool: "forks",
-    poolOptions: { forks: { singleFork: true } },
+    fileParallelism: false,
+    // 关掉文件系统模块缓存：其清缓存会递归删除 node_modules/.vitest-cache，
+    // 在受限沙箱里会触发批量删除保护；CI 里也可按需打开加速冷启动
+    fsModuleCache: false,
   },
 });

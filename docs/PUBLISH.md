@@ -132,5 +132,7 @@ const html = renderToStaticMarkup(createElement(SchemaRenderer, { page }));
 - **页面全是占位块**：宿主没注入 `UiAdapter`，用 `app.use(createVueDesign({ adapter: elementPlusAdapter }))`。
 - **设计器报缺 pinia**：pinia 是可选 peer，只有用设计器才需要安装。
 - **撤回**：`npm unpublish <pkg>@0.3.0 --force` 仅在发布 72 小时内可用，之后只能发新版本。
-- **扩展包 peer 多副本**：扩展仓必须把 `@x-ac/design-vue`（或 `design-react`）声明为 peer，`pnpm install` 后才装；若宿主与扩展各装一份，`UI_ADAPTER` 的 symbol 不同，页面会全是占位块。
+- **扩展包引擎多副本**：扩展仓把 `@x-ac/design-vue`（或 `design-react`）声明为 peer；风险来自宿主与扩展各装一份**引擎包**导致 `UI_ADAPTER` symbol 不同，扩展仓自身并不 import 该 symbol。
+- **TypeScript 暂不能升 7.x**：`typescript@7.0.2` 是 native 重写版，`exports` 已移除 `./lib/tsc`，`vue-tsc@3.3.14` 启动即报 `ERR_PACKAGE_PATH_NOT_EXPORTED`，`tsc` / `vue-tsc` 全线不可用。两仓因此停在最新 5.x（`^5.9.3`），其余依赖均为 latest。再跑 `pnpm -r up --latest` 会把它拉回 7，升级后需回改；等 vue-tsc 提供 TS 7 兼容构建再放开。
+- **Vite 8 / Vitest 5 配置**：Vite 8 用 `oxc` 取代 `esbuild`（`esbuild.jsx` 已废弃），且 SSR 环境不再自动给 `@vue/compiler-sfc` 注入 `fs`，跨文件 `defineProps<ImportedType>()` 需在 `vue()` 插件里显式传 `script.fs`；Vitest 4 起 `poolOptions` 移除，改用顶层 `fileParallelism: false`；`fsModuleCache` 会递归清 `node_modules/.vitest-cache`，受限沙箱需设 `false`。两侧 `vitest.config.ts` 已同步。
 - **本地联调**：核心仓 `playground` 与 `tests` 用 `link:../../design-vue-element-plus` 加 vite/tsconfig 别名指向兄弟仓源码；扩展仓反向 `link:` 到本仓 `packages/core` / `packages/vue`。发版后把 `link:` 替换为版本号并移除别名，即可解绑。
