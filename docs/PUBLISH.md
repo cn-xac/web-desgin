@@ -171,23 +171,19 @@ git push origin v1.0.0
 - 三库在**同一次运行内**从源码构建后紧接着发布（不能是预发制品）；
 - 每个包的 `package.json` 有 `repository` 字段（1.0.0 已补）。
 
-**首次发布硬坑（务必读）**：npm 不允许可信发布接管从未存在过的包。三个包是全新 1.0.0，**首版必须先用一次性 `NPM_TOKEN` 发一次**（见下「首次发布兜底」）；从第二个版本起，本工作流的 tokenless OIDC 才会生效。
+**首包前提已满足**：npm 不允许可信发布接管从未存在过的包，但已先发占位包 + 配好三个包的 Trusted Publisher，因此 1.0.0 现在即可直接走 tokenless OIDC 发布，无需任何 token。若日后 OIDC 报 `ENEEDAUTH`，先核对 npmjs 的 Trusted Publisher 的 owner / repository / Workflow 文件名是否与本仓库及 `release.yml` 完全一致。
 
-**Trusted Publisher 一次性注册（在 npmjs.com）**：对每个包分别操作：
-1. 打开 `https://www.npmjs.com/package/@x-ac/design-core/access`（core / vue / react 各开一次）；
+**Trusted Publisher（已在 npmjs.com 配好，保留步骤备查）**：对每个包分别操作：
+1. 打开 `https://www.npmjs.com/package/@x-ac/design-core/access`（core / vue / react 各一次）；
 2. 找到 Publishing access → **Add a trusted publisher** → 选 **GitHub Actions**；
 3. 填 `owner=cn-xac`、`repository=web-desgin`、`Workflow 文件名=release.yml`、`Environment` 留空；
 4. 保存。三个包各自注册一次（monorepo 每个包独立）。
 
 ### 需要的仓库 Secret / 设置
-- **无 NPM_TOKEN 常态依赖**：日常发版走 OIDC，仓库 Secrets 里不需要 NPM_TOKEN。
-- **首次发布兜底 token**：仅在发 1.0.0 首版时临时需要一个 `NPM_TOKEN`（Automation Token），发完可删除。一次性命令：
-  ```bash
-  # 本地对三个包各发一次（需先 build），用 token 鉴权
-  NPM_TOKEN=<一次性token> pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance
-  ```
+- **无 NPM_TOKEN 依赖**：本工作流完全走 OIDC，仓库 Secrets 里不需要任何 npm token。
 - Pages：仓库 Settings → Pages → Source 选「GitHub Actions」；
-- `id-token: write` 权限已写入工作流（见 `permissions`），这是 OIDC 发布的唯一权限前提。
+- `id-token: write` 权限已写入工作流（见 `permissions`），这是 OIDC 发布的唯一权限前提；
+- 三个包的 Trusted Publisher 已在 npmjs.com 注册（owner=cn-xac / repository=web-desgin / Workflow=release.yml）。
 
 ### 决策记录
 - 三包版本定为 **1.0.0**（核心渲染 / 设计器能力已具备，功能层与 Vue 版对齐）；每个 `package.json` 同时补了 `repository` / `homepage` / `bugs`，指向 `cn-xac/web-desgin`。
