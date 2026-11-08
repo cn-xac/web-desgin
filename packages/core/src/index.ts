@@ -37,5 +37,9 @@ export * from "./style/style";
 export * from "./actions/registry";
 export * from "./actions/event";
 
+/** 设计器内核：状态机与页面仓储，Vue/React 的 /designer 子入口共用 */
+export * from "./designer/repo";
+export * from "./designer/store";
+
 export * from "./export/html";
 export * from "./export/data";
