@@ -137,3 +137,45 @@ const html = renderToStaticMarkup(createElement(SchemaRenderer, { page }));
 - **TypeScript 暂不能升 7.x**：`typescript@7.0.2` 是 native 重写版，`exports` 已移除 `./lib/tsc`，`vue-tsc@3.3.14` 启动即报 `ERR_PACKAGE_PATH_NOT_EXPORTED`，`tsc` / `vue-tsc` 全线不可用。两仓因此停在最新 5.x（`^5.9.3`），其余依赖均为 latest。再跑 `pnpm -r up --latest` 会把它拉回 7，升级后需回改；等 vue-tsc 提供 TS 7 兼容构建再放开。
 - **Vite 8 / Vitest 5 配置**：Vite 8 用 `oxc` 取代 `esbuild`（`esbuild.jsx` 已废弃），且 SSR 环境不再自动给 `@vue/compiler-sfc` 注入 `fs`，跨文件 `defineProps<ImportedType>()` 需在 `vue()` 插件里显式传 `script.fs`；Vitest 4 起 `poolOptions` 移除，改用顶层 `fileParallelism: false`；`fsModuleCache` 会递归清 `node_modules/.vitest-cache`，受限沙箱需设 `false`。两侧 `vitest.config.ts` 已同步。
 - **本地联调**：核心仓 `playground` 与 `tests` 用 `link:../../design-vue-element-plus` 加 vite/tsconfig 别名指向兄弟仓源码；扩展仓反向 `link:` 到本仓 `packages/core` / `packages/vue`。发版后把 `link:` 替换为版本号并移除别名，即可解绑。
+
+## 8. 自动化发布（GitHub Actions）
+
+发布流程已搬到 `.github/workflows/release.yml`。**不在 Actions 里调用 `scripts/release.mjs`**，而是直接用 pnpm 发布当前 `package.json` 里的版本（即 latest）。
+
+### 触发方式
+- 推送 `v*` tag（如 `v1.0.0`）自动执行；
+- 也支持在 Actions 页面手动 `workflow_dispatch`。
+
+tag 由开发者本地按约定执行（脚本红线：不 push、不建 tag、不自动发布）：
+
+```bash
+git tag -s v1.0.0 -m "release 1.0.0"
+git push origin v1.0.0
+```
+
+### 两个 job
+1. **publish**：装依赖 → 直接 `pnpm --filter @x-ac/design-core/@x-ac/design-vue/@x-ac/design-react build`（不经过 release.mjs）→ `pnpm test` → `pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance` 发布到 npmjs。认证读 `NPM_TOKEN`（仓库 Secret）。
+2. **deploy-examples**：构建并部署两个示例项目到 GitHub Pages（需开启 Settings → Pages → Source = GitHub Actions）：
+   - `apps/vue-example` → 站点根 `/`；
+   - `apps/react-example` → 站点子路径 `/react/`（其 vite `base` 已设为 `/react/`，与部署路径一致）。
+
+### npm 溯源证明（Provenance）
+发布命令带 `--provenance`，发布成功后 npm 包详情会显示 **「Built and signed with provenance」** 徽章，证明包确实从该仓库源码、在本次 Actions 运行中构建并发布。
+
+前置条件（工作流已满足）：
+- `permissions` 含 `id-token: write`（OIDC 临时凭证来源，provenance 签名依赖它）；
+- `runs-on: ubuntu-latest`（GitHub 官方托管 runner）；
+- 三库在**同一次运行内**从源码构建后紧接着发布（不能是预发制品）。
+
+本仓 pnpm 为 12.x，`--provenance` 已被支持；无需在 npm 额外配置，凭证由 Actions 运行时经 OIDC 注入。
+
+### 需要的仓库 Secret / 设置
+- `NPM_TOKEN`：npmjs.com 生成的 **Automation** Token，用于 `pnpm publish` 认证；
+- Pages：仓库 Settings → Pages → Source 选「GitHub Actions」；
+- 如需 provenance：`id-token: write` 权限已写入工作流（见 `permissions`），无需额外 Secret。
+
+### 决策记录
+- 三包版本定为 **1.0.0**（核心渲染 / 设计器能力已具备，功能层与 Vue 版对齐）；每个 `package.json` 同时补了 `repository` / `homepage` / `bugs`，指向 `cn-xac/web-desgin`。
+- 示例按目录拆成两个独立项目（`apps/vue-example` 与 `apps/react-example`），各自只依赖对应适配层 + core，**零 UI 库依赖**，CI 可直接构建，不再依赖 `playground` 的兄弟 EP 仓（`link:../../../design-vue-element-plus`）。
+- 发布与示例部署分离：npm 发布只发 `packages/*` 三包，示例仅作 Pages 演示，不参与发版。
+- 发布脚本 `scripts/release.mjs` 仍保留给本地用（`release:check` / `release:version` / `release:publish`），但 CI 不走它。
