@@ -211,7 +211,7 @@ const repo = createMemoryRepository([page]);
 - **顶栏**：撤销重做、脏标记、节点数、导入导出 JSON / HTML、预览、保存；快捷键 `Ctrl+Z/Y/S/D/C/V`、`Delete`、`Esc`，关闭前脏检查。
 - **状态机**：`@x-ac/design-core` 的 `DesignerStore`，Vue 的 `/designer` 与这里共用同一份实现（撤销栈、拖拽落点、属性编辑、导入导出、仓储），差别只在订阅方式（pinia vs `useSyncExternalStore`）。设计态画布通过 `RendererDesignerScene` 注入，运行时 `design=false` 不产生任何额外 DOM。
 
-`apps/react-demo` 里有可运行的切换示例（「运行预览 / 打开设计器」），仓储用 localStorage。
+`apps/react-example` 里是最小用法演示（基于 `@x-ac/design-react` + `@x-ac/design-core` 注册原生组件，`SchemaRenderer` 数据绑定与 `onNodeEvent` 事件通知），完整的设计器切换示例已随 `apps/react-demo` 一并精简移除。
 
 ## 与 Vue 版差异
 

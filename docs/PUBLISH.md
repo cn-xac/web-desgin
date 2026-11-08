@@ -8,7 +8,7 @@
 | `@x-ac/design-vue` | Vue 适配层：渲染器 + 设计器 + `/kit` 组件作者 SDK（多入口 `index` / `designer` / `kit`） | `@x-ac/design-core` | `vue`、`pinia`（仅设计器，可选） |
 | `@x-ac/design-react` | React 适配层：渲染器 + `/kit` 组件作者 SDK（多入口 `index` / `kit`） | `@x-ac/design-core` | `react` |
 
-私有包 `vue-design-workspace`（根）、`playground`、`react-demo` 不参与发布，版本号独立。
+私有包 `vue-design-workspace`（根）、`vue-example`、`react-example` 不参与发布，版本号独立。
 
 ### 扩展包（独立仓库）
 
@@ -65,7 +65,7 @@ pnpm install && pnpm build:lib && pnpm typecheck && pnpm test
 cd project
 pnpm release:check   # 三包同版本
 pnpm test            # 全部用例
-pnpm typecheck       # 五个包类型检查（core / vue / react / playground / react-demo）
+pnpm typecheck       # 类型检查（core / vue / react / vue-example / react-example）
 pnpm build:lib       # 构建 core / vue / react
 
 # 检查 tarball 内容（不会真的发布）
@@ -136,7 +136,7 @@ const html = renderToStaticMarkup(createElement(SchemaRenderer, { page }));
 - **扩展包引擎多副本**：扩展仓把 `@x-ac/design-vue`（或 `design-react`）声明为 peer；风险来自宿主与扩展各装一份**引擎包**导致 `UI_ADAPTER` symbol 不同，扩展仓自身并不 import 该 symbol。
 - **TypeScript 暂不能升 7.x**：`typescript@7.0.2` 是 native 重写版，`exports` 已移除 `./lib/tsc`，`vue-tsc@3.3.14` 启动即报 `ERR_PACKAGE_PATH_NOT_EXPORTED`，`tsc` / `vue-tsc` 全线不可用。两仓因此停在最新 5.x（`^5.9.3`），其余依赖均为 latest。再跑 `pnpm -r up --latest` 会把它拉回 7，升级后需回改；等 vue-tsc 提供 TS 7 兼容构建再放开。
 - **Vite 8 / Vitest 5 配置**：Vite 8 用 `oxc` 取代 `esbuild`（`esbuild.jsx` 已废弃），且 SSR 环境不再自动给 `@vue/compiler-sfc` 注入 `fs`，跨文件 `defineProps<ImportedType>()` 需在 `vue()` 插件里显式传 `script.fs`；Vitest 4 起 `poolOptions` 移除，改用顶层 `fileParallelism: false`；`fsModuleCache` 会递归清 `node_modules/.vitest-cache`，受限沙箱需设 `false`。两侧 `vitest.config.ts` 已同步。
-- **本地联调**：核心仓 `playground` 与 `tests` 用 `link:../../design-vue-element-plus` 加 vite/tsconfig 别名指向兄弟仓源码；扩展仓反向 `link:` 到本仓 `packages/core` / `packages/vue`。发版后把 `link:` 替换为版本号并移除别名，即可解绑。
+- **本地联调**：核心仓 `tests` 用 `link:../../design-vue-element-plus` 加 vite/tsconfig 别名指向兄弟仓源码；扩展仓反向 `link:` 到本仓 `packages/core` / `packages/vue`。发版后把 `link:` 替换为版本号并移除别名，即可解绑。
 
 ## 8. 自动化发布（GitHub Actions）
 
@@ -153,11 +153,14 @@ git tag -s v1.0.0 -m "release 1.0.0"
 git push origin v1.0.0
 ```
 
-### 两个 job
+### 一个 job（仅发布）
 1. **publish**：装依赖 → 直接 `pnpm --filter @x-ac/design-core/@x-ac/design-vue/@x-ac/design-react build`（不经过 release.mjs）→ `pnpm test` → `pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance` 发布到 npmjs。**无需 NPM_TOKEN**：走 npm Trusted Publishing（OIDC），由 `id-token: write` 提供的临时凭证直接发布并生成 provenance。
-2. **deploy-examples**：构建并部署两个示例项目到 GitHub Pages（需开启 Settings → Pages → Source = GitHub Actions）：
-   - `apps/vue-example` → 站点根 `/`；
-   - `apps/react-example` → 站点子路径 `/react/`（其 vite `base` 已设为 `/react/`，与部署路径一致）。
+
+### 示例演示站（独立工作流）
+GitHub Pages 部署由独立的 `.github/workflows/pages.yml` 负责，与 npm 发布职责分离：
+- 触发：推送 `main` 分支（且 `apps/`、`packages/`、锁文件或本工作流有改动）或手动 `workflow_dispatch`；
+- 部署：构建 `apps/vue-example` → 站点根 `/`，`apps/react-example` → 站点子路径 `/react/`（其 vite `base` 已设为 `/react/`）；
+- 前置：仓库 Settings → Pages → Source 选「GitHub Actions」。
 
 ### npm 溯源证明（Provenance）+ 无 Token 发布
 发布命令带 `--provenance`，发布成功后 npm 包详情会显示 **「Built and signed with provenance」** 徽章，证明包确实从该仓库源码、在本次 Actions 运行中构建并发布。
