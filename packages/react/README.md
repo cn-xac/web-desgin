@@ -48,6 +48,35 @@ export function Form({ page }: { page: PageSchema }) {
 
 字段失焦会自动单字段校验（原生 input / textarea / select / range）。
 
+## 应用级注入扩展仓（对齐 Vue）
+
+Vue 侧用 `app.use(createVueDesign({ adapter }))` 一次注入，整棵组件树共用一份适配包；React 侧用 Context 表达同一语义：
+
+```tsx
+import { ReactDesignProvider, SchemaRenderer } from "@x-ac/design-react";
+import { antAdapter } from "@x-ac/design-react-ant";  // 未来的独立扩展仓
+
+export function App() {
+  return (
+    <ReactDesignProvider adapter={antAdapter}>
+      <SchemaRenderer page={pageA} />
+      <SchemaRenderer page={pageB} />
+    </ReactDesignProvider>
+  );
+}
+```
+
+也可以把 adapter 预绑定成组件，形态更接近 `createVueDesign()`：
+
+```tsx
+const DesignProvider = createReactDesign(antAdapter);
+<DesignProvider><App /></DesignProvider>
+```
+
+优先级：`ui` prop > 最近一层 `ReactDesignProvider` > 内置 `nativeAdapter`。`useUiAdapter()` 可在任意子组件里读当前适配包（不在 Provider 内返回 `null`）。
+
+> 与 Vue 一样，适配包是**应用级单例**，页面内不支持运行时切换；换库请重建 Provider 所在的根组件。
+
 ## 校验规则
 
 规则来自 `node.rules`，与 Vue 层完全同一套实现：
@@ -69,6 +98,22 @@ export function Form({ page }: { page: PageSchema }) {
 
 ## 换成自己的 UI 库
 
+**推荐做法**：用扩展仓提供的 `UiAdapter`，或 `registerMaterials()` 做不可变组合，在应用根部注入一次：
+
+```tsx
+import { ReactDesignProvider, SchemaRenderer, nativeAdapter, registerMaterials } from "@x-ac/design-react";
+
+const adapter = registerMaterials(nativeAdapter, [
+  { component: "biz-rate", title: "满意度", impl: BizRate, fields: [{ key: "text", label: "文案", type: "text" }] },
+]);
+
+<ReactDesignProvider adapter={adapter}>
+  <SchemaRenderer page={page} />
+</ReactDesignProvider>
+```
+
+**最小改动兼容做法**：直接改内置映射表。全局可变，SSR 多请求与并行测试有串味风险，不建议用于生产。
+
 ```tsx
 import { COMPONENTS } from "@x-ac/design-react";
 COMPONENTS.input = (props) => <Input {...props} />;
@@ -80,9 +125,11 @@ COMPONENTS.input = (props) => <Input {...props} />;
 
 | 项 | Vue | React |
 |---|---|---|
+| 适配包注入 | `app.use(createVueDesign({ adapter }))` + `UI_ADAPTER` InjectionKey | `<ReactDesignProvider adapter>` / `createReactDesign()` + `UI_ADAPTER_CONTEXT` |
+| 未注入时 | 降级为未知组件占位 | 回落内置 `nativeAdapter`（原生元素） |
 | 双向绑定 | `modelValue` + `@update:modelValue` | `value` + `onChange` |
 | 响应式 | `reactive(scope)` 自动重渲染 | 手动 `flush()`（core 的 `setByPath` 只改对象） |
-| 设计器 | 有 | 暂无（复用 Vue 设计器或以 Web Component 挂载） |
+| 设计器 | 有，支持 `DesignerKit` 换肤 | 暂无；`UiAdapter.designer / editors / provider / propAliases` 在 React 侧尚未消费 |
 
 ## License
 

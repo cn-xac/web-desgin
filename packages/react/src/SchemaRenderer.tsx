@@ -16,6 +16,7 @@ import { RenderContext } from "./context";
 import type { RenderContextValue, RenderMode } from "./context";
 import { defaultAdapter } from "./actions";
 import { nativeAdapter, type ReactMaterial } from "./adapter";
+import { useUiAdapter } from "./provider";
 import { usePageStore } from "./scope";
 
 export interface SchemaRendererProps {
@@ -26,8 +27,8 @@ export interface SchemaRendererProps {
   navigate?: (to: string) => void;
   /**
    * UI 适配包：组件实现 + 物料元数据 + 双向绑定通道。
-   * 缺省用内置的原生实现（nativeAdapter）；传 `registerMaterials(nativeAdapter, [...])`
-   * 的结果即可让业务物料参与渲染与校验。
+   * 优先级：本 prop > <ReactDesignProvider adapter> > 内置 nativeAdapter。
+   * 传 `registerMaterials(nativeAdapter, [...])` 的结果即可让业务物料参与渲染与校验。
    */
   ui?: UiAdapter<ReactMaterial>;
   /** 只覆盖动作副作用（提示 / 确认框）；缺省取 ui.actions，再缺省 console + window.confirm */
@@ -75,12 +76,16 @@ function registryFor(materials: Material[]): MaterialRegistry {
  * ```
  */
 export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererProps>(function SchemaRenderer(
-  { page, mode = "view", navigate, ui = nativeAdapter, adapter, className, style },
+  { page, mode = "view", navigate, ui, adapter, className, style },
   ref,
 ) {
+  // Hook 必须无条件调用：prop 显式传入时仍读一次 Context，但不会用它
+  const inheritedUi = useUiAdapter();
+  const activeUi = ui ?? inheritedUi ?? nativeAdapter;
+
   const store = usePageStore(page);
-  const catalog = registryFor(ui.materials);
-  const actions = adapter ?? ui.actions ?? defaultAdapter;
+  const catalog = registryFor(activeUi.materials);
+  const actions = adapter ?? activeUi.actions ?? defaultAdapter;
 
   /** 失焦校验：只算当前字段，改完立即消红 */
   const validateField = (node: NodeSchema): void => {
@@ -116,7 +121,7 @@ export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererPro
     errors: store.errors,
     mode,
     adapter: actions,
-    ui,
+    ui: activeUi,
     catalog,
     navigate: navigate ?? (() => undefined),
     resetScope: store.resetScope,

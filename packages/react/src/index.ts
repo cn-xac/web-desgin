@@ -17,6 +17,9 @@ export { createReactAdapter, defaultAdapter } from "./actions";
 export type { ReactAdapterOptions } from "./actions";
 export { REACT_BINDING, createNativeAdapter, nativeAdapter } from "./adapter";
 export type { ReactMaterial } from "./adapter";
+// 应用级适配包注入：与 Vue 的 createVueDesign({ adapter }) 同语义
+export { UI_ADAPTER_CONTEXT, ReactDesignProvider, createReactDesign, useUiAdapter } from "./provider";
+export type { ReactDesignProviderProps } from "./provider";
 export { usePageStore } from "./scope";
 export type { PageStore } from "./scope";
 
