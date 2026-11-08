@@ -4,19 +4,19 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.15.0",
-  "description": "Schema 驱动的可视化搭建引擎：框架无关 core + Vue / React 适配层 + 示例应用",
+  "description": "Schema 驱动的可视化搭建引擎：框架无关 core + Vue / React 适配层 + 示例应用（扩展包在独立仓库维护）",
   "scripts": {
     "dev": "pnpm --filter playground dev",
     "dev:vue": "pnpm --filter playground dev",
     "dev:react": "pnpm --filter react-demo dev",
     "build": "pnpm build:lib && pnpm --filter playground build && pnpm --filter react-demo build",
-    "build:lib": "node scripts/release.mjs check && pnpm --filter @x-ac/design-core build && pnpm --filter @x-ac/design-vue build && pnpm --filter @x-ac/design-vue-element-plus build && pnpm --filter @x-ac/design-react build",
+    "build:lib": "node scripts/release.mjs check && pnpm --filter @x-ac/design-core build && pnpm --filter @x-ac/design-vue build && pnpm --filter @x-ac/design-react build",
     "release:check": "node scripts/release.mjs check",
     "release:version": "node scripts/release.mjs version",
     "release:publish": "node scripts/release.mjs publish",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "pnpm --filter @x-ac/design-core typecheck && pnpm --filter @x-ac/design-vue typecheck && pnpm --filter @x-ac/design-vue-element-plus typecheck && pnpm --filter @x-ac/design-react typecheck && pnpm --filter playground typecheck && pnpm --filter react-demo typecheck"
+    "typecheck": "pnpm --filter @x-ac/design-core typecheck && pnpm --filter @x-ac/design-vue typecheck && pnpm --filter @x-ac/design-react typecheck && pnpm --filter playground typecheck && pnpm --filter react-demo typecheck"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

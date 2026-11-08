@@ -12,7 +12,7 @@
   "dependencies": {
     "@x-ac/design-core": "workspace:*",
     "@x-ac/design-vue": "workspace:*",
-    "@x-ac/design-vue-element-plus": "workspace:*",
+    "@x-ac/design-vue-element-plus": "link:../../../design-vue-element-plus",
     "element-plus": "^2.14.7",
     "pinia": "^2.3.0",
     "vue": "^3.5.13",
