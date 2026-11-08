@@ -171,6 +171,52 @@ describe("React 事件回调（与 Vue 同形状）", () => {
     expect((onEvent.mock.calls[0][0] as UiEventPayload).value).toEqual({ id: 7, name: "已归一化" });
   });
 
+  it("onNodeEvent 只读通知：拿到与 onEvent 同一份 payload", async () => {
+    const onEvent = vi.fn();
+    const onNodeEvent = vi.fn();
+    render(<SchemaRenderer page={makePage([])} ui={makeAdapter()} onEvent={onEvent} onNodeEvent={onNodeEvent} />);
+    await clickEmitter();
+
+    expect(onNodeEvent).toHaveBeenCalledTimes(1);
+    const payload = onNodeEvent.mock.calls[0][0] as UiEventPayload;
+    expect(payload).toBe(onEvent.mock.calls[0][0]);
+    expect(payload.name).toBe("row-click");
+    expect(payload.nodeId).toBe("r_emit");
+  });
+
+  it("onNodeEvent 在 preventDefault 阻断后仍通知，且不触发预设动作", async () => {
+    const notify = vi.fn();
+    const onNodeEvent = vi.fn();
+    const ui = makeAdapter({ actions: { notify, confirm: async () => true } });
+    render(
+      <SchemaRenderer
+        page={makePage([{ action: "toast", args: { text: "不该出现" } }])}
+        ui={ui}
+        onEvent={(p: UiEventPayload) => p.preventDefault()}
+        onNodeEvent={onNodeEvent}
+      />,
+    );
+    await clickEmitter();
+
+    expect(onNodeEvent).toHaveBeenCalledTimes(1);
+    const payload = onNodeEvent.mock.calls[0][0] as UiEventPayload;
+    expect(payload.defaultPrevented).toBe(true);
+    expect(payload.actions).toHaveLength(1);
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("adapter.onEvent 的归一化结果对 onNodeEvent 可见", async () => {
+    const onNodeEvent = vi.fn();
+    const ui = makeAdapter({
+      onEvent: (p: UiEventPayload) => {
+        p.args[0] = { id: 7, name: "已归一化" };
+      },
+    });
+    render(<SchemaRenderer page={makePage([])} ui={ui} onNodeEvent={onNodeEvent} />);
+    await clickEmitter();
+    expect((onNodeEvent.mock.calls[0][0] as UiEventPayload).value).toEqual({ id: 7, name: "已归一化" });
+  });
+
   it("受控通道与 events.change 共存：先写状态，再跑动作", async () => {
     const ref = createRef<SchemaRendererHandle>();
     const page = makePage([]);

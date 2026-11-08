@@ -7,6 +7,7 @@ import type {
   PageSchema,
   UiAdapter,
   UiEventHook,
+  UiEventPayload,
 } from "@x-ac/design-core";
 import type { ReactMaterial } from "./adapter";
 
@@ -32,6 +33,8 @@ export interface RenderContextValue {
   validateField: (node: NodeSchema) => void;
   /** 宿主的事件拦截钩子（与 Vue 的 :on-event 同签名） */
   onEvent?: UiEventHook;
+  /** 节点事件只读通知：拿到的是同一个 UiEventPayload，不参与控制流（对齐 Vue 的 @node-event） */
+  notifyEvent: (payload: UiEventPayload) => void;
   /** submitForm 动作成功时回调，供宿主发请求 */
   onFormSubmit?: (payload: Record<string, unknown>, action: ActionSchema) => void;
 }

@@ -10,6 +10,7 @@ import type {
   PageSchema,
   UiAdapter,
   UiEventHook,
+  UiEventPayload,
 } from "@x-ac/design-core";
 import {
   createEmptyPage,
@@ -53,6 +54,13 @@ export interface SchemaRendererProps {
    * 返回 false 或 payload.preventDefault() 可跳过该事件配置的预设动作。
    */
   onEvent?: UiEventHook;
+  /**
+   * 节点事件只读通知（对齐 Vue 的 @node-event）。
+   * 与 onEvent 的区别：不参与控制流，返回值被忽略；
+   * 即使 onEvent / adapter.onEvent 调用了 preventDefault()，这里仍会收到该事件，
+   * 方便做埋点、日志、外部状态镜像，而不必担心影响预设动作。
+   */
+  onNodeEvent?: (payload: UiEventPayload) => void;
   className?: string;
   style?: CSSProperties;
 }
@@ -99,7 +107,7 @@ function deviceMaxWidth(page: PageSchema): number {
 }
 
 export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererProps>(function SchemaRenderer(
-  { page, mode = "view", navigate, ui, adapter, data, onDataChange, onSubmit, onEvent, className, style },
+  { page, mode = "view", navigate, ui, adapter, data, onDataChange, onSubmit, onEvent, onNodeEvent, className, style },
   ref,
 ) {
   // Hook 必须无条件调用：prop 显式传入时仍读一次 Context，但不会用它
@@ -213,6 +221,7 @@ export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererPro
     setValue: store.setValue,
     validateField,
     onEvent,
+    notifyEvent: (payload) => onNodeEvent?.(payload),
     onFormSubmit: onSubmit ? (payload) => onSubmit(payload) : undefined,
   };
 

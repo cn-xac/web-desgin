@@ -111,6 +111,9 @@ function NodeBody({ node }: { node: NodeSchema }) {
           actions,
         });
         const shouldRun = runEventHooks(payload, [ctx.ui.onEvent, ctx.onEvent]);
+        // 只读通知在钩子之后、控制流判断之前，与 Vue 的 renderCtx.notifyEvent 顺序一致：
+        // 即使被 preventDefault 阻断，宿主仍能观察到这次事件。
+        ctx.notifyEvent(payload);
         if (!shouldRun) return;
 
         void runActions(actions, {

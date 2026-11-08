@@ -148,6 +148,7 @@ export const antAdapter = defineReactAdapter({
 | Schema 表达式 `$event` / `$args` / `$value` | 只读事件参数，不写代码 | 否 |
 | `onEvent={fn}` | 业务侧接管、按参数改写状态 | 是（返回 `false` 或 `preventDefault()`） |
 | `adapter.onEvent` | 扩展仓统一归一化自家 UI 库的事件参数 | 是 |
+| `onNodeEvent={fn}` | 埋点 / 日志 / 镜像状态，只读不干预 | 否 |
 
 ```tsx
 import { SchemaRenderer } from "@x-ac/design-react";
@@ -159,8 +160,10 @@ function onEvent(p: UiEventPayload): void | false {
   p.scope.currentId = row.id;  // scope 就是页面状态，可直接写
 }
 
-<SchemaRenderer page={page} ui={adapter} onEvent={onEvent} />;
+<SchemaRenderer page={page} ui={adapter} onEvent={onEvent} onNodeEvent={(p) => track(p.name, p.nodeId)} />;
 ```
+
+`onNodeEvent` 拿到的是同一个 `UiEventPayload` 对象（能看到 `adapter.onEvent` 与 `onEvent` 对 `args` 的改写），在钩子之后、预设动作之前触发；即使被 `preventDefault()` 阻断也照常通知，适合做与业务控制流解耦的埋点。
 
 事件名写 kebab（`row-click`）即可，渲染器内部转成 React 的 `onRowClick`。Schema 里也能直接引用，无需写 JS：
 
@@ -174,7 +177,7 @@ function onEvent(p: UiEventPayload): void | false {
 
 ## 运行时能力（与 Vue 对齐）
 
-同一份 `PageSchema` 在两框架行为一致：`if` / `for` / `show` 指令、表达式、物料默认值、样式合并、双向绑定、动作、校验、数据导出、任意事件名与完整事件 payload、`dataSource`（http / static，取数逻辑共用 core 的 `loadPageData`）、`data` + `onDataChange` 双向同步（带防回环）、`onSubmit` 出口、字符串 Schema 自动迁移、按 `meta.device` 设置画布宽度、失焦单字段校验。
+同一份 `PageSchema` 在两框架行为一致：`if` / `for` / `show` 指令、表达式、物料默认值、样式合并、双向绑定、动作、校验、数据导出、任意事件名与完整事件 payload、`dataSource`（http / static，取数逻辑共用 core 的 `loadPageData`）、`data` + `onDataChange` 双向同步（带防回环）、`onSubmit` 出口、只读事件通知 `onNodeEvent`、字符串 Schema 自动迁移、按 `meta.device` 设置画布宽度、失焦单字段校验。
 
 ref API：`validate()` / `getData()` / `exportData()` / `getErrors()` / `reset()` / `setData()` / `reload()` / `scope`。
 
@@ -184,7 +187,7 @@ ref API：`validate()` / `getData()` / `exportData()` / `getErrors()` / `reset()
 |---|---|---|
 | 扩展仓 SDK | `@x-ac/design-vue/kit`：`defineVueAdapter` / `useFieldModel` | `@x-ac/design-react/kit`：`defineReactAdapter` / `useFieldModel` |
 | 适配包注入 | `app.use(createVueDesign({ adapter }))` + `UI_ADAPTER` InjectionKey | `<ReactDesignProvider adapter>` / `createReactDesign()` + `UI_ADAPTER_CONTEXT` |
-| 事件钩子 | `:on-event` / `@node-event`（只读通知） | `onEvent` prop |
+| 事件钩子 | `:on-event` / `@node-event`（只读通知） | `onEvent` / `onNodeEvent` prop |
 | 外部数据 | `v-model:data` / `@submit` | `data` + `onDataChange` / `onSubmit` |
 | 未注入时 | 降级为未知组件占位 | 回落内置 `nativeAdapter`（原生元素） |
 | 双向绑定 | `modelValue` + `@update:modelValue` | `value` + `onChange` |
