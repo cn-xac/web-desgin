@@ -1,0 +1,1485 @@
+/*
+ * @x-ac/design-react/designer 样式（由 Vue 设计器样式同步生成，勿手工逐行改）。
+ * 令牌 + 控件 + 面板 + 画布节点外壳，全部使用自有 --wb-* / wbd-* / ux-* 前缀，
+ * 不依赖任何具体 UI 库；宿主可覆盖 CSS 变量换肤。
+ */
+
+/**
+ * 设计令牌：物料与设计器共用。
+ * 以 CSS 变量形式提供，宿主可在自己项目里覆盖，不需要改源码。
+ */
+:root {
+  --wb-bg: #f4f5f7;
+  --wb-panel: #ffffff;
+  --wb-line: #e4e7ed;
+  --wb-line-soft: #eef0f4;
+  --wb-ink: #1f2430;
+  --wb-ink2: #5c6373;
+  --wb-ink3: #8b93a3;
+  --wb-primary: #2f4bff;
+  --wb-primary-soft: #eef1ff;
+  --wb-mono: "SFMono-Regular", Consolas, Menlo, monospace;
+
+  /* 语义色：优先取 UI 库的令牌，未安装该库时回落到默认值。
+     引擎源码只引用 --wb-*，换 UI 库不需要改样式。 */
+  --wb-danger: var(--el-color-danger, #f56c6c);
+  --wb-warning: var(--el-color-warning, #e6a23c);
+
+  /* 可选的主题对齐：宿主装了 Element Plus 时把主色收敛到设计令牌。
+     其它 UI 库会忽略这三个变量，不是渲染器的硬依赖。 */
+}
+
+.wb-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.wb-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.wb-scroll::-webkit-scrollbar-thumb {
+  background: #d9dde6;
+  border-radius: 4px;
+}
+
+.wb-mono {
+  font-family: var(--wb-mono);
+}
+
+/* ---- 设计器控件（.wbd-*） ---- */
+/**
+ * 设计器自有控件样式（.wbd-* 前缀，wbd = web builder designer）。
+ *
+ * 只在适配包未提供 designer kit 时生效。宿主的全局样式（包括 UI 库的 reset）
+ * 不应影响这里的尺寸与密度 —— 设计器是工具，不该跟着业务主题变胖或变瘦。
+ */
+
+.wbd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--wb-line);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--wb-ink2);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.wbd-btn:hover:not(:disabled) {
+  border-color: var(--wb-primary);
+  color: var(--wb-primary);
+}
+.wbd-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.wbd-btn--primary {
+  border-color: var(--wb-primary);
+  background: var(--wb-primary);
+  color: #fff;
+}
+.wbd-btn--primary:hover:not(:disabled) {
+  background: #2440e0;
+  color: #fff;
+}
+.wbd-btn--danger:hover:not(:disabled) {
+  border-color: #e24b4a;
+  color: #e24b4a;
+}
+.wbd-btn--text {
+  border-color: transparent;
+  background: transparent;
+  padding: 0 6px;
+}
+.wbd-sm {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.wbd-input {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--wb-line);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--wb-ink);
+  font-size: 12px;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.12s ease;
+  box-sizing: border-box;
+}
+.wbd-input:focus {
+  border-color: var(--wb-primary);
+}
+.wbd-input:disabled {
+  background: #f6f7f9;
+  color: var(--wb-ink3);
+  cursor: not-allowed;
+}
+.wbd-input.wbd-sm {
+  height: 24px;
+}
+.wbd-input--area {
+  height: auto;
+  padding: 6px 8px;
+  resize: vertical;
+  font-family: inherit;
+}
+.wbd-number {
+  text-align: left;
+}
+select.wbd-input {
+  appearance: none;
+  padding-right: 22px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--wb-ink3) 50%), linear-gradient(135deg, var(--wb-ink3) 50%, transparent 50%);
+  background-position: calc(100% - 12px) 12px, calc(100% - 8px) 12px;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+}
+select.wbd-input.wbd-sm {
+  background-position: calc(100% - 12px) 10px, calc(100% - 8px) 10px;
+}
+
+.wbd-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background: #d5d9e2;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.wbd-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s ease;
+}
+.wbd-switch.is-on {
+  background: var(--wb-primary);
+}
+.wbd-switch.is-on::after {
+  transform: translateX(14px);
+}
+
+.wbd-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 6px;
+  background: var(--wb-line-soft);
+}
+.wbd-seg__item {
+  height: 22px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wb-ink2);
+  font-size: 12px;
+  cursor: pointer;
+}
+.wbd-seg__item.is-on {
+  background: #fff;
+  color: var(--wb-ink);
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.08);
+}
+
+.wbd-color {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--wb-line);
+  border-radius: 5px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.wbd-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: rgba(31, 36, 48, 0.9);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* ---- designer/DesignerView.vue ---- */
+.designer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 12px;
+  background: #fff;
+  border-bottom: 1px solid var(--wb-line);
+  flex: 0 0 auto;
+}
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--wb-ink2);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--wb-bg);
+  border-color: var(--wb-line);
+}
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.title-input {
+  width: 220px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--wb-ink);
+}
+.title-input:hover {
+  border-color: var(--wb-line);
+}
+.title-input:focus {
+  outline: none;
+  border-color: var(--wb-primary);
+  box-shadow: 0 0 0 3px rgba(47, 75, 255, 0.1);
+}
+.dirty {
+  font-size: 8px;
+  color: var(--wb-warning);
+  margin-left: -4px;
+}
+.device {
+  margin-left: 8px;
+}
+.divider {
+  width: 1px;
+  height: 18px;
+  background: var(--wb-line);
+  margin: 0 4px;
+}
+.stat {
+  font-size: 11.5px;
+  color: var(--wb-ink3);
+  margin-left: 4px;
+}
+.spacer {
+  flex: 1;
+}
+.body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.hidden-input {
+  display: none;
+}
+
+/* ---- designer/components/CanvasStage.vue ---- */
+.stage {
+  flex: 1;
+  min-width: 0;
+  padding: 22px;
+  background: radial-gradient(circle at 1px 1px, #d9dde6 1px, transparent 0) 0 0 / 16px 16px;
+  background-color: var(--wb-bg);
+}
+.stage__inner {
+  display: flex;
+  justify-content: center;
+  min-height: 100%;
+}
+.canvas {
+  width: 100%;
+  min-height: calc(100vh - 96px);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(20, 30, 60, 0.08), 0 10px 30px rgba(20, 30, 60, 0.06);
+  padding: 16px 20px 32px;
+}
+.canvas__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px dashed var(--wb-line);
+}
+.canvas__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wb-ink2);
+}
+.canvas__badge {
+  font-size: 11px;
+  color: var(--wb-ink3);
+  background: var(--wb-bg);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.canvas__body {
+  min-height: 200px;
+}
+
+/* ---- designer/components/EventsEditor.vue ---- */
+.events {
+  padding: 14px;
+}
+.events__note {
+  margin-bottom: 14px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fafbfd;
+  border: 1px solid var(--wb-line-soft);
+  font-size: 11.5px;
+  color: var(--wb-ink3);
+  line-height: 1.6;
+}
+.events__group {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px dashed var(--wb-line);
+}
+.events__group:last-child {
+  border-bottom: none;
+}
+.events__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.events__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wb-ink2);
+}
+.events__code {
+  font-family: var(--wb-mono);
+  font-size: 10.5px;
+  color: var(--wb-ink3);
+  background: var(--wb-bg);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+.spacer {
+  flex: 1;
+}
+.events__item {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid var(--wb-line);
+  border-radius: 6px;
+  background: #fff;
+}
+.events__item-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.events__del {
+  border: none;
+  background: transparent;
+  color: var(--wb-ink3);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+.events__del:hover {
+  color: var(--wb-danger);
+}
+.events__empty {
+  font-size: 12px;
+  color: var(--wb-ink3);
+  padding: 6px 0;
+}
+
+/* ---- designer/components/InspectorPanel.vue ---- */
+.inspector {
+  display: flex;
+  flex-direction: column;
+  width: 344px;
+  background: #fff;
+  border-left: 1px solid var(--wb-line);
+}
+.inspector__crumbs {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--wb-line-soft);
+  font-size: 11.5px;
+  color: var(--wb-ink3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inspector__tabs {
+  display: flex;
+  border-bottom: 1px solid var(--wb-line);
+  flex: 0 0 auto;
+}
+.inspector__tab {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--wb-ink3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.inspector__tab:hover {
+  color: var(--wb-ink);
+}
+.inspector__tab.is-active {
+  color: var(--wb-primary);
+  border-bottom-color: var(--wb-primary);
+  font-weight: 600;
+}
+.inspector__count {
+  font-size: 10px;
+  background: var(--wb-primary-soft);
+  color: var(--wb-primary);
+  border-radius: 6px;
+  padding: 0 4px;
+  line-height: 14px;
+}
+.inspector__body {
+  flex: 1;
+  min-height: 0;
+}
+.inspector__footer {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--wb-line);
+}
+/* 可选增强：EP 按钮自带 margin-left，命中时抹平；其它 UI 库忽略本规则 */
+.inspector__footer .el-button {
+  flex: 1;
+  margin-left: 0;
+}
+.inspector__footer--tip {
+  justify-content: center;
+  font-size: 11.5px;
+  color: var(--wb-ink3);
+}
+
+/* ---- designer/components/OutlinePanel.vue ---- */
+.opanel {
+  display: flex;
+  flex-direction: column;
+  width: 208px;
+  background: #fff;
+  border-right: 1px solid var(--wb-line);
+}
+.opanel__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--wb-line-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--wb-ink3);
+}
+.opanel__count {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--wb-bg);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+}
+.opanel__scroll {
+  flex: 1;
+  padding: 6px 6px 12px;
+}
+.opanel__root {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--wb-ink2);
+  cursor: pointer;
+  user-select: none;
+}
+.opanel__root:hover {
+  background: var(--wb-bg);
+}
+.opanel__root.is-hint-inside {
+  outline: 1px dashed var(--wb-primary);
+  outline-offset: -2px;
+  background: var(--wb-primary-soft);
+}
+.opanel__root-icon {
+  flex: 0 0 16px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.opanel__root-name {
+  flex: 1;
+}
+.opanel__empty {
+  padding: 18px 10px;
+  font-size: 12px;
+  color: var(--wb-ink3);
+  line-height: 1.6;
+}
+.opanel__foot {
+  padding: 8px 10px;
+  border-top: 1px solid var(--wb-line-soft);
+  font-size: 11px;
+  color: var(--wb-ink3);
+  line-height: 1.5;
+}
+
+/* ---- designer/components/OutlineTree.vue ---- */
+.otree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.otree__item {
+  min-width: 0;
+}
+.otree__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 6px;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--wb-ink2);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.otree__row:hover {
+  background: var(--wb-bg);
+}
+.otree__row.is-sel {
+  background: var(--wb-primary-soft);
+  color: var(--wb-primary);
+  font-weight: 600;
+}
+.otree__row.is-hint-before {
+  border-top-color: var(--wb-primary);
+}
+.otree__row.is-hint-after {
+  border-bottom-color: var(--wb-primary);
+}
+.otree__row.is-hint-inside {
+  outline: 1px dashed var(--wb-primary);
+  outline-offset: -2px;
+  background: var(--wb-primary-soft);
+}
+.otree__arrow {
+  flex: 0 0 12px;
+  font-size: 10px;
+  color: var(--wb-ink3);
+  text-align: center;
+  line-height: 1;
+}
+.otree__arrow.is-leaf {
+  visibility: hidden;
+}
+.otree__icon {
+  flex: 0 0 16px;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.75;
+}
+.otree__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.otree__count {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--wb-bg);
+  font-size: 10px;
+  color: var(--wb-ink3);
+  line-height: 14px;
+}
+.otree__acts {
+  display: none;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+.otree__row:hover .otree__acts,
+.otree__row.is-sel .otree__acts {
+  display: flex;
+}
+.otree__act {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wb-ink3);
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 1;
+}
+.otree__act:hover {
+  background: #fff;
+  color: var(--wb-primary);
+}
+
+/* ---- designer/components/PageSettings.vue ---- */
+.settings {
+  padding: 14px;
+}
+.settings__section {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 18px 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--wb-ink3);
+}
+.settings__section:first-child {
+  margin-top: 0;
+}
+.settings__hint {
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #b6bdcb;
+}
+.settings__row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.settings__row label {
+  font-size: 12px;
+  color: var(--wb-ink2);
+}
+.settings__mono {
+  font-family: var(--wb-mono);
+  font-size: 11px;
+  color: var(--wb-ink3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.settings__code textarea {
+  font-family: var(--wb-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.settings__error {
+  margin: 4px 0 6px;
+  font-size: 11.5px;
+  color: var(--wb-danger);
+}
+.settings__tip {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--wb-ink3);
+  line-height: 1.7;
+}
+.settings__tip code {
+  font-family: var(--wb-mono);
+  background: #fafbfd;
+  border: 1px solid var(--wb-line-soft);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+/* ---- designer/components/PalettePanel.vue ---- */
+.palette {
+  display: flex;
+  flex-direction: column;
+  width: 196px;
+  background: #fff;
+  border-right: 1px solid var(--wb-line);
+}
+.palette__search {
+  padding: 10px;
+  border-bottom: 1px solid var(--wb-line-soft);
+}
+.palette__scroll {
+  flex: 1;
+  padding: 6px 8px 20px;
+}
+.palette__group {
+  margin-bottom: 8px;
+}
+.palette__title {
+  padding: 8px 6px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--wb-ink3);
+}
+.palette__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--wb-ink2);
+  cursor: grab;
+  user-select: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.palette__item:hover {
+  background: var(--wb-primary-soft);
+  border-color: #dfe4ff;
+  color: var(--wb-primary);
+}
+.palette__item:active {
+  cursor: grabbing;
+}
+/* 当前 UI 库没有实现的物料：看得见、拖不动、点不了 */
+.palette__item.is-disabled,
+.palette__item.is-disabled:hover {
+  background: transparent;
+  border-color: transparent;
+  color: var(--wb-ink3);
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.palette__icon {
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.7;
+}
+.palette__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 业务物料标记：与官方物料区分，避免「以为能跨库用」 */
+.palette__own {
+  margin-left: auto;
+  flex: none;
+  padding: 0 3px;
+  border: 1px solid var(--wb-line);
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--wb-ink3);
+}
+.palette__empty {
+  padding: 24px 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--wb-ink3);
+}
+.palette__foot {
+  padding: 8px 10px;
+  border-top: 1px solid var(--wb-line-soft);
+  font-size: 11px;
+  color: var(--wb-ink3);
+  line-height: 1.5;
+}
+
+/* ---- designer/components/PropsEditor.vue ---- */
+.props {
+  padding: 12px 14px 20px;
+}
+.props__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.props__chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wb-primary);
+  background: var(--wb-primary-soft);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.props__id {
+  font-family: var(--wb-mono);
+  font-size: 11px;
+  color: var(--wb-ink3);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.props__hint {
+  font-size: 12px;
+  color: var(--wb-ink3);
+  background: #fafbfd;
+  border: 1px solid var(--wb-line-soft);
+  border-radius: 6px;
+  padding: 7px 9px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+.props__row {
+  margin-bottom: 14px;
+}
+.props__group {
+  margin-bottom: 4px;
+}
+.props__group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 0;
+  border: none;
+  border-bottom: 1px solid var(--wb-line-soft);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--wb-ink3);
+  text-align: left;
+  cursor: pointer;
+}
+.props__group-head:hover {
+  color: var(--wb-text);
+}
+.props__group-arrow {
+  display: inline-block;
+  font-size: 9px;
+  transition: transform 0.12s ease;
+}
+.props__group-head.is-collapsed .props__group-arrow {
+  transform: rotate(-90deg);
+}
+.props__group-name {
+  flex: 1;
+}
+.props__group-count {
+  font-weight: 500;
+  color: var(--wb-ink3);
+  background: var(--wb-bg-soft, #f2f4f8);
+  border-radius: 8px;
+  padding: 0 6px;
+  line-height: 16px;
+}
+.props__group-body {
+  padding-top: 10px;
+}
+.props__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wb-ink2);
+}
+.props__dot {
+  color: var(--wb-warning);
+  font-size: 8px;
+}
+.props__bind {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--wb-primary);
+  border: 1px solid #dfe4ff;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.props__tip {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--wb-ink3);
+  line-height: 1.5;
+}
+.props__vars {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.props__vars-label {
+  font-size: 11px;
+  color: var(--wb-ink3);
+}
+.props__var {
+  border: 1px solid var(--wb-line);
+  background: #fff;
+  border-radius: 3px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-family: var(--wb-mono);
+  color: var(--wb-ink2);
+  cursor: pointer;
+}
+.props__var:hover {
+  border-color: var(--wb-primary);
+  color: var(--wb-primary);
+}
+.props__empty {
+  padding: 20px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--wb-ink3);
+}
+.columns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.columns__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 22px;
+  gap: 6px;
+  align-items: center;
+}
+.columns__del {
+  border: none;
+  background: transparent;
+  color: var(--wb-ink3);
+  font-size: 15px;
+  cursor: pointer;
+  line-height: 1;
+}
+.columns__del:hover {
+  color: var(--wb-danger);
+}
+
+/* 属性字段数由适配包决定（core 119 / EP 更多），行数不固定：
+   窄屏收敛留白，超长时面板自身可滚动，避免把画布挤出视口。 */
+@media (max-width: 1100px) {
+  .props {
+    padding: 10px 10px 16px;
+  }
+  .props__row {
+    margin-bottom: 10px;
+    padding: 6px 8px;
+  }
+}
+@media (max-width: 720px) {
+  .props {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .props__row {
+    margin-bottom: 8px;
+  }
+}
+
+/* ---- designer/components/RulesEditor.vue ---- */
+.rules {
+  padding: 12px 14px 20px;
+}
+.rules__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.rules__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wb-ink);
+}
+.rules__sub {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--wb-ink3);
+}
+.rules__hint {
+  padding: 7px 9px;
+  margin-bottom: 12px;
+  border: 1px solid var(--wb-line-soft);
+  border-radius: 6px;
+  background: #fafbfd;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--wb-ink3);
+}
+.rules__empty {
+  padding: 14px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--wb-ink3);
+}
+.rule {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--wb-line);
+  border-radius: 8px;
+  background: #fff;
+}
+.rule__top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.rule__type {
+  flex: 1;
+}
+.rule__del {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wb-ink3);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.rule__del:hover {
+  background: #fef0f0;
+  color: var(--wb-danger);
+}
+.rule__value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.rule__value-label {
+  flex: 0 0 52px;
+  font-size: 11.5px;
+  color: var(--wb-ink3);
+}
+.rule__regex {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.rule__regex-input {
+  flex: 1;
+}
+.rule__flags {
+  flex: 0 0 62px;
+}
+.rule__message {
+  margin-bottom: 6px;
+}
+.rule__error {
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--wb-danger);
+}
+.rule__preview {
+  font-size: 11px;
+  color: var(--wb-ink3);
+}
+.rules__add {
+  width: 100%;
+  margin-top: 4px;
+}
+.rules__tip {
+  margin-top: 12px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #a8b0c0;
+}
+
+/* ---- designer/components/SchemaViewer.vue ---- */
+.schema {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.schema__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--wb-line-soft);
+}
+.schema__title {
+  font-size: 11.5px;
+  color: var(--wb-ink3);
+}
+.spacer {
+  flex: 1;
+}
+.schema__code {
+  flex: 1;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  font-family: var(--wb-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: #334;
+  background: #fafbfd;
+  white-space: pre;
+}
+
+/* ---- designer/components/StyleEditor.vue ---- */
+.style {
+  padding: 14px;
+}
+.style__section {
+  margin: 16px 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--wb-ink3);
+}
+.style__section:first-child {
+  margin-top: 0;
+}
+.style__row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.style__row--block {
+  grid-template-columns: 64px 1fr;
+  align-items: start;
+}
+.style__row label {
+  font-size: 12px;
+  color: var(--wb-ink2);
+}
+.style__tip {
+  grid-column: 2;
+  font-size: 11px;
+  color: var(--wb-ink3);
+  line-height: 1.5;
+  margin-top: -4px;
+}
+.style__tip-line {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--wb-ink3);
+}
+.style__tip-line code {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--wb-bg);
+  font-family: var(--wb-mono);
+}
+.style__preview {
+  margin: 0;
+  padding: 10px;
+  background: #fafbfd;
+  border: 1px solid var(--wb-line-soft);
+  border-radius: 6px;
+  font-family: var(--wb-mono);
+  font-size: 11px;
+  color: #334;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ---------------- 间距编辑器 ---------------- */
+.box {
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--wb-line-soft);
+  border-radius: 8px;
+  background: #fcfcfe;
+}
+.box__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.box__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wb-ink2);
+}
+.box__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.box__modes {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--wb-line);
+  border-radius: 4px;
+}
+.box__mode {
+  padding: 2px 7px;
+  border: none;
+  border-right: 1px solid var(--wb-line-soft);
+  background: #fff;
+  color: var(--wb-ink3);
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.box__mode:last-child {
+  border-right: none;
+}
+.box__mode.is-on {
+  background: var(--wb-primary-soft);
+  color: var(--wb-primary);
+  font-weight: 600;
+}
+.box__mode:hover {
+  color: var(--wb-primary);
+}
+.box__clear {
+  padding: 2px 6px;
+  border: 1px solid var(--wb-line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--wb-ink3);
+  font-size: 11px;
+  cursor: pointer;
+  line-height: 16px;
+}
+.box__clear:hover {
+  border-color: var(--wb-primary);
+  color: var(--wb-primary);
+}
+.box__single {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.box__single::before {
+  content: "四边";
+  font-size: 11px;
+  color: var(--wb-ink3);
+}
+.box__pair {
+  display: grid;
+  gap: 6px;
+}
+.box__pair-row {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.box__pair-row > span {
+  font-size: 11px;
+  color: var(--wb-ink3);
+}
+.box__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.box__cell {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 4px;
+}
+.box__cell span {
+  font-size: 11px;
+  color: var(--wb-ink3);
+  text-align: center;
+}
+.box__presets {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+.box__preset-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.box__preset-row > span {
+  flex: 0 0 30px;
+  font-size: 11px;
+  color: var(--wb-ink3);
+}
+.box__preset {
+  flex: 1;
+  padding: 2px 0;
+  border: 1px solid var(--wb-line-soft);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--wb-ink3);
+  font-size: 11px;
+  cursor: pointer;
+}
+.box__preset:hover {
+  border-color: var(--wb-primary);
+  color: var(--wb-primary);
+}
+
+/* ---- renderer/SchemaNode.vue ---- */
+.ux-node {
+  display: contents;
+}
+
+.ux-node.is-hidden {
+  display: none;
+}
+
+.ux-node--design {
+  display: block;
+  position: relative;
+  outline: 1px dashed transparent;
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition: outline-color 0.12s ease;
+}
+
+.ux-node--design:hover {
+  outline-color: #b9c6ff;
+}
+
+.ux-node--design.is-hovered {
+  outline-color: #b9c6ff;
+}
+
+.ux-node--design.is-selected {
+  outline: 2px solid var(--wb-primary);
+}
+
+.ux-node__empty {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--wb-line);
+  border-radius: 6px;
+  background: repeating-linear-gradient(-45deg, transparent 0 8px, rgba(47, 75, 255, 0.03) 8px 16px);
+  font-size: 12px;
+  color: var(--wb-ink3);
+  pointer-events: none;
+}
+
+.ux-node__tag {
+  position: absolute;
+  top: -18px;
+  left: -2px;
+  z-index: 6;
+  display: none;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--wb-primary);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ux-node--design.is-selected > .ux-node__tag,
+.ux-node--design:hover > .ux-node__tag {
+  display: block;
+}
+
+.ux-drop {
+  position: absolute;
+  z-index: 7;
+  background: var(--wb-primary);
+  pointer-events: none;
+}
+
+.ux-drop--before {
+  left: 0;
+  right: 0;
+  top: -2px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.ux-drop--after {
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.ux-drop--inside {
+  inset: 0;
+  background: rgba(47, 75, 255, 0.08);
+  border: 1px dashed var(--wb-primary);
+  border-radius: 4px;
+}
+
+.ux-node__unknown {
+  padding: 12px 14px;
+  border: 1px dashed var(--wb-danger);
+  border-radius: 6px;
+  background: #fff5f5;
+}
+
+.ux-node__unknown-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--wb-danger);
+}
+
+.ux-node__unknown-tip {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--wb-ink3);
+}
+
+/* ---- React 侧补充 ---- */
+.designer .wbd-input, .designer .wbd-select, .designer .wbd-number { box-sizing: border-box; }
+.designer textarea.wbd-input { resize: vertical; font-family: var(--wb-mono); }
+.designer .wbd-color { display: inline-flex; align-items: center; gap: 6px; }
+.designer .wbd-color input[type="color"] { width: 30px; height: 26px; padding: 0; border: 1px solid var(--wb-line); border-radius: 4px; background: #fff; }

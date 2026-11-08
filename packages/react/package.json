@@ -2,7 +2,7 @@
   "name": "@x-ac/design-react",
   "version": "0.4.0",
   "type": "module",
-  "description": "React 适配层：用同一份 PageSchema 渲染页面，内置校验与数据导出，并提供 react-* 扩展仓组件作者 SDK（/kit）",
+  "description": "React 适配层：Schema 渲染器 + 可视化设计器 + react-* 扩展仓组件作者 SDK（/kit）",
   "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -17,6 +17,11 @@
       "types": "./dist/kit.d.ts",
       "import": "./dist/kit.js",
       "default": "./dist/kit.js"
+    },
+    "./designer": {
+      "types": "./dist/designer.d.ts",
+      "import": "./dist/designer.js",
+      "default": "./dist/designer.js"
     },
     "./style.css": "./dist/style.css",
     "./package.json": "./package.json"

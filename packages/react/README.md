@@ -139,7 +139,9 @@ export const antAdapter = defineReactAdapter({
 
 `/kit` 是纯 TS 子入口，不加载 `styles.css` 与渲染器 Context；框架无关的协议与工具统一在 `@x-ac/design-core`。`nativeAdapter` 本身也由 `defineReactAdapter` 组装，可作为扩展仓的基座。
 
-**两个可选协议字段由渲染器真实消费**：`provider` 作为外层上下文包装（主题 / 语言 / 消息），配置后包住整棵渲染树，未配置时不产生额外 DOM；`propAliases` 把 Schema 通用属性名映射成 UI 库真实属性名（如 `{ maxlength: "maxLength" }`），只作用于透传给组件的普通属性，不碰绑定通道与事件名。
+**四个可选协议字段由渲染器 / 设计器真实消费**：`provider` 作为外层上下文包装（主题 / 语言 / 消息），配置后包住整棵渲染树，未配置时不产生额外 DOM；`propAliases` 把 Schema 通用属性名映射成 UI 库真实属性名（如 `{ maxlength: "maxLength" }`），只作用于透传给组件的普通属性，不碰绑定通道与事件名；`designer` 的 7 个控件槽位（`Button` / `Input` / `NumberInput` / `Select` / `Switch` / `Segmented` / `ColorInput`）与 `notify` 决定设计器自身的观感；`editors` 按 `PropFieldType` 覆盖属性面板的字段编辑器。
+
+设计器控件的 React 契约统一是 `value` + `onChange(value)`（Vue 侧是 `modelValue` + `update:modelValue`）；自定义编辑器额外收到 `field: PropField`。未提供的槽位一律回落原生实现，扩展仓可以只替换自己关心的那几个。
 
 ## 节点事件回调
 
@@ -183,6 +185,34 @@ function onEvent(p: UiEventPayload): void | false {
 
 ref API：`validate()` / `getData()` / `exportData()` / `getErrors()` / `reset()` / `setData()` / `reload()` / `scope`。
 
+## 可视化设计器
+
+`/designer` 是独立子入口，主入口 `index.js` 不会因此变重（约 1.3 kB，设计器约 55 kB / gzip 14.7 kB）：
+
+```tsx
+import { SchemaDesigner } from "@x-ac/design-react/designer";
+import type { SchemaDesignerHandle } from "@x-ac/design-react/designer";
+import { createMemoryRepository } from "@x-ac/design-core";
+
+const repo = createMemoryRepository([page]);
+
+<SchemaDesigner
+  pageId={page.id}
+  repository={repo}
+  onSaved={(id) => console.info("saved", id)}
+  onExportSchema={(payload) => archive(payload)}
+  ref={designerRef}
+/>;
+```
+
+- **props**：`pageId`、`repository`（不传用全局 `setPageRepository`）、`previewUrl`、`navigate`、`onBack` / `onPreview` / `onSaved` / `onExportSchema`。
+- **ref API**：`exportSchema()` / `exportHtml()` / `importSchema(json)` / `save()`。导入会走 `migratePage` → `validatePage(knownComponents)` → 可撤销替换。
+- **四栏**：物料面板（搜索 / 分类 / 置灰未实现物料 / 点击或拖拽添加）、组件树（展开 / 悬停 / 拖拽调层级 / 行内复制删除）、画布（设备宽度 / 选中 / 拖拽落点）、检查器（属性 / 样式 / 校验 / 事件 / Schema，未选中时为页面设置）。
+- **顶栏**：撤销重做、脏标记、节点数、导入导出 JSON / HTML、预览、保存；快捷键 `Ctrl+Z/Y/S/D/C/V`、`Delete`、`Esc`，关闭前脏检查。
+- **状态机**：`@x-ac/design-core` 的 `DesignerStore`，Vue 的 `/designer` 与这里共用同一份实现（撤销栈、拖拽落点、属性编辑、导入导出、仓储），差别只在订阅方式（pinia vs `useSyncExternalStore`）。设计态画布通过 `RendererDesignerScene` 注入，运行时 `design=false` 不产生任何额外 DOM。
+
+`apps/react-demo` 里有可运行的切换示例（「运行预览 / 打开设计器」），仓储用 localStorage。
+
 ## 与 Vue 版差异
 
 | 项 | Vue | React |
@@ -194,8 +224,12 @@ ref API：`validate()` / `getData()` / `exportData()` / `getErrors()` / `reset()
 | 未注入时 | 降级为未知组件占位 | 回落内置 `nativeAdapter`（原生元素） |
 | 双向绑定 | `modelValue` + `@update:modelValue` | `value` + `onChange` |
 | 响应式 | `reactive(scope)` 自动重渲染 | 手动 `flush()`（core 的 `setByPath` 只改对象） |
-| 失焦校验 | 外层 `focusout` 冒泡，不依赖 UI 库派发 blur | 组件 `onBlur`，依赖控件转发该事件 |
-| 设计器 | 有，支持 `DesignerKit` 换肤 | 暂无；`UiAdapter.designer / editors` 在 React 侧尚未消费（`provider` / `propAliases` 已消费） |
+| 失焦校验 | 外层 `focusout` 冒泡，不依赖 UI 库派发 blur | 字段外壳 `onBlur`（React 由 focusout 模拟），同样不依赖控件转发 |
+| 设计器 | `@x-ac/design-vue/designer`：`SchemaDesigner` + pinia store | `@x-ac/design-react/designer`：`SchemaDesigner` + `useSyncExternalStore`，共用 core `DesignerStore` |
+| 设计器控件契约 | `modelValue` + `update:modelValue` | `value` + `onChange(value)` |
+| 设计器样式 | `ui.css` + 组件 scoped 样式 | `designer.css`（由 Vue 样式同步生成，同一套 `--wb-*` 令牌） |
+
+功能层面已无差异；剩下的都是框架惯例（事件命名、状态订阅）与实现载体。
 
 ## License
 
