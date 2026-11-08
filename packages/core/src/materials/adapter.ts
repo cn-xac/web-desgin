@@ -8,6 +8,7 @@
  * 组件引用一律用泛型占位，由 Vue / React 引擎各自收窄类型。
  */
 import type { ActionAdapter } from "../actions/registry";
+import type { UiEventHook } from "../actions/event";
 import { materialKey } from "./keys";
 import type { Material, PropFieldType } from "./types";
 
@@ -57,6 +58,11 @@ export interface UiAdapter<TComponent = unknown> {
   propAliases?: Record<string, string>;
   /** 消息 / 确认框等副作用 */
   actions?: ActionAdapter;
+  /**
+   * 事件归一化钩子：扩展包可在这里把自家 UI 库的事件参数改写成统一形状，
+   * 或拦截某些事件。执行顺序在宿主 onEvent 之前；返回 false 阻断预设动作。
+   */
+  onEvent?: UiEventHook;
 }
 
 export const DEFAULT_BINDING: BindingChannel = {
@@ -123,6 +129,7 @@ export interface AdapterOptions<TComponent = unknown> {
   editors?: Partial<Record<PropFieldType, TComponent>>;
   provider?: TComponent;
   propAliases?: Record<string, string>;
+  onEvent?: UiEventHook;
 }
 
 /**
@@ -143,6 +150,7 @@ export function defineAdapter<TComponent = unknown>(options: AdapterOptions<TCom
   if (options.editors) adapter.editors = options.editors;
   if (options.provider !== undefined) adapter.provider = options.provider;
   if (options.propAliases) adapter.propAliases = options.propAliases;
+  if (options.onEvent) adapter.onEvent = options.onEvent;
   return adapter;
 }
 

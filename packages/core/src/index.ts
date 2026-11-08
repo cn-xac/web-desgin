@@ -13,6 +13,7 @@ export * from "./schema/tree";
 export * from "./schema/validator";
 export * from "./schema/serialize";
 export * from "./schema/migrate";
+export * from "./schema/datasource";
 
 export * from "./validation/rules";
 export * from "./validation/engine";
@@ -34,6 +35,7 @@ export * from "./style/spacing";
 export * from "./style/style";
 
 export * from "./actions/registry";
+export * from "./actions/event";
 
 export * from "./export/html";
 export * from "./export/data";

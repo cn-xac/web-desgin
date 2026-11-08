@@ -9,6 +9,7 @@
 import type { ActionSchema, PageSchema } from "../schema/types";
 import { getByPath, resolveValue, setByPath } from "../schema/expression";
 import { validateData } from "../validation/engine";
+import { eventScope, type UiEventPayload } from "./event";
 
 export type ActionNotifyType = "success" | "warning" | "error" | "info";
 
@@ -31,9 +32,29 @@ export interface ActionContext {
    * core 自身不关心消费方式。
    */
   onFormSubmit?: (payload: Record<string, unknown>, action: ActionSchema) => void;
+  /**
+   * 触发本次动作的节点事件（若由事件触发）。
+   * 引擎在派发事件时注入，动作参数表达式可通过 $event / $args / $value 读取原始参数。
+   */
+  event?: UiEventPayload;
 }
 
-type Handler = (args: Record<string, unknown>, ctx: ActionContext) => void | Promise<void>;
+/** 动作处理器拿到的运行时上下文：多一个能识别事件参数的 resolve */
+interface RuntimeContext extends ActionContext {
+  resolve: (value: unknown) => unknown;
+}
+
+type Handler = (args: Record<string, unknown>, ctx: RuntimeContext) => void | Promise<void>;
+
+/**
+ * 构造运行时上下文。
+ * 注意：只扩展「读取」作用域，ctx.scope 仍是页面真实状态对象，
+ * setState / submitForm 的写操作不会落到临时对象上。
+ */
+function toRuntimeContext(ctx: ActionContext): RuntimeContext {
+  const scope = eventScope(ctx.scope, ctx.event);
+  return { ...ctx, resolve: (value: unknown) => resolveValue(value, scope) };
+}
 
 /** 无 UI 环境（SSR / 单测 / 静态导出）下的兜底：只把结果打到控制台 */
 export function createNoopAdapter(): ActionAdapter {
@@ -80,16 +101,16 @@ function nowText(): string {
 export const ACTION_REGISTRY: Record<string, Handler> = {
   /** 轻提示：{ text, type } */
   toast: (args, ctx) => {
-    const text = String(resolveValue(args.text, ctx.scope) ?? "操作成功");
+    const text = String(ctx.resolve(args.text) ?? "操作成功");
     const type = (args.type as ActionNotifyType) ?? "success";
     ctx.adapter.notify(text, type);
   },
 
   /** 写状态：{ path, value } */
   setState: (args, ctx) => {
-    const path = String(resolveValue(args.path, ctx.scope) ?? "");
+    const path = String(ctx.resolve(args.path) ?? "");
     if (!path) return;
-    setByPath(ctx.scope, path, resolveValue(args.value, ctx.scope));
+    setByPath(ctx.scope, path, ctx.resolve(args.value));
   },
 
   /** 还原页面状态初值 */
@@ -101,7 +122,7 @@ export const ACTION_REGISTRY: Record<string, Handler> = {
 
   /** 重置某个表单对象：{ path } */
   resetForm: (args, ctx) => {
-    const path = String(resolveValue(args.path ?? "form", ctx.scope) ?? "form");
+    const path = String(ctx.resolve(args.path ?? "form") ?? "form");
     const target = getByPath(ctx.scope, path);
     if (isRecord(target)) resetObject(target);
     Object.keys(ctx.errors).forEach((key) => delete ctx.errors[key]);
@@ -145,25 +166,25 @@ export const ACTION_REGISTRY: Record<string, Handler> = {
     Object.keys(ctx.errors).forEach((key) => delete ctx.errors[key]);
     // 提交成功才通知宿主：校验失败、找不到数据源都不会触发
     ctx.onFormSubmit?.({ ...row }, { action: "submitForm", args });
-    ctx.adapter.notify(String(resolveValue(args.successText, ctx.scope) ?? "提交成功"), "success");
+    ctx.adapter.notify(String(ctx.resolve(args.successText) ?? "提交成功"), "success");
   },
 
   /** 清空数组：{ path } */
   clearList: (args, ctx) => {
-    const path = String(resolveValue(args.path ?? "list", ctx.scope) ?? "list");
+    const path = String(ctx.resolve(args.path ?? "list") ?? "list");
     setByPath(ctx.scope, path, []);
     ctx.adapter.notify("已清空", "info");
   },
 
   /** 跳转：{ to } */
   navigate: (args, ctx) => {
-    const to = String(resolveValue(args.to, ctx.scope) ?? "");
+    const to = String(ctx.resolve(args.to) ?? "");
     if (to) ctx.navigate(to);
   },
 
   /** 二次确认：{ text, then: ActionSchema[] } */
   confirm: async (args, ctx) => {
-    const text = String(resolveValue(args.text, ctx.scope) ?? "确认执行该操作？");
+    const text = String(ctx.resolve(args.text) ?? "确认执行该操作？");
     const ok = await ctx.adapter.confirm(text, "请确认");
     if (!ok) return;
     const then = args.then;
@@ -197,7 +218,7 @@ export function runAction(action: ActionSchema, ctx: ActionContext): void {
     return;
   }
   try {
-    const result = handler(action.args ?? {}, ctx);
+    const result = handler(action.args ?? {}, toRuntimeContext(ctx));
     if (result instanceof Promise) {
       result.catch((error: unknown) => {
         console.warn(`[vue-design][action] ${action.action} 执行失败`, error);
@@ -213,7 +234,7 @@ export async function runActions(actions: ActionSchema[], ctx: ActionContext): P
     const handler = ACTION_REGISTRY[action.action];
     if (!handler) continue;
     try {
-      await handler(action.args ?? {}, ctx);
+      await handler(action.args ?? {}, toRuntimeContext(ctx));
     } catch (error) {
       console.warn(`[vue-design][action] ${action.action} 执行失败`, error);
     }
