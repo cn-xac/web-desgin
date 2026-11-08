@@ -28,6 +28,7 @@ export default defineConfig({
       { find: "@x-ac/design-core", replacement: r("./packages/core/src/index.ts") },
       // 顺序敏感：子路径必须先于包别名
       { find: "@x-ac/design-react/kit", replacement: r("./packages/react/src/kit.ts") },
+      { find: "@x-ac/design-react/designer", replacement: r("./packages/react/src/designer.ts") },
       { find: "@x-ac/design-react", replacement: r("./packages/react/src/index.ts") },
       // 扩展仓基于适配层 SDK 子入口；必须在 @x-ac/design-vue 之前匹配
       { find: "@x-ac/design-vue/kit", replacement: r("./packages/vue/src/kit.ts") },

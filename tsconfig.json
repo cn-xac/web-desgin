@@ -5,6 +5,7 @@
     "paths": {
       "@x-ac/design-core": ["packages/core/src/index.ts"],
       "@x-ac/design-react/kit": ["packages/react/src/kit.ts"],
+      "@x-ac/design-react/designer": ["packages/react/src/designer.ts"],
       "@x-ac/design-vue/kit": ["packages/vue/src/kit.ts"],
       "@x-ac/design-vue": ["packages/vue/src/index.ts"],
       "@x-ac/design-vue-element-plus": ["../design-vue-element-plus/src/index.ts"],
