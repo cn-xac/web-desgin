@@ -139,6 +139,8 @@ export const antAdapter = defineReactAdapter({
 
 `/kit` 是纯 TS 子入口，不加载 `styles.css` 与渲染器 Context；框架无关的协议与工具统一在 `@x-ac/design-core`。`nativeAdapter` 本身也由 `defineReactAdapter` 组装，可作为扩展仓的基座。
 
+**两个可选协议字段由渲染器真实消费**：`provider` 作为外层上下文包装（主题 / 语言 / 消息），配置后包住整棵渲染树，未配置时不产生额外 DOM；`propAliases` 把 Schema 通用属性名映射成 UI 库真实属性名（如 `{ maxlength: "maxLength" }`），只作用于透传给组件的普通属性，不碰绑定通道与事件名。
+
 ## 节点事件回调
 
 每个节点事件触发时，组件派发的原始参数会被包装成 `UiEventPayload`，**形状与 Vue 侧完全一致**，跨框架写业务钩子不用改代码。三个入口按需选：
@@ -193,7 +195,7 @@ ref API：`validate()` / `getData()` / `exportData()` / `getErrors()` / `reset()
 | 双向绑定 | `modelValue` + `@update:modelValue` | `value` + `onChange` |
 | 响应式 | `reactive(scope)` 自动重渲染 | 手动 `flush()`（core 的 `setByPath` 只改对象） |
 | 失焦校验 | 外层 `focusout` 冒泡，不依赖 UI 库派发 blur | 组件 `onBlur`，依赖控件转发该事件 |
-| 设计器 | 有，支持 `DesignerKit` 换肤 | 暂无；`UiAdapter.designer / editors / provider / propAliases` 在 React 侧尚未消费 |
+| 设计器 | 有，支持 `DesignerKit` 换肤 | 暂无；`UiAdapter.designer / editors` 在 React 侧尚未消费（`provider` / `propAliases` 已消费） |
 
 ## License
 

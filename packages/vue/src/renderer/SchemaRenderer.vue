@@ -14,7 +14,8 @@
  * 生产环境的 /preview 只加载这一个组件树，不引入设计器。
  * SchemaPage 是本组件的语义化别名，二者完全等同。
  */
-import { computed, inject, markRaw, provide, reactive, ref, toRaw, useAttrs, watch } from "vue";
+import { Fragment, computed, defineComponent, h, inject, markRaw, provide, reactive, ref, toRaw, useAttrs, watch } from "vue";
+import type { Component } from "vue";
 import type {
   DataExportOptions,
   DataExportResult,
@@ -81,6 +82,25 @@ const activeAdapter = computed(() => {
   return adapter ? (markRaw(toRaw(adapter)) as UiAdapter<unknown>) : null;
 });
 provide(UI_ADAPTER, activeAdapter.value);
+
+/**
+ * 适配包的外层 Provider（主题 / 语言 / 消息上下文，如 NConfigProvider、
+ * a-config-provider、ElConfigProvider）。引擎只认 UiAdapter.provider 这一个契约。
+ *
+ * 未配置时用 Fragment 承载子节点，不产生额外 DOM：根节点仍是原来的
+ * div.wb-renderer，布局、maxWidth 与宿主样式选择器都不受影响。
+ */
+const ProviderRoot = defineComponent({
+  name: "ProviderRoot",
+  setup(_props, { slots }) {
+    return () => {
+      const children = slots.default?.();
+      const provider = activeAdapter.value?.provider as Component | undefined;
+      // renderless Provider（如 Naive 的 NConfigProvider）不吃 props，只吃 default 插槽
+      return provider ? h(provider, null, { default: () => children }) : h(Fragment, null, children);
+    };
+  },
+});
 
 if (!activeAdapter.value) {
   console.warn("[vue-design] 未注入 UI 适配包：所有物料将降级为未知组件占位（不白屏）");
@@ -214,34 +234,36 @@ const deviceWidth = computed(() => {
 </script>
 
 <template>
-  <div class="wb-renderer" :class="[`wb-renderer--${mode}`, { 'is-loading': loading }]" :style="{ maxWidth: `${deviceWidth}px` }">
-    <div v-if="parseError" class="wb-renderer__alert">{{ parseError }}</div>
-    <div v-else-if="dataError" class="wb-renderer__alert">{{ dataError }}</div>
+  <ProviderRoot>
+    <div class="wb-renderer" :class="[`wb-renderer--${mode}`, { 'is-loading': loading }]" :style="{ maxWidth: `${deviceWidth}px` }">
+      <div v-if="parseError" class="wb-renderer__alert">{{ parseError }}</div>
+      <div v-else-if="dataError" class="wb-renderer__alert">{{ dataError }}</div>
 
-    <template v-if="pageRef.children.length">
-      <SchemaNode
-        v-for="node in pageRef.children"
-        :key="node.id"
-        :node="node"
-        :scope="scope"
-        :mode="mode"
-        :design="design"
-      />
-    </template>
+      <template v-if="pageRef.children.length">
+        <SchemaNode
+          v-for="node in pageRef.children"
+          :key="node.id"
+          :node="node"
+          :scope="scope"
+          :mode="mode"
+          :design="design"
+        />
+      </template>
 
-    <div v-else class="wb-renderer__empty">
-      <slot name="empty">
-        <template v-if="design">
-          <div class="wb-renderer__empty-title">画布还是空的</div>
-          <div class="wb-renderer__empty-tip">从左侧拖入组件，或点击组件直接添加</div>
-        </template>
-        <template v-else>
-          <div class="wb-renderer__empty-title">页面暂无内容</div>
-          <div class="wb-renderer__empty-tip">该页面的 Schema 中没有可渲染节点</div>
-        </template>
-      </slot>
+      <div v-else class="wb-renderer__empty">
+        <slot name="empty">
+          <template v-if="design">
+            <div class="wb-renderer__empty-title">画布还是空的</div>
+            <div class="wb-renderer__empty-tip">从左侧拖入组件，或点击组件直接添加</div>
+          </template>
+          <template v-else>
+            <div class="wb-renderer__empty-title">页面暂无内容</div>
+            <div class="wb-renderer__empty-tip">该页面的 Schema 中没有可渲染节点</div>
+          </template>
+        </slot>
+      </div>
     </div>
-  </div>
+  </ProviderRoot>
 </template>
 
 <style scoped>

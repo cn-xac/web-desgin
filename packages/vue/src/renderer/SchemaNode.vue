@@ -77,13 +77,16 @@ const bindProps = computed<Record<string, unknown>>(() => {
   const out: Record<string, unknown> = {};
   const materialMeta = material.value;
   const raw = effective.value;
+  // 属性别名只作用于「要透传给组件的普通属性」：面板字段、绑定通道、事件名都不映射
+  const aliases = adapter?.propAliases;
 
   for (const [key, value] of Object.entries(raw)) {
     // 面板/外壳专用字段，以及正文来自 textProp 的字段，都不透传给组件
     if (["label", "required", "tip", "block", "radius", "modelValue"].includes(key)) continue;
     if (materialMeta?.textProp === key) continue;
     if (materialMeta?.internalProps?.includes(key)) continue;
-    out[key] = isBindable(key) ? resolveValue(value, props.scope) : value;
+    // 表达式能力按 Schema 里的通用名判断，映射只改最终传给组件的属性名
+    out[aliases?.[key] ?? key] = isBindable(key) ? resolveValue(value, props.scope) : value;
   }
 
   // 双向绑定：通道名由适配包决定（Element Plus 是 modelValue，antd / Naive 是 value）
@@ -423,14 +426,14 @@ function selectSelf(): void {
 }
 .wb-node__unknown {
   padding: 12px 14px;
-  border: 1px dashed var(--el-color-danger);
+  border: 1px dashed var(--wb-danger);
   border-radius: 6px;
   background: #fff5f5;
 }
 .wb-node__unknown-title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--el-color-danger);
+  color: var(--wb-danger);
 }
 .wb-node__unknown-tip {
   margin-top: 2px;

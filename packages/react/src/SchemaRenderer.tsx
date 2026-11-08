@@ -1,5 +1,5 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
-import type { CSSProperties } from "react";
+import { createElement, forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import type { CSSProperties, ElementType } from "react";
 import type {
   ActionAdapter,
   DataExportOptions,
@@ -227,18 +227,25 @@ export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererPro
 
   const rootClass = className ? `ux-page ${className}` : "ux-page";
   const alert = parseError || store.dataError;
+  const content = (
+    <div
+      className={store.loading ? `${rootClass} is-loading` : rootClass}
+      style={{ maxWidth: deviceMaxWidth(schema), ...style }}
+    >
+      {alert ? <div className="ux-renderer__alert">{alert}</div> : null}
+      {schema.children.map((node) => (
+        <SchemaNode key={node.id} node={node} />
+      ))}
+    </div>
+  );
+
+  // 适配包的外层 Provider（主题 / 语言 / 消息上下文）。未配置时直接渲染 content，
+  // 不产生额外 DOM，根节点结构与样式选择器保持不变。
+  const provider = activeUi.provider as ElementType | undefined;
 
   return (
     <RenderContext.Provider value={ctx}>
-      <div
-        className={store.loading ? `${rootClass} is-loading` : rootClass}
-        style={{ maxWidth: deviceMaxWidth(schema), ...style }}
-      >
-        {alert ? <div className="ux-renderer__alert">{alert}</div> : null}
-        {schema.children.map((node) => (
-          <SchemaNode key={node.id} node={node} />
-        ))}
-      </div>
+      {provider ? createElement(provider, null, content) : content}
     </RenderContext.Provider>
   );
 });

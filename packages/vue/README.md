@@ -148,6 +148,15 @@ export const myAdapter = defineVueAdapter({
 
 **约束**：自定义物料必须接收并应用 `style`，否则通用 margin / padding 会失效。
 
+**两个可选协议字段由渲染器真实消费**：
+
+| 字段 | 作用 | 未配置时 |
+|---|---|---|
+| `provider` | 主题 / 语言 / 消息上下文的外层包装（`NConfigProvider`、`a-config-provider`、`ElConfigProvider`）。渲染器用 `<component :is>` 包住整棵树 | 用 `Fragment` 承载，不产生额外 DOM，根节点仍是 `div.wb-renderer` |
+| `propAliases` | Schema 通用属性名 → UI 库真实属性名，如 `{ maxlength: "maxLength" }`。只映射透传给组件的普通属性，不碰面板字段、绑定通道与事件名 | 原名透传 |
+
+两者都不要求扩展仓实现额外接口；引擎只认 `UiAdapter` 契约，换库时不用改渲染器。
+
 ## 主题
 
 ```ts

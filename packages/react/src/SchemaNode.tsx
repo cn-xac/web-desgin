@@ -82,13 +82,15 @@ function NodeBody({ node }: { node: NodeSchema }) {
   /* 组件实现同样来自适配包：业务物料用 registerMaterials() 注册后就能命中 */
   const Component = ctx.ui.components[materialKey(node.component)] ?? null;
 
-  /* 属性绑定：剔除面板专用字段与表达式求值 */
+  /* 属性绑定：剔除面板专用字段、按适配包别名改名、表达式求值 */
   const bound: Record<string, unknown> = {};
+  const aliases = ctx.ui.propAliases;
   for (const [key, value] of Object.entries(effective)) {
     if (SKIP_PROPS.has(key)) continue;
     if (material.textProp === key) continue;
     if (material.internalProps?.includes(key)) continue;
-    bound[key] = isBindable(key) ? resolveValue(value, ctx.scope) : value;
+    // 别名只改最终传给组件的属性名；绑定通道与事件名由 channel / handlers 单独决定
+    bound[aliases?.[key] ?? key] = isBindable(key) ? resolveValue(value, ctx.scope) : value;
   }
 
   /**
