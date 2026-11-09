@@ -1,4 +1,4 @@
-import { Fragment, createElement } from "react";
+import { Fragment, createElement, useContext } from "react";
 import type { DragEvent, FocusEvent, ReactNode } from "react";
 import type { DropPosition } from "@x-ac/design-core";
 import {
@@ -19,8 +19,9 @@ import {
 } from "@x-ac/design-core";
 import type { NodeSchema } from "@x-ac/design-core";
 import type { CSSProperties } from "react";
-import { RenderContext, useRenderContext } from "./context";
+import { RenderContext, BINDING_BASE, useRenderContext } from "./context";
 import type { RenderContextValue } from "./context";
+import { SchemaSubForm } from "./SchemaSubForm";
 
 const SKIP_PROPS = new Set(["label", "required", "tip", "block", "radius", "modelValue"]);
 
@@ -139,6 +140,8 @@ function FieldShell({
 
 function NodeBody({ node }: { node: NodeSchema }) {
   const ctx = useRenderContext();
+  // 绑定前缀：默认 form；子表单内由上层 SchemaSubForm 注入当前组路径，实现无限嵌套
+  const bindingBase = useContext(BINDING_BASE);
   // 物料元数据来自当前适配包（含业务物料），不是 core 的全局清单
   const material = ctx.catalog.get(node.component);
   const effective = ctx.catalog.defaults(node.component, node.props);
@@ -164,6 +167,11 @@ function NodeBody({ node }: { node: NodeSchema }) {
         ))}
       </div>
     );
+  }
+
+  /* 子表单（明细数组容器）：引擎按 kind 结构渲染，无需 UI 库组件实现 */
+  if (material.kind === "subform") {
+    return <SchemaSubForm node={node} />;
   }
 
   /* 组件实现同样来自适配包：业务物料用 registerMaterials() 注册后就能命中 */
@@ -221,7 +229,10 @@ function NodeBody({ node }: { node: NodeSchema }) {
 
   /* 双向绑定：通道名由适配包决定（React 缺省 value/onChange） */
   const channel = ctx.ui.binding ?? DEFAULT_BINDING;
-  const path = extractPath(effective.modelValue);
+  const explicitPath = extractPath(effective.modelValue);
+  // 显式绑定优先；表单控件未设置 modelValue 时，按「绑定前缀.组件ID」自动推导，
+  // 实现「按组件ID自动绑定」。前缀默认 form，子表单内为当前组路径（支持无限嵌套）。
+  const path = explicitPath ?? (material.isFormControl ? `${bindingBase}.${node.id}` : null);
   if (path) bound[channel.prop] = getByPath(ctx.scope, path);
   else if (effective.modelValue !== undefined) bound[channel.prop] = resolveValue(effective.modelValue, ctx.scope);
 

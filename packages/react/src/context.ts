@@ -59,6 +59,13 @@ export interface RenderContextValue {
 
 export const RenderContext = createContext<RenderContextValue | null>(null);
 
+/**
+ * 绑定前缀：表单控件未显式设置 modelValue 时，按「前缀.组件ID」自动推导绑定路径。
+ * 顶层默认 "form"；子表单会按当前组路径注入更具体的前缀（如 form.items[0]），
+ * 从而让组内字段自动落到 form.items[i].<id>，天然支持子表单无限嵌套。
+ */
+export const BINDING_BASE = createContext<string>("form");
+
 export function useRenderContext(): RenderContextValue {
   const ctx = useContext(RenderContext);
   if (!ctx) throw new Error("[vue-design/react] SchemaNode 必须放在 SchemaRenderer 内部使用");

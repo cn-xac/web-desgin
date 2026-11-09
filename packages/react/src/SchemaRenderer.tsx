@@ -22,7 +22,7 @@ import {
   validateNodeField,
 } from "@x-ac/design-core";
 import { SchemaNode } from "./SchemaNode";
-import { RenderContext } from "./context";
+import { RenderContext, BINDING_BASE } from "./context";
 import type { RenderContextValue, RenderMode, RendererDesignerScene } from "./context";
 import { defaultAdapter } from "./actions";
 import { nativeAdapter, type ReactMaterial } from "./adapter";
@@ -254,7 +254,9 @@ export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererPro
 
   return (
     <RenderContext.Provider value={ctx}>
-      {provider ? createElement(provider, null, content) : content}
+      <BINDING_BASE.Provider value="form">
+        {provider ? createElement(provider, null, content) : content}
+      </BINDING_BASE.Provider>
     </RenderContext.Provider>
   );
 });
