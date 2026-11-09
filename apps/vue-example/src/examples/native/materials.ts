@@ -47,6 +47,8 @@ export const demoAdapter = registerMaterials(nativeAdapter, [
     category: "表单",
     kind: "field",
     icon: "T",
+    // 标记为表单控件：参与必填校验，且未写 modelValue 时按「前缀.组件ID」自动绑定
+    isFormControl: true,
     impl: NativeInput,
     props: { modelValue: "", placeholder: "请输入" },
     fields: [{ key: "placeholder", label: "占位符", type: "text" }],

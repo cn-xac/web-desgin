@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NativeExample from "./examples/native/NativeExample.vue";
+import SubformExample from "./examples/native/SubformExample.vue";
 </script>
 
 <template>
@@ -14,8 +15,10 @@ import NativeExample from "./examples/native/NativeExample.vue";
 
     <NativeExample />
 
+    <SubformExample />
+
     <footer class="page__foot">
-      <p>另见 <a href="/react/">React 版示例（@x-ac/design-react）</a>。</p>
+      <p>另见 <a href="./react/">React 版示例（@x-ac/design-react）</a>。</p>
     </footer>
   </main>
 </template>
