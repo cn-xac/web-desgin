@@ -62,3 +62,10 @@ export function materialFrom(adapter: UiAdapter<unknown> | null, key: string): M
   if (!adapter?.materials?.length) return undefined;
   return adapter.materials.find((item) => item.component === key);
 }
+
+/**
+ * 绑定前缀：表单控件未显式设置 modelValue 时，按「前缀.组件ID」自动推导绑定路径。
+ * 顶层默认 "form"；子表单会按当前组路径注入更具体的前缀（如 form.items[0]），
+ * 从而让组内字段自动落到 form.items[i].<id>，天然支持无限嵌套。
+ */
+export const BINDING_BASE: InjectionKey<string> = Symbol("wb-binding-base");

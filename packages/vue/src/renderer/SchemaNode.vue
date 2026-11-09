@@ -8,8 +8,9 @@ import type { CSSProperties, Component } from "vue";
 import type { NodeSchema } from "@x-ac/design-core";
 import { DEFAULT_BINDING, camelizeEventName, createEventPayload, materialKey, runEventHooks } from "@x-ac/design-core";
 import FieldShell from "./FieldShell.vue";
+import SchemaSubForm from "./SchemaSubForm.vue";
 import { extractPath, getByPath, isBindable, isRequired, resolveBoolean, resolveNodeStyle, resolveValue, setByPath } from "@x-ac/design-core";
-import { DESIGNER_SCENE, RENDER_CONTEXT, useUiAdapter } from "./context";
+import { BINDING_BASE, DESIGNER_SCENE, RENDER_CONTEXT, useUiAdapter } from "./context";
 import { useMaterialCatalog } from "../materials/catalog";
 import { runNodeActions } from "./runActions";
 
@@ -29,9 +30,12 @@ const renderCtx = inject(RENDER_CONTEXT, null);
 /** 当前 UI 适配包：组件实现、双向绑定通道、动作副作用都从这里取 */
 const adapter = useUiAdapter();
 const catalog = useMaterialCatalog();
+/** 绑定前缀：默认 form；子表单内由上层 BindingScope 注入当前组路径，实现无限嵌套 */
+const bindingBase = inject(BINDING_BASE, "form");
 
 const material = computed(() => catalog.get(props.node.component));
-const isUnknown = computed(() => !material.value || !resolved.value);
+// 引擎按 kind 结构渲染的物料（如子表单）没有 UI 库组件实现，不算未知
+const isUnknown = computed(() => !material.value || (!resolved.value && material.value.kind !== "subform"));
 const resolved = computed<Component | string | null>(() => {
   const key = materialKey(props.node.component);
   return (adapter?.components?.[key] as Component | string | undefined) ?? null;
@@ -92,7 +96,10 @@ const bindProps = computed<Record<string, unknown>>(() => {
   // 双向绑定：通道名由适配包决定（Element Plus 是 modelValue，antd / Naive 是 value）
   const channel = adapter?.binding ?? DEFAULT_BINDING;
   const modelValue = raw.modelValue;
-  const path = extractPath(modelValue);
+  // 显式绑定优先；表单控件未设置 modelValue 时，按「绑定前缀.组件ID」自动推导，
+  // 实现「按组件ID自动绑定」。前缀默认 form，子表单内为当前组路径（支持无限嵌套）。
+  const explicitPath = extractPath(modelValue);
+  const path = explicitPath ?? (materialMeta?.isFormControl ? `${bindingBase}.${props.node.id}` : null);
   if (path) {
     out[channel.prop] = getByPath(props.scope, path);
     out[channel.event] = (value: unknown) => {
@@ -315,6 +322,15 @@ function selectSelf(): void {
         :design="design"
       />
     </div>
+
+    <!-- 子表单（明细数组容器）：引擎按 kind 结构渲染，无需 UI 库组件实现 -->
+    <SchemaSubForm
+      v-else-if="material?.kind === 'subform'"
+      :node="node"
+      :scope="scope"
+      :mode="mode"
+      :design="design"
+    />
 
     <!-- 表单控件：套一层字段外壳，负责标签、必填星号、错误文案；间距作用在外壳上 -->
     <FieldShell
