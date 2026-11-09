@@ -186,8 +186,34 @@ const NATIVE: Record<DesignerSlot, Control> = {
   ColorInput: NativeColor,
 };
 
+/**
+ * 已告警的适配包实例：SchemaDesigner 每次挂载都会解析控件表，
+ * 用 WeakSet 按适配包实例去重，保证「一个适配包只提示一次」，不刷屏。
+ */
+const warnedAdapters = new WeakSet<object>();
+
+/**
+ * 适配包注入了却没带 designer kit 时，给一次可见提示（不阻断、不抛错）。
+ * 与 Vue 的 warnMissingDesignerKit 对称：回落原生是既定容错能力，设计器照常可用，
+ * 但「设计时与运行时同观感」的约定被打破，需要显式暴露给适配层作者。
+ *
+ * 触发条件刻意收窄：adapter 为 null（纯运行时 / 裸引擎）、或 designer 只覆盖部分槽位
+ * （createDesignerKit 的合法用法）都不报；仅整个 designer 缺失时提示一次。
+ */
+function warnMissingDesignerKit(adapter: UiAdapter<ReactMaterial> | null): void {
+  if (!adapter || adapter.designer || warnedAdapters.has(adapter)) return;
+  warnedAdapters.add(adapter);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[@x-ac/design-react] 适配包「${adapter.name}」未注册 designer kit：` +
+      `设计器控件已回落到内置原生实现（功能仍可用），但属性设置面板与运行时 UI 库观感不一致。` +
+      `请在 defineReactAdapter({ ..., designer: createDesignerKit({ Button, Input, Select, ... }) }) 中补齐。`,
+  );
+}
+
 /** 解析「适配包实现 ?? 原生实现」，对齐 Vue 的 useDesignerUi() */
 export function resolveDesignerUi(adapter: UiAdapter<ReactMaterial> | null): Record<DesignerSlot, Control> {
+  warnMissingDesignerKit(adapter);
   const kit = (adapter?.designer ?? {}) as DesignerKit<ComponentType<any>>;
   const resolved = {} as Record<DesignerSlot, Control>;
   for (const slot of DESIGNER_SLOTS) {
