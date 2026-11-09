@@ -85,18 +85,19 @@ describe("物料面板按适配包能力置灰", () => {
     const wrapper = await mountDesigner({ [UI_ADAPTER as symbol]: partialAdapter });
 
     const disabled = wrapper.findAll(".palette__item.is-disabled");
-    expect(disabled).toHaveLength(MATERIALS.length - 1);
+    // 全部 27 个里，ec-input 有实现、ec-subform 由引擎渲染无需组件，其余均缺实现
+    expect(disabled).toHaveLength(MATERIALS.length - 2);
     expect(disabled[0].attributes("draggable")).toBe("false");
     expect(wrapper.text()).toContain("当前 UI 库未实现");
 
-    // 有实现的那个照常可拖
+    // 有实现的 + 引擎渲染的各一个，均可拖
     const enabled = wrapper.findAll(".palette__item").filter((item) => !item.classes().includes("is-disabled"));
-    expect(enabled).toHaveLength(1);
-    expect(enabled[0].attributes("draggable")).toBe("true");
+    expect(enabled).toHaveLength(2);
+    expect(enabled.every((item) => item.attributes("draggable") === "true")).toBe(true);
   });
 
   it("适配包覆盖全部物料时不置灰", async () => {
-    // Element Plus 适配包实现了全部 26 个协议物料
+    // Element Plus 适配包实现了全部协议物料；子表单由引擎渲染，无需组件实现，同样可用
     const wrapper = await mountDesigner();
     expect(wrapper.findAll(".palette__item.is-disabled")).toHaveLength(0);
     expect(wrapper.text()).not.toContain("当前 UI 库未实现");
@@ -105,7 +106,8 @@ describe("物料面板按适配包能力置灰", () => {
   it("声明了物料但一个都没实现时全部置灰，并在底部说明", async () => {
     const wrapper = await mountDesigner({ [UI_ADAPTER as symbol]: { name: "none", components: {}, materials: MATERIALS } });
 
-    expect(wrapper.findAll(".palette__item.is-disabled")).toHaveLength(MATERIALS.length);
+    // 子表单由引擎渲染，不算「未实现」，其余全部置灰
+    expect(wrapper.findAll(".palette__item.is-disabled")).toHaveLength(MATERIALS.length - 1);
     expect(wrapper.text()).toContain("灰色物料当前 UI 库未实现");
   });
 });

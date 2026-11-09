@@ -51,11 +51,18 @@ describe("表单数据导出", () => {
     expect(withEmpty.data.form).toHaveProperty("note", "");
   });
 
-  it("记录未绑定 modelValue 的字段，方便宿主提示", () => {
+  it("表单控件未写 modelValue 时按 form.<id> 自动绑定，不再视为未绑定", () => {
     const result = exportData(schema, schema.state!);
-    expect(result.unbound).toEqual([{ nodeId: "n_free", label: "未绑定字段" }]);
-    // 非表单组件不进入导出范围
-    expect(result.fields.map((item) => item.nodeId)).toEqual(["n_name", "n_mobile", "n_note", "n_amount"]);
+    // n_free 是 input 但未写 modelValue，按 form.n_free 自动绑定，故不在 unbound 列表
+    expect(result.unbound).toEqual([]);
+    // 非表单组件（text）不进入导出范围；自动绑定的 n_free 一并被收集
+    expect(result.fields.map((item) => item.nodeId)).toEqual([
+      "n_name",
+      "n_mobile",
+      "n_note",
+      "n_amount",
+      "n_free",
+    ]);
   });
 
   it("导出时默认顺带校验，validate:false 可跳过", () => {

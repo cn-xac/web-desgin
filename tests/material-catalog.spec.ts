@@ -44,8 +44,8 @@ beforeEach(() => {
 });
 
 describe("core 通用物料清单", () => {
-  it("26 个物料，字段全部固化了显式 portability", () => {
-    expect(MATERIALS).toHaveLength(26);
+  it("27 个物料，字段全部固化了显式 portability", () => {
+    expect(MATERIALS).toHaveLength(27);
     expect(coreFields.length).toBeGreaterThan(100);
     expect(coreFields.every((field) => Boolean(field.portability))).toBe(true);
   });

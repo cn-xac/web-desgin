@@ -23,6 +23,8 @@ function unavailable(component: string): boolean {
   const components = adapter?.components;
   // 没注入适配包时不拦：渲染器那边会统一降级为占位，面板再全灰只会让人没法操作
   if (!components) return false;
+  // 子表单（kind=subform）由引擎按结构渲染，不需要 UI 库提供组件实现，永远可拖入
+  if (catalog.get(component)?.kind === "subform") return false;
   return !(materialKey(component) in components) && !(component in components);
 }
 
