@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import { UI_ADAPTER } from "@x-ac/design-vue";
@@ -25,12 +25,23 @@ beforeAll(() => {
   }
 });
 
+/**
+ * 缺 designer kit 的适配包会在控件解析链上 console.warn。
+ * 这里统一静默，避免大量「刻意无 kit」的用例刷屏；需要断言告警的用例读 warnSpy。
+ */
+let warnSpy: ReturnType<typeof vi.spyOn>;
+beforeEach(() => {
+  warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 /** 只有渲染物料、没有 designer kit 的适配包：设计器应回落到内置原生控件 */
-const bareAdapter = {
-  name: "bare",
-  components: {},
-  materials: [],
-};
+function bareAdapter() {
+  // 每次返回新实例：告警按适配包实例去重，避免跨用例共享 WeakSet 状态
+  return { name: "bare", components: {}, materials: [] };
+}
 
 async function mountDesigner(provide?: Record<symbol, unknown>) {
   const seed = blankTemplate("设计器控件测试");
@@ -46,12 +57,18 @@ async function mountDesigner(provide?: Record<symbol, unknown>) {
 }
 
 describe("设计器控件跟随适配包（D3）", () => {
-  it("适配包没有 designer kit 时，回落到内置原生控件且照常可用", async () => {
-    const wrapper = await mountDesigner({ [UI_ADAPTER as symbol]: bareAdapter });
+  it("适配包没有 designer kit 时，回落到内置原生控件且照常可用，并告警一次", async () => {
+    const wrapper = await mountDesigner({ [UI_ADAPTER as symbol]: bareAdapter() });
 
+    // 回落原生、不抛错、不阻断：设计器照常可用
     expect(wrapper.findAll("button.wbd-btn").length).toBeGreaterThan(0);
     expect(wrapper.html()).not.toContain("el-button");
     expect(wrapper.text()).toContain("导出 JSON");
+
+    // 缺 kit 时在控制台提示一次；顶栏十几个 UiControl 也只报一次（按适配包实例去重）
+    const kitWarnings = warnSpy.mock.calls.filter((call) => String(call[0]).includes("designer kit"));
+    expect(kitWarnings).toHaveLength(1);
+    expect(String(kitWarnings[0][0])).toMatch(/createDesignerKit/);
 
     const exportButton = wrapper.findAll("button").find((button) => button.text() === "导出 JSON");
     expect(exportButton).toBeTruthy();
@@ -59,12 +76,14 @@ describe("设计器控件跟随适配包（D3）", () => {
     expect(wrapper.emitted("export-schema")).toBeTruthy();
   });
 
-  it("适配包提供 designer kit 时，设计器用该 UI 库的控件", async () => {
-    // 不覆盖 provide：走 tests/setup.ts 注入的 Element Plus 适配包
+  it("适配包提供 designer kit 时，设计器用该 UI 库的控件且不告警", async () => {
+    // 不覆盖 provide：走 tests/setup.ts 注入的 Element Plus 适配包（带完整 designerKit）
     const wrapper = await mountDesigner();
 
     expect(wrapper.html()).toContain("el-button");
     expect(wrapper.findAll("button.wbd-btn").length).toBe(0);
+    // 只断言「designer kit 告警」未出现：Element Plus 适配包下 Vue 自身可能有组件解析类 warning，与本次契约无关
+    expect(warnSpy.mock.calls.filter((call) => String(call[0]).includes("designer kit"))).toHaveLength(0);
   });
 });
 

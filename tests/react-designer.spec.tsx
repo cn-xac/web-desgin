@@ -17,6 +17,9 @@ import type { ReactMaterial } from "@x-ac/design-react";
 import { createEmptyPage, createMemoryRepository } from "@x-ac/design-core";
 import type { PageRepository, PageSchema, UiAdapter } from "@x-ac/design-core";
 
+/** 缺 designer kit 的适配包会 console.warn；统一静默，避免大量用例刷屏，需要断言的用例读 warnSpy */
+let warnSpy: ReturnType<typeof vi.spyOn>;
+
 /* jsdom 没有 Blob URL 与下载导航，导出链路需要打桩 */
 beforeEach(() => {
   if (typeof URL.createObjectURL !== "function") {
@@ -24,6 +27,7 @@ beforeEach(() => {
     URL.revokeObjectURL = () => undefined;
   }
   vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+  warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
   // 轻提示 1.8s 后才移除，用例之间先清干净，避免断言取到上一条 toast
   document.querySelectorAll(".wbd-toast").forEach((element) => element.remove());
 });
@@ -225,6 +229,63 @@ describe("React SchemaDesigner 适配包槽位", () => {
       const item = byText(container, ".palette__item", "按钮");
       await act(async () => item!.click());
       expect(container.querySelectorAll("[data-custom-editor]").length).toBeGreaterThan(0);
+    } finally {
+      await cleanup();
+    }
+  });
+});
+
+describe("React SchemaDesigner designer kit 缺失告警", () => {
+  it("未注册 designer kit 时回落到原生控件、照常可用，并告警一次", async () => {
+    const { container, repo, render, cleanup } = setup();
+    // 每次新建适配包实例：告警按实例去重，避免跨用例共享 WeakSet 状态
+    const adapter: UiAdapter<ReactMaterial> = { ...nativeAdapter, designer: undefined };
+    try {
+      await render(
+        <ReactDesignProvider adapter={adapter}>
+          <SchemaDesigner pageId="p1" repository={repo} />
+        </ReactDesignProvider>,
+      );
+
+      // 回落原生、不抛错、不阻断：设计器四栏照常渲染
+      expect(container.querySelector(".designer")).toBeTruthy();
+      expect(container.querySelector(".topbar")).toBeTruthy();
+      expect(container.querySelectorAll("button.wbd-btn").length).toBeGreaterThan(0);
+
+      // 缺 kit 提示一次，且文案给出补齐指引
+      const kitWarnings = warnSpy.mock.calls.filter((call) => String(call[0]).includes("designer kit"));
+      expect(kitWarnings).toHaveLength(1);
+      expect(String(kitWarnings[0][0])).toMatch(/createDesignerKit/);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it("适配包提供 designer kit 时不告警", async () => {
+    const { repo, render, cleanup } = setup();
+    const adapter: UiAdapter<ReactMaterial> = {
+      ...nativeAdapter,
+      designer: { Button: (() => null) as never },
+    };
+    try {
+      await render(
+        <ReactDesignProvider adapter={adapter}>
+          <SchemaDesigner pageId="p1" repository={repo} />
+        </ReactDesignProvider>,
+      );
+      expect(warnSpy.mock.calls.filter((call) => String(call[0]).includes("designer kit"))).toHaveLength(0);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it("未注入适配包（adapter 为 null）时不告警——纯运行时本就用原生", async () => {
+    const { container, repo, render, cleanup } = setup();
+    try {
+      // 不包 Provider：useUiAdapter 返回 null，属于纯运行时 / 裸引擎场景
+      await render(<SchemaDesigner pageId="p1" repository={repo} />);
+      expect(container.querySelector(".designer")).toBeTruthy();
+      expect(warnSpy.mock.calls.filter((call) => String(call[0]).includes("designer kit"))).toHaveLength(0);
     } finally {
       await cleanup();
     }
