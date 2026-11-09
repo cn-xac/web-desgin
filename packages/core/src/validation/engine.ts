@@ -11,7 +11,6 @@ import type { Scope } from "../schema/expression";
 import { extractPath, getByPath, resolveBoolean, resolveValue } from "../schema/expression";
 import { registry as globalRegistry } from "../materials/catalog";
 import type { MaterialRegistry } from "../materials/registry";
-import { walk } from "../schema/tree";
 import {
   BUILTIN_PATTERNS,
   compilePattern,
@@ -80,12 +79,16 @@ export function describeField(
   node: NodeSchema,
   scope: Scope,
   materials: MaterialRegistry = globalRegistry,
+  /** 自动绑定的路径前缀：顶层为 form，子表单内为当前组路径；仅在该节点无显式 modelValue 时生效 */
+  basePath = "form",
 ): FormField | null {
   const material = materials.get(node.component);
   if (!material?.isFormControl) return null;
 
   const props = materials.defaults(node.component, node.props);
-  const path = extractPath(props.modelValue);
+  // 显式绑定优先；否则按「前缀.组件ID」自动推导（组件ID即数据键）
+  const explicit = extractPath(props.modelValue);
+  const path = explicit ?? `${basePath}.${node.id}`;
   const value = path ? getByPath(scope, path) : resolveValue(props.modelValue, scope);
   const rules = effectiveRules(node, props);
 
@@ -100,17 +103,36 @@ export function describeField(
   };
 }
 
-/** 收集页面里所有表单字段（按渲染顺序） */
+/**
+ * 收集页面里所有表单字段（按渲染顺序）。
+ * 子表单（kind=subform）自身不是字段，但其内部每组是一个明细数组，
+ * 需要按「itemPath[i]」逐级下钻，把每组子字段都纳入校验。
+ */
 export function collectFields(
   page: PageSchema,
   scope: Scope,
   materials: MaterialRegistry = globalRegistry,
 ): FormField[] {
   const fields: FormField[] = [];
-  walk(page.children, (node) => {
-    const field = describeField(node, scope, materials);
-    if (field) fields.push(field);
-  });
+
+  const walkNodes = (nodes: NodeSchema[], base: string): void => {
+    for (const node of nodes) {
+      const material = materials.get(node.component);
+      if (material?.kind === "subform") {
+        const props = materials.defaults(node.component, node.props);
+        const itemPath = String(props.itemPath ?? "items");
+        const fullPath = itemPath ? `${base}.${itemPath}` : base;
+        const items = (getByPath(scope, fullPath) as unknown[] | undefined) ?? [];
+        items.forEach((_, index) => walkNodes(node.children ?? [], `${fullPath}[${index}]`));
+        continue;
+      }
+      const field = describeField(node, scope, materials, base);
+      if (field) fields.push(field);
+      if (node.children) walkNodes(node.children, base);
+    }
+  };
+
+  walkNodes(page.children, "form");
   return fields;
 }
 

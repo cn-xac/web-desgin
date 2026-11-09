@@ -14,6 +14,7 @@ export * from "./schema/validator";
 export * from "./schema/serialize";
 export * from "./schema/migrate";
 export * from "./schema/datasource";
+export * from "./schema/array";
 
 export * from "./validation/rules";
 export * from "./validation/engine";

@@ -461,9 +461,21 @@ export function resolveBoolean(value: unknown, scope: Scope): boolean {
   return Boolean(value);
 }
 
-/** 深拷贝并按路径写入（用于 v-model 回写 scope） */
+/** 把绑定路径解析成键序列，支持 a.b[0].c 这种数组下标写法 */
+export function parsePathSegments(path: string): string[] {
+  const segments: string[] = [];
+  const re = /([^.[\]]+)|\[(\d+)\]/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(path)) !== null) {
+    if (match[1] !== undefined) segments.push(match[1]);
+    else if (match[2] !== undefined) segments.push(match[2]);
+  }
+  return segments;
+}
+
+/** 按路径读取（支持 a.b[0].c 数组下标） */
 export function getByPath(scope: Scope, path: string): unknown {
-  const keys = path.split(".").filter(Boolean);
+  const keys = parsePathSegments(path);
   let current: unknown = scope;
   for (const key of keys) {
     if (current === null || current === undefined) return undefined;
@@ -473,15 +485,18 @@ export function getByPath(scope: Scope, path: string): unknown {
   return current;
 }
 
+/** 按路径写入（支持 a.b[0].c 数组下标）；中间缺失的段自动建对象或数组 */
 export function setByPath(scope: Scope, path: string, value: unknown): boolean {
-  const keys = path.split(".").filter(Boolean);
+  const keys = parsePathSegments(path);
   if (!keys.length || keys.some((k) => FORBIDDEN_KEYS.has(k))) return false;
   let current: Record<string, unknown> = scope;
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
     const next = current[key];
     if (next === null || typeof next !== "object") {
-      current[key] = {};
+      // 下一段是数字下标则建数组，否则建对象
+      const makeArray = /^\d+$/.test(keys[i + 1]);
+      current[key] = makeArray ? [] : {};
     }
     current = current[key] as Record<string, unknown>;
   }

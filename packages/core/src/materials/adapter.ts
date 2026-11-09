@@ -76,8 +76,13 @@ export const DEFAULT_BINDING: BindingChannel = {
  */
 export function missingComponents<T>(adapter: UiAdapter<T>): string[] {
   return adapter.materials
-    .map((material) => material.component)
-    .filter((key) => !(key in adapter.components) && !(materialKey(key) in adapter.components));
+    .filter((material) => {
+      // 引擎按 kind 结构渲染的物料（如子表单）无需适配包提供组件实现
+      if (material.kind === "subform") return false;
+      const key = material.component;
+      return !(key in adapter.components) && !(materialKey(key) in adapter.components);
+    })
+    .map((material) => material.component);
 }
 
 /**

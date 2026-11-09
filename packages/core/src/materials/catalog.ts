@@ -416,6 +416,46 @@ const MATERIALS_RAW: Material[] = [
     isFormControl: true,
   },
 
+  /* ---------------- 子表单（明细数组容器） ---------------- */
+  {
+    component: "subform",
+    title: "子表单",
+    category: "表单",
+    kind: "subform",
+    icon: "▤",
+    acceptsChildren: true,
+    isFormControl: false,
+    defaultProps: {
+      label: "明细",
+      itemPath: "items",
+      minItems: 0,
+      maxItems: 0,
+      addText: "添加一项",
+      defaultItem: "",
+    },
+    fields: [
+      { key: "label", label: "分组标题", type: "text", group: "content" },
+      {
+        key: "itemPath",
+        label: "数据路径",
+        type: "text",
+        group: "data",
+        tip: "相对父级表单的明细数组名，如 items；嵌套子表单时相对当前组",
+      },
+      { key: "minItems", label: "最少项数", type: "number", min: 0, group: "advanced" },
+      { key: "maxItems", label: "最多项数(0=不限)", type: "number", min: 0, group: "advanced" },
+      { key: "addText", label: "添加按钮文案", type: "text", group: "content" },
+      {
+        key: "defaultItem",
+        label: "新增项默认值(JSON)",
+        type: "textarea",
+        group: "advanced",
+        tip: "留空则每组为 {}；可填 {\"status\":\"draft\"} 之类初始值",
+      },
+    ],
+    hint: "可重复添加的表单组，数据呈数组；组内字段按组件ID自动落到 items[i]",
+  },
+
   /* ---------------- 交互 ---------------- */
   {
     component: "button",

@@ -4,7 +4,7 @@
 
 export type MaterialCategory = "布局" | "展示" | "表单" | "交互" | "导航" | "业务";
 
-export type MaterialKind = "layout" | "display" | "field" | "action";
+export type MaterialKind = "layout" | "display" | "field" | "action" | "subform";
 
 export type PropFieldType =
   | "text"
