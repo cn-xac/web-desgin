@@ -1,4 +1,5 @@
 import { NativeExample } from "./examples/native/NativeExample";
+import { SubformExample } from "./examples/native/SubformExample";
 
 export default function App() {
   return (
@@ -12,6 +13,8 @@ export default function App() {
       </header>
 
       <NativeExample />
+
+      <SubformExample />
 
       <footer className="page__foot">
         <p>另见 <a href="../">Vue 版示例（@x-ac/design-vue）</a>。</p>

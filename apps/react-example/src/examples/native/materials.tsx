@@ -27,6 +27,9 @@ export const demoAdapter = registerMaterials(nativeAdapter, [
     kind: "field",
     icon: "T",
     impl: NativeInput,
+    // isFormControl 让引擎识别为表单控件：未写 modelValue 时按 form.<id> 自动绑定，
+    // 并参与必填校验与提交收集；对现有显式 modelValue 绑定 demo 无副作用。
+    isFormControl: true,
     props: { modelValue: "", placeholder: "请输入" },
     fields: [{ key: "placeholder", label: "占位符", type: "text" }],
   },
