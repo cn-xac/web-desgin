@@ -14,7 +14,7 @@ export default function App() {
       <NativeExample />
 
       <footer className="page__foot">
-        <p>另见 <a href="/">Vue 版示例（@x-ac/design-vue）</a>。</p>
+        <p>另见 <a href="../">Vue 版示例（@x-ac/design-vue）</a>。</p>
       </footer>
     </main>
   );

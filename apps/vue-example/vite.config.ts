@@ -6,8 +6,10 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 // 示例应用直接消费源码（workspace 包按子路径优先匹配，最后才是 @ → 本应用 src）。
 // 顺序敏感：/style.css、/kit 必须在 @x-ac/design-vue 之前，否则会被拼成 src/index.ts/style.css。
+const isPages = process.env.NODE_ENV === "production";
 export default defineConfig({
-  base: "/",
+  // 本地 dev 走根路径；构建产物部署到 GitHub Pages 项目页（仓库 web-desgin）时基路径为 /web-desgin/
+  base: isPages ? "/web-desgin/" : "/",
   plugins: [vue()],
   resolve: {
     dedupe: ["vue"],
