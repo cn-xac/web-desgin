@@ -10,14 +10,14 @@
     "dev:vue": "pnpm --filter vue-example dev",
     "dev:react": "pnpm --filter react-example dev",
     "build": "pnpm build:lib && pnpm --filter vue-example build && pnpm --filter react-example build",
-    "build:lib": "node scripts/release.mjs check && pnpm --filter @x-ac/design-core build && pnpm --filter @x-ac/design-vue build && pnpm --filter @x-ac/design-react build",
+    "build:lib": "node scripts/release.mjs check && pnpm --filter @x-ac/web-design-core build && pnpm --filter @x-ac/web-design-vue build && pnpm --filter @x-ac/web-design-react build",
     "build:examples": "pnpm --filter vue-example build && pnpm --filter react-example build",
     "release:check": "node scripts/release.mjs check",
     "release:version": "node scripts/release.mjs version",
     "release:publish": "node scripts/release.mjs publish",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "pnpm --filter @x-ac/design-core typecheck && pnpm --filter @x-ac/design-vue typecheck && pnpm --filter @x-ac/design-react typecheck && pnpm --filter vue-example typecheck && pnpm --filter react-example typecheck"
+    "typecheck": "pnpm --filter @x-ac/web-design-core typecheck && pnpm --filter @x-ac/web-design-vue typecheck && pnpm --filter @x-ac/web-design-react typecheck && pnpm --filter vue-example typecheck && pnpm --filter react-example typecheck"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

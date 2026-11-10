@@ -1,6 +1,6 @@
 import { createApp } from "vue";
-import { createVueDesign } from "@x-ac/design-vue";
-import "@x-ac/design-vue/style.css";
+import { createVueDesign } from "@x-ac/web-design-vue";
+import "@x-ac/web-design-vue/style.css";
 import "./styles.css";
 import App from "./App.vue";
 

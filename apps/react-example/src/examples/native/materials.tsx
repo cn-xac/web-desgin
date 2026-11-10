@@ -1,5 +1,5 @@
-import { registerMaterials } from "@x-ac/design-core";
-import { nativeAdapter } from "@x-ac/design-react";
+import { registerMaterials } from "@x-ac/web-design-core";
+import { nativeAdapter } from "@x-ac/web-design-react";
 import { NativeHeading } from "./NativeHeading";
 import { NativeInput } from "./NativeInput";
 import { NativeButton } from "./NativeButton";

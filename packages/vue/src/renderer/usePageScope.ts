@@ -1,6 +1,6 @@
 import { onBeforeUnmount, onMounted, reactive, ref, watch, type Ref } from "vue";
-import type { PageSchema } from "@x-ac/design-core";
-import { deepClone, loadPageData, setByPath } from "@x-ac/design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
+import { deepClone, loadPageData, setByPath } from "@x-ac/web-design-core";
 
 export interface PageScopeApi {
   scope: Record<string, unknown>;

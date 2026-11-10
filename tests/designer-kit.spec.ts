@@ -2,9 +2,9 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
-import { UI_ADAPTER } from "@x-ac/design-vue";
-import { createMemoryRepository } from "@x-ac/design-vue/designer";
-import { MATERIALS } from "@x-ac/design-core";
+import { UI_ADAPTER } from "@x-ac/web-design-vue";
+import { createMemoryRepository } from "@x-ac/web-design-vue/designer";
+import { MATERIALS } from "@x-ac/web-design-core";
 import DesignerView from "@/designer/DesignerView.vue";
 import { blankTemplate } from "@/data/templates";
 

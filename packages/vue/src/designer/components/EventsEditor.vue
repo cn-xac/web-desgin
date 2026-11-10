@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import UiControl from "../ui/UiControl.vue";
-import type { ActionSchema } from "@x-ac/design-core";
-import { ACTION_OPTIONS } from "@x-ac/design-core";
+import type { ActionSchema } from "@x-ac/web-design-core";
+import { ACTION_OPTIONS } from "@x-ac/web-design-core";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 import { useNotify } from "../ui/kit";

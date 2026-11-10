@@ -23,8 +23,8 @@ export {
   toDataJSON,
   validateData,
   validateRequired,
-} from "@x-ac/design-core";
-export { camelizeEventName, createEventPayload } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+export { camelizeEventName, createEventPayload } from "@x-ac/web-design-core";
 export type {
   ActionAdapter,
   ActionContext,
@@ -37,4 +37,4 @@ export type {
   FormField,
   RuleType,
   ValidationRule,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";

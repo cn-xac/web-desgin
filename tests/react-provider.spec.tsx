@@ -14,9 +14,9 @@ import {
   nativeAdapter,
   registerMaterials,
   useUiAdapter,
-} from "@x-ac/design-react";
-import type { ControlProps, ReactMaterial, UiAdapter } from "@x-ac/design-react";
-import type { PageSchema } from "@x-ac/design-core";
+} from "@x-ac/web-design-react";
+import type { ControlProps, ReactMaterial, UiAdapter } from "@x-ac/web-design-react";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 function ExtensionBadge({ text, style }: ControlProps) {
   return (

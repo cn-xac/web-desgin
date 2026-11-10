@@ -15,9 +15,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@x-ac/design-core": ["../../packages/core/src/index.ts"],
-      "@x-ac/design-vue": ["../../packages/vue/src/index.ts"],
-      "@x-ac/design-vue/kit": ["../../packages/vue/src/kit.ts"]
+      "@x-ac/web-design-core": ["../../packages/core/src/index.ts"],
+      "@x-ac/web-design-vue": ["../../packages/vue/src/index.ts"],
+      "@x-ac/web-design-vue/kit": ["../../packages/vue/src/kit.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue", "env.d.ts"]

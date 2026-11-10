@@ -10,7 +10,7 @@
  */
 import { createContext, useContext } from "react";
 import type { ReactElement, ReactNode } from "react";
-import type { UiAdapter } from "@x-ac/design-core";
+import type { UiAdapter } from "@x-ac/web-design-core";
 import type { ReactMaterial } from "./adapter";
 
 /**

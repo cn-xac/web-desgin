@@ -2,9 +2,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useDesignerStore } from "@/designer/store";
-import { createEmptyPage } from "@x-ac/design-core";
+import { createEmptyPage } from "@x-ac/web-design-core";
 import { getPage, localStorageRepo } from "@/api/pageRepo";
-import { setPageRepository } from "@x-ac/design-vue/designer";
+import { setPageRepository } from "@x-ac/web-design-vue/designer";
 
 function freshStore() {
   setActivePinia(createPinia());

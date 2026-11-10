@@ -36,9 +36,9 @@ describe("可发布包发现与版本一致性", () => {
   it("发现 3 个可发布包，且不含私有应用", () => {
     const packages = release.discoverPackages();
     expect(packages.map((pkg) => pkg.name)).toEqual([
-      "@x-ac/design-core",
-      "@x-ac/design-react",
-      "@x-ac/design-vue",
+      "@x-ac/web-design-core",
+      "@x-ac/web-design-react",
+      "@x-ac/web-design-vue",
     ]);
     expect(packages.every((pkg) => pkg.version === "1.0.0")).toBe(true);
   });

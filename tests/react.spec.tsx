@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SchemaRenderer } from "@x-ac/design-react";
-import type { PageSchema } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-react";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 const page: PageSchema = {
   schemaVersion: "1.0.0",

@@ -20,9 +20,9 @@ import {
   parsePairs,
   parsePaths,
   prefixedComponents,
-} from "@x-ac/design-core";
-import { VUE_BINDING, createDesignerKit, defineVueAdapter, useFieldModel } from "@x-ac/design-vue/kit";
-import { REACT_BINDING, defineReactAdapter } from "@x-ac/design-react/kit";
+} from "@x-ac/web-design-core";
+import { VUE_BINDING, createDesignerKit, defineVueAdapter, useFieldModel } from "@x-ac/web-design-vue/kit";
+import { REACT_BINDING, defineReactAdapter } from "@x-ac/web-design-react/kit";
 
 describe("core：上移的通用解析工具", () => {
   it("parsePairs 支持中英文分隔符与首个冒号切分", () => {

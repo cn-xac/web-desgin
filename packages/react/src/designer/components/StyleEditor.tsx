@@ -10,8 +10,8 @@ import {
   readSpacing,
   SPACING_PRESETS,
   SPACING_SIDES,
-} from "@x-ac/design-core";
-import type { SpacingBox, SpacingKey, SpacingSide } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import type { SpacingBox, SpacingKey, SpacingSide } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
 

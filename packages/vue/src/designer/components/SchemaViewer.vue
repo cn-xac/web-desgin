@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import UiControl from "../ui/UiControl.vue";
-import { toJSON } from "@x-ac/design-core";
+import { toJSON } from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
 import { useNotify } from "../ui/kit";
 

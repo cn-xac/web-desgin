@@ -13,8 +13,8 @@ import { config } from "@vue/test-utils";
 
 if (typeof document !== "undefined") {
   const [{ elementPlusAdapter }, { UI_ADAPTER }] = await Promise.all([
-    import("@x-ac/design-vue-element-plus"),
-    import("@x-ac/design-vue"),
+    import("@x-ac/web-design-vue-element-plus"),
+    import("@x-ac/web-design-vue"),
   ]);
   config.global.provide = {
     ...(config.global.provide ?? {}),

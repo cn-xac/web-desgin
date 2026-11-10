@@ -19,7 +19,7 @@ import {
   type NodeSchema,
   type PageSchema,
   type UiAdapter,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {
@@ -157,7 +157,7 @@ describe("渲染器吃 ec- 前缀", () => {
   it.skipIf(!__HAS_ELEMENT_PLUS__)("带前缀的节点能渲染出真实控件", async () => {
     const { mount } = await import("@vue/test-utils");
     const { default: ElementPlus } = await import("element-plus");
-    const { SchemaRenderer } = await import("@x-ac/design-vue");
+    const { SchemaRenderer } = await import("@x-ac/web-design-vue");
     const node: NodeSchema = {
       id: "n_name",
       component: "ec-input",
@@ -185,7 +185,7 @@ describe("渲染器吃 ec- 前缀", () => {
 
   it("未注入适配包时降级为占位，不抛错", async () => {
     const { mount } = await import("@vue/test-utils");
-    const { SchemaRenderer, UI_ADAPTER } = await import("@x-ac/design-vue");
+    const { SchemaRenderer, UI_ADAPTER } = await import("@x-ac/web-design-vue");
 
     const page: PageSchema = {
       schemaVersion: "1.0.0",
@@ -207,7 +207,7 @@ describe("渲染器吃 ec- 前缀", () => {
   it("绑定通道由适配包决定（value 方言也能驱动 scope）", async () => {
     const { mount } = await import("@vue/test-utils");
     const { defineComponent, h } = await import("vue");
-    const { SchemaRenderer, UI_ADAPTER } = await import("@x-ac/design-vue");
+    const { SchemaRenderer, UI_ADAPTER } = await import("@x-ac/web-design-vue");
 
     const ValueInput = defineComponent({
       name: "ValueInput",

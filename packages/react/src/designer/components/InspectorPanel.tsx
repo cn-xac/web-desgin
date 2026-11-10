@@ -3,7 +3,7 @@
  * 未选中时退化为页面设置。与 Vue 版 InspectorPanel.vue 功能对齐。
  */
 import { useEffect, useState } from "react";
-import { effectiveRules } from "@x-ac/design-core";
+import { effectiveRules } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
 import { PropsEditor } from "./PropsEditor";

@@ -1,14 +1,14 @@
-# @x-ac/design-vue
+# @x-ac/web-design-vue
 
-Vue 3 适配层：Schema 渲染器 + 可视化设计器 + 给 `vue-*` 扩展仓用的组件作者 SDK（`@x-ac/design-vue/kit`）。
+Vue 3 适配层：Schema 渲染器 + 可视化设计器 + 给 `vue-*` 扩展仓用的组件作者 SDK（`@x-ac/web-design-vue/kit`）。
 具体 UI 库的物料实现放在独立扩展仓（如 `design-vue-element-plus`），本包不内置任何 UI 库物料。
 
-与 `@x-ac/design-core` 共享同一份 Schema 与校验引擎，换到 React（`@x-ac/design-react`）时页面 JSON 不用改。
+与 `@x-ac/web-design-core` 共享同一份 Schema 与校验引擎，换到 React（`@x-ac/web-design-react`）时页面 JSON 不用改。
 
 ## 安装
 
 ```bash
-pnpm add @x-ac/design-vue @x-ac/design-core vue element-plus
+pnpm add @x-ac/web-design-vue @x-ac/web-design-core vue element-plus
 # 设计器需要 pinia
 pnpm add pinia
 ```
@@ -20,9 +20,9 @@ pnpm add pinia
 ```vue
 <script setup lang="ts">
 import { ref } from "vue";
-import { SchemaPage } from "@x-ac/design-vue";
-import "@x-ac/design-vue/style.css";
-import type { PageSchema } from "@x-ac/design-vue";
+import { SchemaPage } from "@x-ac/web-design-vue";
+import "@x-ac/web-design-vue/style.css";
+import type { PageSchema } from "@x-ac/web-design-vue";
 
 // page 可以是 Schema 对象，也可以直接是后端返回的 JSON 字符串
 const page = ref<PageSchema>(/* 来自后端或本地 JSON */);
@@ -68,8 +68,8 @@ function onSubmit(payload: Record<string, unknown>) {
 
 ```vue
 <script setup lang="ts">
-import { SchemaPage } from "@x-ac/design-vue";
-import type { UiEventPayload } from "@x-ac/design-vue";
+import { SchemaPage } from "@x-ac/web-design-vue";
+import type { UiEventPayload } from "@x-ac/web-design-vue";
 
 function onEvent(p: UiEventPayload): void | false {
   // p.args 是组件派发的原始参数，如 el-table 的 (row, column, event)
@@ -105,7 +105,7 @@ Schema 里也能直接引用，无需写 JS：
 
 ```vue
 <script setup lang="ts">
-import { SchemaDesigner, type PageRepository } from "@x-ac/design-vue/designer";
+import { SchemaDesigner, type PageRepository } from "@x-ac/web-design-vue/designer";
 // 设计器样式与渲染器同在一个 style.css 里（cssCodeSplit: false）
 
 // repository prop：组件级仓储，不传回落全局 setPageRepository()
@@ -127,14 +127,14 @@ const repo: PageRepository = { /* list / get / save / remove，对接你的接�
 
 右侧「校验」面板可以配置必填、最短 / 最长长度、最小 / 最大值、自定义正则、邮箱、手机号、整数，并支持自定义文案与 `when` 条件。
 
-设计器的状态机（`DesignerStore`）与页面仓储契约（`PageRepository`）已下沉到 `@x-ac/design-core`，本包的 `useDesignerStore()` 只是它的 pinia 薄包装；React 侧 `@x-ac/design-react/designer` 用 `useSyncExternalStore` 消费同一个内核。撤销栈、拖拽落点、属性编辑、导入导出因此不会在两框架间漂移。
+设计器的状态机（`DesignerStore`）与页面仓储契约（`PageRepository`）已下沉到 `@x-ac/web-design-core`，本包的 `useDesignerStore()` 只是它的 pinia 薄包装；React 侧 `@x-ac/web-design-react/designer` 用 `useSyncExternalStore` 消费同一个内核。撤销栈、拖拽落点、属性编辑、导入导出因此不会在两框架间漂移。
 
 ## 给 vue-* 扩展仓用的适配层 SDK
 
 `vue-*` 扩展仓（Element Plus、图标库、ant-design-vue 等）都基于本包的 `/kit` 子入口实现，而不是自己拼 `UiAdapter` 字面量：
 
 ```ts
-import { defineVueAdapter, createDesignerKit, useFieldModel, VUE_BINDING } from "@x-ac/design-vue/kit";
+import { defineVueAdapter, createDesignerKit, useFieldModel, VUE_BINDING } from "@x-ac/web-design-vue/kit";
 
 export const myAdapter = defineVueAdapter({
   name: "my-ui",
@@ -146,7 +146,7 @@ export const myAdapter = defineVueAdapter({
 });
 ```
 
-`/kit` 是纯 TS 子入口：不加载渲染器、设计器、CSS 与 pinia，产物约 0.74 kB，扩展仓组件可在 jsdom / SSR 独立挂载。框架无关的契约（`UiAdapter` / `DesignerControlProps`）与工具（`parsePairs` / `prefixedComponents` / `defineAdapter` / `bindModel`）统一在 `@x-ac/design-core`。
+`/kit` 是纯 TS 子入口：不加载渲染器、设计器、CSS 与 pinia，产物约 0.74 kB，扩展仓组件可在 jsdom / SSR 独立挂载。框架无关的契约（`UiAdapter` / `DesignerControlProps`）与工具（`parsePairs` / `prefixedComponents` / `defineAdapter` / `bindModel`）统一在 `@x-ac/web-design-core`。
 
 **约束**：自定义物料必须接收并应用 `style`，否则通用 margin / padding 会失效。
 
@@ -162,7 +162,7 @@ export const myAdapter = defineVueAdapter({
 ## 主题
 
 ```ts
-import "@x-ac/design-vue/style.css"; // 渲染器 + 设计器 + 设计令牌
+import "@x-ac/web-design-vue/style.css"; // 渲染器 + 设计器 + 设计令牌
 ```
 
 ## License

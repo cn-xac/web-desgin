@@ -1,19 +1,19 @@
-# @x-ac/design-core
+# @x-ac/web-design-core
 
 框架无关的可视化搭建内核。**不依赖 Vue / React / Element Plus，也不访问 window**，可以在浏览器、Node、SSR、单测里同样运行。
 
-同一份 `PageSchema` 交给 `@x-ac/design-vue` 或 `@x-ac/design-react` 渲染，结果一致；数据校验与导出也只在这里实现一次。
+同一份 `PageSchema` 交给 `@x-ac/web-design-vue` 或 `@x-ac/web-design-react` 渲染，结果一致；数据校验与导出也只在这里实现一次。
 
 ## 安装
 
 ```bash
-pnpm add @x-ac/design-core
+pnpm add @x-ac/web-design-core
 ```
 
 ## PageSchema 速览
 
 ```ts
-import type { PageSchema } from "@x-ac/design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 const page: PageSchema = {
   schemaVersion: "1.0.0",
@@ -68,7 +68,7 @@ import {
   exportData,          // 收集表单数据 + 校验
   toDataJSON,          // 序列化成 JSON 文本
   toHtml,              // 导出静态 HTML
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 
 // 1. 校验
 const errors: Record<string, string> = {};   // nodeId -> 文案

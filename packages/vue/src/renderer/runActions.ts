@@ -11,7 +11,7 @@ import {
   type ActionAdapter,
   type ActionContext,
   type ActionSchema,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 
 export type NodeActionContext = Omit<ActionContext, "adapter">;
 

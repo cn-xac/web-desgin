@@ -1,6 +1,6 @@
 import { Fragment, createElement, useContext } from "react";
 import type { DragEvent, FocusEvent, ReactNode } from "react";
-import type { DropPosition } from "@x-ac/design-core";
+import type { DropPosition } from "@x-ac/web-design-core";
 import {
   ACTION_REGISTRY,
   DEFAULT_BINDING,
@@ -16,8 +16,8 @@ import {
   runActions,
   runEventHooks,
   toReactHandlerName,
-} from "@x-ac/design-core";
-import type { NodeSchema } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import type { NodeSchema } from "@x-ac/web-design-core";
 import type { CSSProperties } from "react";
 import { RenderContext, BINDING_BASE, useRenderContext } from "./context";
 import type { RenderContextValue } from "./context";

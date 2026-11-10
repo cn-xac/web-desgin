@@ -6,7 +6,7 @@ import {
   resolveBoolean,
   resolveValue,
   setByPath,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 
 const scope = {
   form: { name: "张三", age: 28, dept: "", skills: ["Vue", "TS"] },

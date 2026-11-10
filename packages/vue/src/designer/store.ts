@@ -1,7 +1,7 @@
 /**
  * Vue 设计器 store：core 状态机的 pinia 薄包装。
  *
- * 所有状态与操作都在 @x-ac/design-core 的 DesignerStore 里，React 侧用
+ * 所有状态与操作都在 @x-ac/web-design-core 的 DesignerStore 里，React 侧用
  * useSyncExternalStore 消费同一个内核。这里只做「快照 → computed」的适配，
  * 对外 API 与改造前完全一致，组件与测试无需改动。
  *
@@ -9,7 +9,7 @@
  */
 import { computed, onScopeDispose, shallowRef } from "vue";
 import { defineStore } from "pinia";
-import { DesignerStore } from "@x-ac/design-core";
+import { DesignerStore } from "@x-ac/web-design-core";
 import type {
   ActionSchema,
   DesignerState,
@@ -17,12 +17,12 @@ import type {
   PageSchema,
   PageRepository,
   ValidationRule,
-} from "@x-ac/design-core";
-import type { MaterialRegistry } from "@x-ac/design-core";
-import type { DropPosition } from "@x-ac/design-core";
-import type { SpacingBox, SpacingKey } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import type { MaterialRegistry } from "@x-ac/web-design-core";
+import type { DropPosition } from "@x-ac/web-design-core";
+import type { SpacingBox, SpacingKey } from "@x-ac/web-design-core";
 
-export type { DragPayload, DropHint } from "@x-ac/design-core";
+export type { DragPayload, DropHint } from "@x-ac/web-design-core";
 
 export const useDesignerStore = defineStore("designer", () => {
   const kernel = new DesignerStore();

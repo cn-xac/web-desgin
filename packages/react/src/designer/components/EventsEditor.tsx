@@ -3,8 +3,8 @@
  * 与 Vue 版 EventsEditor.vue 功能对齐，差异只在受控通道 value / onChange。
  */
 import { useEffect, useState } from "react";
-import { ACTION_OPTIONS } from "@x-ac/design-core";
-import type { ActionSchema } from "@x-ac/design-core";
+import { ACTION_OPTIONS } from "@x-ac/web-design-core";
+import type { ActionSchema } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
 

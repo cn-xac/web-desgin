@@ -14,7 +14,7 @@ import {
   ruleTypesFor,
   type RuleType,
   type ValidationRule,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
 import { useMaterialCatalog } from "../../materials/catalog";
 import UiControl from "../ui/UiControl.vue";

@@ -2,8 +2,8 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import { mount } from "@vue/test-utils";
 import ElementPlus from "element-plus";
-import { SchemaRenderer } from "@x-ac/design-vue";
-import type { NodeSchema, PageSchema } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-vue";
+import type { NodeSchema, PageSchema } from "@x-ac/web-design-core";
 
 beforeAll(() => {
   // Element Plus 部分组件依赖 ResizeObserver，jsdom 没有实现

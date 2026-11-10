@@ -217,10 +217,10 @@ importers:
 
   apps/react-example:
     dependencies:
-      '@x-ac/design-core':
+      '@x-ac/web-design-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@x-ac/design-react':
+      '@x-ac/web-design-react':
         specifier: workspace:*
         version: link:../../packages/react
       react:
@@ -248,10 +248,10 @@ importers:
 
   apps/vue-example:
     dependencies:
-      '@x-ac/design-core':
+      '@x-ac/web-design-core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@x-ac/design-vue':
+      '@x-ac/web-design-vue':
         specifier: workspace:*
         version: link:../../packages/vue
       vue:
@@ -275,7 +275,7 @@ importers:
 
   packages/react:
     dependencies:
-      '@x-ac/design-core':
+      '@x-ac/web-design-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -306,7 +306,7 @@ importers:
 
   packages/vue:
     dependencies:
-      '@x-ac/design-core':
+      '@x-ac/web-design-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

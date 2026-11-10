@@ -8,11 +8,11 @@ import { mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import ElementPlus from "element-plus";
 import { defineComponent, h, nextTick, ref } from "vue";
-import { SchemaPage } from "@x-ac/design-vue";
-import { SchemaDesigner } from "@x-ac/design-vue/designer";
-import { createMemoryRepository } from "@x-ac/design-vue/designer";
-import { toJSON } from "@x-ac/design-core";
-import type { NodeSchema, PageSchema } from "@x-ac/design-core";
+import { SchemaPage } from "@x-ac/web-design-vue";
+import { SchemaDesigner } from "@x-ac/web-design-vue/designer";
+import { createMemoryRepository } from "@x-ac/web-design-vue/designer";
+import { toJSON } from "@x-ac/web-design-core";
+import type { NodeSchema, PageSchema } from "@x-ac/web-design-core";
 import { blankTemplate } from "@/data/templates";
 
 beforeAll(() => {

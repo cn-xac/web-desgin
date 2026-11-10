@@ -10,7 +10,7 @@ import {
   type SpacingBox,
   type SpacingKey,
   type SpacingSide,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
 import UiControl from "../ui/UiControl.vue";
 

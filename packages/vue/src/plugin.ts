@@ -1,5 +1,5 @@
 import type { App, Plugin } from "vue";
-import type { UiAdapter } from "@x-ac/design-core";
+import type { UiAdapter } from "@x-ac/web-design-core";
 import SchemaRenderer from "./renderer/SchemaRenderer.vue";
 import { UI_ADAPTER } from "./renderer/context";
 
@@ -10,7 +10,7 @@ export interface VueDesignOptions {
   pageComponentName?: string | false;
   /**
    * UI 适配包（应用级单例）。例如：
-   *   import { elementPlusAdapter } from "@x-ac/design-vue-element-plus";
+   *   import { elementPlusAdapter } from "@x-ac/web-design-vue-element-plus";
    *   app.use(createVueDesign({ adapter: elementPlusAdapter }));
    */
   adapter?: UiAdapter<unknown>;
@@ -20,9 +20,9 @@ export interface VueDesignOptions {
  * 以插件方式集成到已有 Vue 项目（标签即用）：
  *
  * ```ts
- * import { createVueDesign } from "@x-ac/design-vue";
- * import { elementPlusAdapter } from "@x-ac/design-vue-element-plus";
- * import "@x-ac/design-vue/style.css";
+ * import { createVueDesign } from "@x-ac/web-design-vue";
+ * import { elementPlusAdapter } from "@x-ac/web-design-vue-element-plus";
+ * import "@x-ac/web-design-vue/style.css";
  * app.use(createVueDesign({ adapter: elementPlusAdapter }));
  * ```
  *

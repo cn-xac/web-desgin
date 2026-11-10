@@ -1,8 +1,8 @@
-import type { PageSchema } from "@x-ac/design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 /**
  * 示例页面：与 Vue 示例同构的一份 Schema。
- * 同一份 JSON 交给 @x-ac/design-vue 或 @x-ac/design-react，渲染结果一致。
+ * 同一份 JSON 交给 @x-ac/web-design-vue 或 @x-ac/web-design-react，渲染结果一致。
  *
  * 注：原在 apps/react-demo/src/page.ts，精简 apps 时迁入 tests/fixtures。
  */
@@ -27,7 +27,7 @@ export function createDemoPage(): PageSchema {
         id: "rt_tip",
         component: "ec-text",
         props: {
-          text: "这一页的 Schema 与 Vue 示例同构：表达式、必填校验、动作白名单、margin / padding 全部来自 @x-ac/design-core。",
+          text: "这一页的 Schema 与 Vue 示例同构：表达式、必填校验、动作白名单、margin / padding 全部来自 @x-ac/web-design-core。",
         },
         style: { margin: "0 0 16px" },
       },

@@ -10,12 +10,12 @@ import { act, createRef } from "react";
 import type { ComponentType, ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { SchemaDesigner } from "@x-ac/design-react/designer";
-import type { SchemaDesignerHandle } from "@x-ac/design-react/designer";
-import { ReactDesignProvider, nativeAdapter } from "@x-ac/design-react";
-import type { ReactMaterial } from "@x-ac/design-react";
-import { createEmptyPage, createMemoryRepository } from "@x-ac/design-core";
-import type { PageRepository, PageSchema, UiAdapter } from "@x-ac/design-core";
+import { SchemaDesigner } from "@x-ac/web-design-react/designer";
+import type { SchemaDesignerHandle } from "@x-ac/web-design-react/designer";
+import { ReactDesignProvider, nativeAdapter } from "@x-ac/web-design-react";
+import type { ReactMaterial } from "@x-ac/web-design-react";
+import { createEmptyPage, createMemoryRepository } from "@x-ac/web-design-core";
+import type { PageRepository, PageSchema, UiAdapter } from "@x-ac/web-design-core";
 
 /** 缺 designer kit 的适配包会 console.warn；统一静默，避免大量用例刷屏，需要断言的用例读 warnSpy */
 let warnSpy: ReturnType<typeof vi.spyOn>;

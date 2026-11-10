@@ -1,4 +1,4 @@
-import type { ActionAdapter, ActionNotifyType } from "@x-ac/design-core";
+import type { ActionAdapter, ActionNotifyType } from "@x-ac/web-design-core";
 
 export interface ReactAdapterOptions {
   notify?: (message: string, type: ActionNotifyType) => void;

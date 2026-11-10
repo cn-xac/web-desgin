@@ -1,5 +1,5 @@
 /**
- * @x-ac/design-react —— 用同一份 PageSchema 在 React 里渲染页面。
+ * @x-ac/web-design-react —— 用同一份 PageSchema 在 React 里渲染页面。
  *
  * 与 Vue 适配层共享 core：表达式、树、校验、样式合并、动作白名单完全一致，
  * 差异只在「组件映射」与「状态驱动方式」。
@@ -24,8 +24,8 @@ export { usePageStore } from "./scope";
 export type { PageStore } from "./scope";
 
 // 事件协议从 core 透出：宿主只装一个适配层包也能写强类型钩子
-export { createEventPayload, toReactHandlerName } from "@x-ac/design-core";
-export type { UiEventHook, UiEventPayload } from "@x-ac/design-core";
+export { createEventPayload, toReactHandlerName } from "@x-ac/web-design-core";
+export type { UiEventHook, UiEventPayload } from "@x-ac/web-design-core";
 
 // 校验 / 数据导出与 Vue 层共用 core 实现，这里透出一份，宿主不必再装 core
 export {
@@ -36,8 +36,8 @@ export {
   exportData,
   toDataJSON,
   validateData,
-} from "@x-ac/design-core";
-export type { DataExportOptions, DataExportResult, FieldError, ValidationRule } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+export type { DataExportOptions, DataExportResult, FieldError, ValidationRule } from "@x-ac/web-design-core";
 
 // 适配包组合：宿主注册业务物料只需要这几样，不必直接依赖 core
 export {
@@ -48,7 +48,7 @@ export {
   missingComponents,
   registerMaterials,
   withMaterials,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 export type {
   CustomMaterial,
   CustomMaterialInput,
@@ -57,4 +57,4 @@ export type {
   PropField,
   PropFieldType,
   UiAdapter,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";

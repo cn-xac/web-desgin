@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { SchemaRenderer } from "@x-ac/design-react";
-import { toJSON, validatePage, type NodeSchema, type PageSchema, type UiEventPayload } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-react";
+import { toJSON, validatePage, type NodeSchema, type PageSchema, type UiEventPayload } from "@x-ac/web-design-core";
 import { demoAdapter } from "./materials";
 
 // 一份最小 PageSchema：标题 + 输入（modelValue 表达式绑定到 data.name）+ 按钮。

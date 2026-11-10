@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { effectiveRules } from "@x-ac/design-core";
+import { effectiveRules } from "@x-ac/web-design-core";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 import UiControl from "../ui/UiControl.vue";

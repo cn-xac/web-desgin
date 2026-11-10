@@ -4,9 +4,9 @@
 
 | 包 | 作用 | 依赖 | peerDependencies |
 |---|---|---|---|
-| `@x-ac/design-core` | 协议与内核（Schema / 物料 meta / 表达式 / 校验 / 导出 / 静态 HTML）+ 框架无关的通用工具（`parsePairs` / `defineAdapter` / `prefixedComponents` / `bindModel`）+ `UiEventPayload` 事件协议与 `loadPageData` 数据源取数 | 无 | 无 |
-| `@x-ac/design-vue` | Vue 适配层：渲染器 + 设计器 + `/kit` 组件作者 SDK（多入口 `index` / `designer` / `kit`） | `@x-ac/design-core` | `vue`、`pinia`（仅设计器，可选） |
-| `@x-ac/design-react` | React 适配层：渲染器 + `/kit` 组件作者 SDK（多入口 `index` / `kit`） | `@x-ac/design-core` | `react` |
+| `@x-ac/web-design-core` | 协议与内核（Schema / 物料 meta / 表达式 / 校验 / 导出 / 静态 HTML）+ 框架无关的通用工具（`parsePairs` / `defineAdapter` / `prefixedComponents` / `bindModel`）+ `UiEventPayload` 事件协议与 `loadPageData` 数据源取数 | 无 | 无 |
+| `@x-ac/web-design-vue` | Vue 适配层：渲染器 + 设计器 + `/kit` 组件作者 SDK（多入口 `index` / `designer` / `kit`） | `@x-ac/web-design-core` | `vue`、`pinia`（仅设计器，可选） |
+| `@x-ac/web-design-react` | React 适配层：渲染器 + `/kit` 组件作者 SDK（多入口 `index` / `kit`） | `@x-ac/web-design-core` | `react` |
 
 私有包 `vue-design-workspace`（根）、`vue-example`、`react-example` 不参与发布，版本号独立。
 
@@ -16,11 +16,11 @@
 
 | 扩展仓 | 运行时 import | peerDependencies |
 |---|---|---|
-| `design-vue-element-plus` | `@x-ac/design-vue/kit`（`defineVueAdapter` / `createDesignerKit` / `useFieldModel`）+ `@x-ac/design-core` | `@x-ac/design-core`、`@x-ac/design-vue`、`vue`、`element-plus` |
-| 后续 `vue-icon-xxxx` | 同上 | `@x-ac/design-core`、`@x-ac/design-vue`、`vue`、图标库 |
-| 后续 `react-ant` | `@x-ac/design-react/kit`（`defineReactAdapter`）+ `@x-ac/design-core` | `@x-ac/design-core`、`@x-ac/design-react`、`react`、`antd` |
+| `web-design-vue-element-plus` | `@x-ac/web-design-vue/kit`（`defineVueAdapter` / `createDesignerKit` / `useFieldModel`）+ `@x-ac/web-design-core` | `@x-ac/web-design-core`、`@x-ac/web-design-vue`、`vue`、`element-plus` |
+| 后续 `vue-icon-xxxx` | 同上 | `@x-ac/web-design-core`、`@x-ac/web-design-vue`、`vue`、图标库 |
+| 后续 `react-antd` | `@x-ac/web-design-react/kit`（`defineReactAdapter`）+ `@x-ac/web-design-core` | `@x-ac/web-design-core`、`@x-ac/web-design-react`、`react`、`antd` |
 
-扩展包把引擎声明为 peer 是**版本配套 + 防多副本**：`UI_ADAPTER` 注入符号由 `@x-ac/design-vue` 内部持有，扩展包不 import 它，因此不存在「扩展包与宿主各持一份 symbol」的问题；真正需要去重的是 `vue` 与 UI 库本体。`/kit` 子入口不加载 CSS / 渲染器，扩展包产物里它保持 external。扩展仓版本号与核心仓同一条版本线，发布顺序 `core → vue/react → 扩展`。
+扩展包把引擎声明为 peer 是**版本配套 + 防多副本**：`UI_ADAPTER` 注入符号由 `@x-ac/web-design-vue` 内部持有，扩展包不 import 它，因此不存在「扩展包与宿主各持一份 symbol」的问题；真正需要去重的是 `vue` 与 UI 库本体。`/kit` 子入口不加载 CSS / 渲染器，扩展包产物里它保持 external。扩展仓版本号与核心仓同一条版本线，发布顺序 `core → vue/react → 扩展`。
 
 ## 1. 版本治理脚本
 
@@ -43,7 +43,7 @@ node scripts/release.mjs publish --yes             # 真正发布（必须单独
 
 ## 2. 包名与 scope
 
-三个包已定为 `@x-ac/design-*`。发布前先确认 scope 归属：
+三个包已定为 `@x-ac/web-design-*`。发布前先确认 scope 归属：
 
 ```bash
 npm login
@@ -69,9 +69,9 @@ pnpm typecheck       # 类型检查（core / vue / react / vue-example / react-e
 pnpm build:lib       # 构建 core / vue / react
 
 # 检查 tarball 内容（不会真的发布）
-pnpm --filter @x-ac/design-core pack --pack-destination ../tmp/packs
-pnpm --filter @x-ac/design-vue pack --pack-destination ../tmp/packs
-pnpm --filter @x-ac/design-react pack --pack-destination ../tmp/packs
+pnpm --filter @x-ac/web-design-core pack --pack-destination ../tmp/packs
+pnpm --filter @x-ac/web-design-vue pack --pack-destination ../tmp/packs
+pnpm --filter @x-ac/web-design-react pack --pack-destination ../tmp/packs
 ```
 
 确认点：
@@ -102,14 +102,14 @@ node scripts/release.mjs publish --yes # 单独批准后执行
 
 ```bash
 mkdir /tmp/check && cd /tmp/check
-npm init -y && npm i @x-ac/design-core
-node -e "import('@x-ac/design-core').then(m=>console.log(Object.keys(m).length))"
+npm init -y && npm i @x-ac/web-design-core
+node -e "import('@x-ac/web-design-core').then(m=>console.log(Object.keys(m).length))"
 ```
 
 Vue / React 侧建议各跑一次 SSR 渲染：
 
 ```js
-// Vue：装 @x-ac/design-vue + 扩展仓的 @x-ac/design-vue-element-plus，并注入 adapter
+// Vue：装 @x-ac/web-design-vue + 扩展仓的 @x-ac/web-design-vue-element-plus，并注入 adapter
 const html = await renderToString(createSSRApp({ render: () => h(SchemaRenderer, { page }) }));
 // React
 const html = renderToStaticMarkup(createElement(SchemaRenderer, { page }));
@@ -129,11 +129,11 @@ const html = renderToStaticMarkup(createElement(SchemaRenderer, { page }));
 - **`workspace:*` 未改写**：只在 `pnpm publish` / `pnpm pack` 时改写；直接 `npm publish` 会失败。
 - **版本漂移**：有人手工改了单个包版本 → `build:lib` 会被 `release.mjs check` 挡住，用 `version` 统一回去。
 - **peer 版本过窄**：`element-plus: ^2.6.0`、`vue: ^3.4.0`、`react: ^18 || ^19`，升级主版本前先放宽。
-- **样式丢失**：CSS 通过 `exports["./style.css"]` 暴露，使用方需显式 `import "@x-ac/design-vue/style.css"`。
+- **样式丢失**：CSS 通过 `exports["./style.css"]` 暴露，使用方需显式 `import "@x-ac/web-design-vue/style.css"`。
 - **页面全是占位块**：宿主没注入 `UiAdapter`，用 `app.use(createVueDesign({ adapter: elementPlusAdapter }))`。
 - **设计器报缺 pinia**：pinia 是可选 peer，只有用设计器才需要安装。
 - **撤回**：`npm unpublish <pkg>@0.3.0 --force` 仅在发布 72 小时内可用，之后只能发新版本。
-- **扩展包引擎多副本**：扩展仓把 `@x-ac/design-vue`（或 `design-react`）声明为 peer；风险来自宿主与扩展各装一份**引擎包**导致 `UI_ADAPTER` symbol 不同，扩展仓自身并不 import 该 symbol。
+- **扩展包引擎多副本**：扩展仓把 `@x-ac/web-design-vue`（或 `design-react`）声明为 peer；风险来自宿主与扩展各装一份**引擎包**导致 `UI_ADAPTER` symbol 不同，扩展仓自身并不 import 该 symbol。
 - **TypeScript 暂不能升 7.x**：`typescript@7.0.2` 是 native 重写版，`exports` 已移除 `./lib/tsc`，`vue-tsc@3.3.14` 启动即报 `ERR_PACKAGE_PATH_NOT_EXPORTED`，`tsc` / `vue-tsc` 全线不可用。两仓因此停在最新 5.x（`^5.9.3`），其余依赖均为 latest。再跑 `pnpm -r up --latest` 会把它拉回 7，升级后需回改；等 vue-tsc 提供 TS 7 兼容构建再放开。
 - **Vite 8 / Vitest 5 配置**：Vite 8 用 `oxc` 取代 `esbuild`（`esbuild.jsx` 已废弃），且 SSR 环境不再自动给 `@vue/compiler-sfc` 注入 `fs`，跨文件 `defineProps<ImportedType>()` 需在 `vue()` 插件里显式传 `script.fs`；Vitest 4 起 `poolOptions` 移除，改用顶层 `fileParallelism: false`；`fsModuleCache` 会递归清 `node_modules/.vitest-cache`，受限沙箱需设 `false`。两侧 `vitest.config.ts` 已同步。
 - **本地联调**：核心仓 `tests` 用 `link:../../design-vue-element-plus` 加 vite/tsconfig 别名指向兄弟仓源码；扩展仓反向 `link:` 到本仓 `packages/core` / `packages/vue`。发版后把 `link:` 替换为版本号并移除别名，即可解绑。
@@ -154,7 +154,7 @@ git push origin v1.0.0
 ```
 
 ### 一个 job（仅发布）
-1. **publish**：装依赖 → 直接 `pnpm --filter @x-ac/design-core/@x-ac/design-vue/@x-ac/design-react build`（不经过 release.mjs）→ `pnpm test` → `pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance` 发布到 npmjs。**无需 NPM_TOKEN**：走 npm Trusted Publishing（OIDC），由 `id-token: write` 提供的临时凭证直接发布并生成 provenance。
+1. **publish**：装依赖 → 直接 `pnpm --filter @x-ac/web-design-core/@x-ac/web-design-vue/@x-ac/web-design-react build`（不经过 release.mjs）→ `pnpm test` → `pnpm -r --filter "./packages/*" publish --access public --no-git-checks --provenance` 发布到 npmjs。**无需 NPM_TOKEN**：走 npm Trusted Publishing（OIDC），由 `id-token: write` 提供的临时凭证直接发布并生成 provenance。
 
 ### 示例演示站（独立工作流）
 GitHub Pages 部署由独立的 `.github/workflows/pages.yml` 负责，与 npm 发布职责分离：
@@ -177,7 +177,7 @@ GitHub Pages 部署由独立的 `.github/workflows/pages.yml` 负责，与 npm �
 **首包前提已满足**：npm 不允许可信发布接管从未存在过的包，但已先发占位包 + 配好三个包的 Trusted Publisher，因此 1.0.0 现在即可直接走 tokenless OIDC 发布，无需任何 token。若日后 OIDC 报 `ENEEDAUTH`，先核对 npmjs 的 Trusted Publisher 的 owner / repository / Workflow 文件名是否与本仓库及 `publish.yml` 完全一致。
 
 **Trusted Publisher（已在 npmjs.com 配好，保留步骤备查）**：对每个包分别操作：
-1. 打开 `https://www.npmjs.com/package/@x-ac/design-core/access`（core / vue / react 各一次）；
+1. 打开 `https://www.npmjs.com/package/@x-ac/web-design-core/access`（core / vue / react 各一次）；
 2. 找到 Publishing access → **Add a trusted publisher** → 选 **GitHub Actions**；
 3. 填 `owner=cn-xac`、`repository=web-desgin`、`Workflow 文件名=publish.yml`、`Environment` 留空；
 4. 保存。三个包各自注册一次（monorepo 每个包独立）。

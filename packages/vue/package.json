@@ -1,5 +1,5 @@
 {
-  "name": "@x-ac/design-vue",
+  "name": "@x-ac/web-design-vue",
   "version": "1.0.0",
   "type": "module",
   "description": "Vue 3 适配层：Schema 渲染器 + 可视化设计器 + vue-* 扩展仓组件作者 SDK（/kit）",
@@ -64,7 +64,7 @@
     "typecheck": "vue-tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@x-ac/design-core": "workspace:*"
+    "@x-ac/web-design-core": "workspace:*"
   },
   "peerDependencies": {
     "pinia": "^2.1.0 || ^3.0.0 || ^4.0.0",

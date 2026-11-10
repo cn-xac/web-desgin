@@ -11,7 +11,7 @@ import type {
   UiAdapter,
   UiEventHook,
   UiEventPayload,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 import {
   createEmptyPage,
   createRegistry,
@@ -20,7 +20,7 @@ import {
   migratePage,
   validateData,
   validateNodeField,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 import { SchemaNode } from "./SchemaNode";
 import { RenderContext, BINDING_BASE } from "./context";
 import type { RenderContextValue, RenderMode, RendererDesignerScene } from "./context";

@@ -4,9 +4,9 @@ import { act, createRef } from "react";
 import type { RefObject } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { SchemaRenderer } from "@x-ac/design-react";
-import type { SchemaRendererHandle } from "@x-ac/design-react";
-import type { NodeSchema, PageSchema } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-react";
+import type { SchemaRendererHandle } from "@x-ac/web-design-react";
+import type { NodeSchema, PageSchema } from "@x-ac/web-design-core";
 
 // 覆盖 React 侧的「按组件ID自动绑定」与「子表单（含嵌套）」，与 EP 的 vue 用例对齐。
 // 子表单物料 ec-subform、字段控件 input 均来自 core 协议清单（nativeAdapter.materials 已含）。

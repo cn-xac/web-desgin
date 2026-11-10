@@ -35,20 +35,20 @@ export default defineConfig({
     dedupe: ["vue", "element-plus"],
     // 顺序敏感：前缀更具体的别名必须放在前面
     alias: [
-      { find: "@x-ac/design-core", replacement: r("./packages/core/src/index.ts") },
+      { find: "@x-ac/web-design-core", replacement: r("./packages/core/src/index.ts") },
       // 顺序敏感：子路径必须先于包别名
-      { find: "@x-ac/design-react/kit", replacement: r("./packages/react/src/kit.ts") },
-      { find: "@x-ac/design-react/designer", replacement: r("./packages/react/src/designer.ts") },
-      { find: "@x-ac/design-react", replacement: r("./packages/react/src/index.ts") },
-      // 扩展仓基于适配层 SDK 子入口；必须在 @x-ac/design-vue 之前匹配
-      { find: "@x-ac/design-vue/kit", replacement: r("./packages/vue/src/kit.ts") },
+      { find: "@x-ac/web-design-react/kit", replacement: r("./packages/react/src/kit.ts") },
+      { find: "@x-ac/web-design-react/designer", replacement: r("./packages/react/src/designer.ts") },
+      { find: "@x-ac/web-design-react", replacement: r("./packages/react/src/index.ts") },
+      // 扩展仓基于适配层 SDK 子入口；必须在 @x-ac/web-design-vue 之前匹配
+      { find: "@x-ac/web-design-vue/kit", replacement: r("./packages/vue/src/kit.ts") },
       // 扩展包已拆到兄弟仓库 design-vue-element-plus，本地联调直接吃它的源码；
       // CI 干净环境没有它，别名回退到仓库内 stub（仅提供最小兼容导出）。
       ...(hasEp
-        ? [{ find: "@x-ac/design-vue-element-plus", replacement: r("../design-vue-element-plus/src/index.ts") }]
-        : [{ find: "@x-ac/design-vue-element-plus", replacement: r("./tests/fixtures/element-plus-stub.ts") }]),
-      { find: "@x-ac/design-vue/designer", replacement: r("./packages/vue/src/designer.ts") },
-      { find: "@x-ac/design-vue", replacement: r("./packages/vue/src/index.ts") },
+        ? [{ find: "@x-ac/web-design-vue-element-plus", replacement: r("../design-vue-element-plus/src/index.ts") }]
+        : [{ find: "@x-ac/web-design-vue-element-plus", replacement: r("./tests/fixtures/element-plus-stub.ts") }]),
+      { find: "@x-ac/web-design-vue/designer", replacement: r("./packages/vue/src/designer.ts") },
+      { find: "@x-ac/web-design-vue", replacement: r("./packages/vue/src/index.ts") },
       { find: "@/designer", replacement: r("./packages/vue/src/designer") },
       { find: "@/renderer", replacement: r("./packages/vue/src/renderer") },
       { find: "@/materials", replacement: r("./packages/vue/src/materials") },

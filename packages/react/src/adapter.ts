@@ -14,8 +14,8 @@
  * ```
  */
 import type { ComponentType } from "react";
-import type { UiAdapter } from "@x-ac/design-core";
-import { MATERIALS } from "@x-ac/design-core";
+import type { UiAdapter } from "@x-ac/web-design-core";
+import { MATERIALS } from "@x-ac/web-design-core";
 import { defaultAdapter } from "./actions";
 import { COMPONENTS, type ControlProps } from "./components";
 import { defineReactAdapter } from "./kit";

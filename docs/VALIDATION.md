@@ -68,7 +68,7 @@
 ## 3. 运行时 API
 
 ```ts
-import { validateData, validateNodeField, describeField, valueLength } from "@x-ac/design-core";
+import { validateData, validateNodeField, describeField, valueLength } from "@x-ac/web-design-core";
 
 // 整页
 const errors: Record<string, string> = {};      // nodeId -> 文案，可直接给渲染器
@@ -109,7 +109,7 @@ ref.current?.getData();
 ## 4. 数据导出
 
 ```ts
-import { exportData, toDataJSON } from "@x-ac/design-core";
+import { exportData, toDataJSON } from "@x-ac/web-design-core";
 
 const result = exportData(page, scope);
 // {

@@ -5,11 +5,11 @@
  */
 import { computed, inject } from "vue";
 import type { CSSProperties, Component } from "vue";
-import type { NodeSchema } from "@x-ac/design-core";
-import { DEFAULT_BINDING, camelizeEventName, createEventPayload, materialKey, runEventHooks } from "@x-ac/design-core";
+import type { NodeSchema } from "@x-ac/web-design-core";
+import { DEFAULT_BINDING, camelizeEventName, createEventPayload, materialKey, runEventHooks } from "@x-ac/web-design-core";
 import FieldShell from "./FieldShell.vue";
 import SchemaSubForm from "./SchemaSubForm.vue";
-import { extractPath, getByPath, isBindable, isRequired, resolveBoolean, resolveNodeStyle, resolveValue, setByPath } from "@x-ac/design-core";
+import { extractPath, getByPath, isBindable, isRequired, resolveBoolean, resolveNodeStyle, resolveValue, setByPath } from "@x-ac/web-design-core";
 import { BINDING_BASE, DESIGNER_SCENE, RENDER_CONTEXT, useUiAdapter } from "./context";
 import { useMaterialCatalog } from "../materials/catalog";
 import { runNodeActions } from "./runActions";

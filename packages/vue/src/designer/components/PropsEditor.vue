@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, type Component } from "vue";
-import type { PropField, PropFieldGroup } from "@x-ac/design-core";
-import { FIELD_GROUP_LABELS, fieldOptions, groupFields } from "@x-ac/design-core";
+import type { PropField, PropFieldGroup } from "@x-ac/web-design-core";
+import { FIELD_GROUP_LABELS, fieldOptions, groupFields } from "@x-ac/web-design-core";
 import UiControl from "../ui/UiControl.vue";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";

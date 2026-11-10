@@ -1,4 +1,4 @@
-import type { PageSchema } from "@x-ac/design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
 /**
  * 内置模板（原 apps/playground/src/data/templates.ts，精简 apps 时迁入 tests/fixtures）。
  * 模板本身遵守「默认值不落库」，可作为 Schema 书写范本。

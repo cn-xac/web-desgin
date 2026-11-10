@@ -4,9 +4,9 @@
 
 | 包 | 角色 | 关键导出 |
 |---|---|---|
-| `@x-ac/design-core` | 框架无关内核 | `PageSchema` / `NodeSchema` 类型、`registerMaterials`、`defineAdapter` / `defineVueAdapter` / `defineReactAdapter`、`validatePage`、`toJSON` / `toHtml`、`UiEventPayload`、`loadPageData` |
-| `@x-ac/design-vue` | Vue 适配层 | `SchemaRenderer` / `createVueDesign`、`nativeAdapter`（经 `/kit`）、`/designer` 子入口、`/style.css` |
-| `@x-ac/design-react` | React 适配层 | `SchemaRenderer`、`nativeAdapter`、`/kit` 子入口、`/style.css` |
+| `@x-ac/web-design-core` | 框架无关内核 | `PageSchema` / `NodeSchema` 类型、`registerMaterials`、`defineAdapter` / `defineVueAdapter` / `defineReactAdapter`、`validatePage`、`toJSON` / `toHtml`、`UiEventPayload`、`loadPageData` |
+| `@x-ac/web-design-vue` | Vue 适配层 | `SchemaRenderer` / `createVueDesign`、`nativeAdapter`（经 `/kit`）、`/designer` 子入口、`/style.css` |
+| `@x-ac/web-design-react` | React 适配层 | `SchemaRenderer`、`nativeAdapter`、`/kit` 子入口、`/style.css` |
 
 固定**单版本组**：三包永远同一版本号（当前 `1.0.0`）。
 
@@ -28,8 +28,8 @@
 
 ```ts
 // examples/native/materials.ts
-import { MATERIALS, registerMaterials } from "@x-ac/design-core";
-import { defineVueAdapter, VUE_BINDING } from "@x-ac/design-vue/kit";
+import { MATERIALS, registerMaterials } from "@x-ac/web-design-core";
+import { defineVueAdapter, VUE_BINDING } from "@x-ac/web-design-vue/kit";
 import NativeButton from "./NativeButton.vue";
 
 // 1) 收敛「组件表 + 绑定通道」（VUE_BINDING = modelValue / update:modelValue）
@@ -59,8 +59,8 @@ export const demoAdapter = registerMaterials(nativeAdapter, [
 <!-- examples/native/NativeExample.vue -->
 <script setup lang="ts">
 import { ref } from "vue";
-import { SchemaRenderer } from "@x-ac/design-vue";
-import { toJSON } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-vue";
+import { toJSON } from "@x-ac/web-design-core";
 import { demoAdapter } from "./materials";
 
 const page = {
@@ -87,8 +87,8 @@ function onNodeEvent(payload: { name: string }) {
 
 ```tsx
 // examples/native/materials.tsx
-import { registerMaterials } from "@x-ac/design-core";
-import { nativeAdapter } from "@x-ac/design-react";
+import { registerMaterials } from "@x-ac/web-design-core";
+import { nativeAdapter } from "@x-ac/web-design-react";
 import { NativeButton } from "./NativeButton";
 
 export const demoAdapter = registerMaterials(nativeAdapter, [
@@ -108,8 +108,8 @@ export const demoAdapter = registerMaterials(nativeAdapter, [
 ```tsx
 // examples/native/NativeExample.tsx
 import { useState } from "react";
-import { SchemaRenderer } from "@x-ac/design-react";
-import { toJSON } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-react";
+import { toJSON } from "@x-ac/web-design-core";
 import { demoAdapter } from "./materials";
 
 const page = {

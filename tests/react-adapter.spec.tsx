@@ -19,10 +19,10 @@ import {
   SchemaRenderer,
   nativeAdapter,
   registerMaterials,
-} from "@x-ac/design-react";
-import type { ControlProps, ReactMaterial, SchemaRendererHandle, UiAdapter } from "@x-ac/design-react";
-import { missingComponents } from "@x-ac/design-core";
-import type { PageSchema } from "@x-ac/design-core";
+} from "@x-ac/web-design-react";
+import type { ControlProps, ReactMaterial, SchemaRendererHandle, UiAdapter } from "@x-ac/web-design-react";
+import { missingComponents } from "@x-ac/web-design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 /* ---------------- 自研 React 组件：只用 ControlProps，不依赖任何 UI 库 ---------------- */
 

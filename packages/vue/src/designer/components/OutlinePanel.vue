@@ -7,7 +7,7 @@
  * 画布点 → 树自动展开祖先并滚到对应行。
  */
 import { computed, nextTick, ref, watch } from "vue";
-import { getBreadcrumb } from "@x-ac/design-core";
+import { getBreadcrumb } from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
 import OutlineTree from "./OutlineTree.vue";
 

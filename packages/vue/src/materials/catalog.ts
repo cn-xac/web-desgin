@@ -8,7 +8,7 @@
  * 返回值是不可变的查询对象，按 materials 数组引用缓存（adapter 是应用级单例）。
  */
 import { inject } from "vue";
-import { createRegistry, MATERIALS, type Material, type MaterialRegistry } from "@x-ac/design-core";
+import { createRegistry, MATERIALS, type Material, type MaterialRegistry } from "@x-ac/web-design-core";
 import { UI_ADAPTER } from "../renderer/context";
 
 const cache = new WeakMap<Material[], MaterialRegistry>();

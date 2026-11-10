@@ -18,9 +18,9 @@ import {
   missingComponents,
   registerMaterials,
   type UiAdapter,
-} from "@x-ac/design-core";
-import { SchemaRenderer, UI_ADAPTER } from "@x-ac/design-vue";
-import { elementPlusAdapter } from "@x-ac/design-vue-element-plus";
+} from "@x-ac/web-design-core";
+import { SchemaRenderer, UI_ADAPTER } from "@x-ac/web-design-vue";
+import { elementPlusAdapter } from "@x-ac/web-design-vue-element-plus";
 import { useDesignerStore } from "@/designer/store";
 import PropsEditor from "@/designer/components/PropsEditor.vue";
 import PalettePanel from "@/designer/components/PalettePanel.vue";

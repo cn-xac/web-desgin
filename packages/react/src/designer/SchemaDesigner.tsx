@@ -3,7 +3,7 @@
  *
  * 标签即用：
  *   <SchemaDesigner pageId="p1" onSaved={...} ref={ref} />
- *   import { SchemaDesigner } from "@x-ac/design-react/designer";
+ *   import { SchemaDesigner } from "@x-ac/web-design-react/designer";
  *
  * 状态机来自 core 的 DesignerStore，与 Vue 设计器完全同源；本组件只负责
  * React 的订阅（useSyncExternalStore）、快捷键、文件导入导出与布局。
@@ -26,8 +26,8 @@ import {
   migratePage,
   toHtml,
   validatePage,
-} from "@x-ac/design-core";
-import type { DeviceType, PageRepository, PageSchema } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import type { DeviceType, PageRepository, PageSchema } from "@x-ac/web-design-core";
 import { useUiAdapter } from "../provider";
 import { DesignerContext } from "./context";
 import type { DesignerContextValue } from "./context";

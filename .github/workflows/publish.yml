@@ -6,7 +6,7 @@
 #
 # 说明：
 #   - 不用 scripts/release.mjs，直接 pnpm 发布当前 package.json 里的版本（即 latest）。
-#   - 三个可发布包（@x-ac/design-core / @x-ac/design-vue / @x-ac/design-react）
+#   - 三个可发布包（@x-ac/web-design-core / @x-ac/web-design-vue / @x-ac/web-design-react）
 #     走固定单版本组，永远共用一个版本号。
 #   - 发布走 npm Trusted Publishing（OIDC）：**不需要 NPM_TOKEN**，GitHub Actions
 #     用 OIDC 临时凭证直接发布，并生成「Built and signed with provenance」徽章。
@@ -68,9 +68,9 @@ jobs:
       # 直接构建三库（不调用 scripts/release.mjs）
       - name: Build libraries
         run: |
-          pnpm --filter @x-ac/design-core build
-          pnpm --filter @x-ac/design-vue build
-          pnpm --filter @x-ac/design-react build
+          pnpm --filter @x-ac/web-design-core build
+          pnpm --filter @x-ac/web-design-vue build
+          pnpm --filter @x-ac/web-design-react build
 
       - name: Test
         run: pnpm test

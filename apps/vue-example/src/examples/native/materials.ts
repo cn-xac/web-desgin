@@ -1,5 +1,5 @@
-import { MATERIALS, registerMaterials } from "@x-ac/design-core";
-import { defineVueAdapter, VUE_BINDING } from "@x-ac/design-vue/kit";
+import { MATERIALS, registerMaterials } from "@x-ac/web-design-core";
+import { defineVueAdapter, VUE_BINDING } from "@x-ac/web-design-vue/kit";
 import NativeHeading from "./NativeHeading.vue";
 import NativeInput from "./NativeInput.vue";
 import NativeButton from "./NativeButton.vue";

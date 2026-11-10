@@ -15,7 +15,7 @@
  * 这样「以 stub 为基座注册自定义物料 / 校验 / 物料面板」等用例在 CI 下仍
  * 能跑出真实行为，只有断言 EP 专有物料数量的用例才需要跳过。
  */
-import { MATERIALS, type Material } from "@x-ac/design-core";
+import { MATERIALS, type Material } from "@x-ac/web-design-core";
 
 /** CI 干净环境下恒为 false；本地联调（兄弟仓存在）由 vitest define 注入 true。 */
 export const HAS_ELEMENT_PLUS = false;

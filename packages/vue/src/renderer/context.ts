@@ -1,5 +1,5 @@
 import { inject, type InjectionKey } from "vue";
-import type { NodeSchema, Material, PageSchema, UiAdapter, UiEventHook, UiEventPayload } from "@x-ac/design-core";
+import type { NodeSchema, Material, PageSchema, UiAdapter, UiEventHook, UiEventPayload } from "@x-ac/web-design-core";
 
 /** 渲染上下文：动作执行、字段校验、跨页跳转都从这里拿 */
 export interface RenderContext {

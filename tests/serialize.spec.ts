@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { compactNode, compactPage } from "@x-ac/design-core";
-import type { PageSchema } from "@x-ac/design-core";
-import { migratePage } from "@x-ac/design-core";
+import { compactNode, compactPage } from "@x-ac/web-design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
+import { migratePage } from "@x-ac/web-design-core";
 
 const samplePath = new URL("./fixtures/sample-employee.json", import.meta.url);
 

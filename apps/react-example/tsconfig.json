@@ -15,9 +15,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@x-ac/design-core": ["../../packages/core/src/index.ts"],
-      "@x-ac/design-react": ["../../packages/react/src/index.ts"],
-      "@x-ac/design-react/kit": ["../../packages/react/src/kit.ts"]
+      "@x-ac/web-design-core": ["../../packages/core/src/index.ts"],
+      "@x-ac/web-design-react": ["../../packages/react/src/index.ts"],
+      "@x-ac/web-design-react/kit": ["../../packages/react/src/kit.ts"]
     }
   },
   "include": ["src"]

@@ -1,5 +1,5 @@
 /*
- * @x-ac/design-react/designer 样式（由 Vue 设计器样式同步生成，勿手工逐行改）。
+ * @x-ac/web-design-react/designer 样式（由 Vue 设计器样式同步生成，勿手工逐行改）。
  * 令牌 + 控件 + 面板 + 画布节点外壳，全部使用自有 --wb-* / wbd-* / ux-* 前缀，
  * 不依赖任何具体 UI 库；宿主可覆盖 CSS 变量换肤。
  */

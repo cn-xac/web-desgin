@@ -5,7 +5,7 @@
  * 设计器的按钮、输入框、下拉也是 Element Plus；换成别的库同理，引擎不改一行。
  */
 import { inject, type Component } from "vue";
-import { DESIGNER_SLOTS, type DesignerKit, type DesignerSlot, type UiAdapter } from "@x-ac/design-core";
+import { DESIGNER_SLOTS, type DesignerKit, type DesignerSlot, type UiAdapter } from "@x-ac/web-design-core";
 import { UI_ADAPTER } from "../../renderer/context";
 import {
   NativeButton,
@@ -53,7 +53,7 @@ function warnMissingDesignerKit(adapter: UiAdapter<unknown> | null): void {
   warnedAdapters.add(adapter);
   // eslint-disable-next-line no-console
   console.warn(
-    `[@x-ac/design-vue] 适配包「${adapter.name}」未注册 designer kit：` +
+    `[@x-ac/web-design-vue] 适配包「${adapter.name}」未注册 designer kit：` +
       `设计器控件已回落到内置原生实现（功能仍可用），但属性设置面板与运行时 UI 库观感不一致。` +
       `请在 defineVueAdapter({ ..., designer: createDesignerKit({ Button, Input, Select, ... }) }) 中补齐。`,
   );

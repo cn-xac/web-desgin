@@ -6,8 +6,8 @@ import {
   validateData,
   validateFieldValue,
   valueLength,
-} from "@x-ac/design-core";
-import type { NodeSchema, PageSchema, ValidationRule } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import type { NodeSchema, PageSchema, ValidationRule } from "@x-ac/web-design-core";
 
 function page(children: NodeSchema[], state: Record<string, unknown> = {}): PageSchema {
   return { schemaVersion: "1.0.0", id: "p_test", type: "page", meta: { title: "校验测试" }, state, children };

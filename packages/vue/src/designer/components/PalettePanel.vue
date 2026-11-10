@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, ref } from "vue";
-import { materialKey } from "@x-ac/design-core";
+import { materialKey } from "@x-ac/web-design-core";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { UI_ADAPTER } from "../../renderer/context";
 import { useDesignerStore } from "../store";

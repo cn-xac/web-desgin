@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { describeExport, exportData, toDataJSON } from "@x-ac/design-core";
-import type { NodeSchema, PageSchema, ValidationRule } from "@x-ac/design-core";
+import { describeExport, exportData, toDataJSON } from "@x-ac/web-design-core";
+import type { NodeSchema, PageSchema, ValidationRule } from "@x-ac/web-design-core";
 
 function page(children: NodeSchema[], state: Record<string, unknown> = {}): PageSchema {
   return { schemaVersion: "1.0.0", id: "p_data", type: "page", meta: { title: "数据导出" }, state, children };

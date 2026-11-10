@@ -10,9 +10,9 @@ import { describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 import type { Component } from "vue";
-import { SchemaRenderer } from "@x-ac/design-vue";
-import { MATERIALS } from "@x-ac/design-core";
-import type { PageSchema, UiAdapter } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-vue";
+import { MATERIALS } from "@x-ac/web-design-core";
+import type { PageSchema, UiAdapter } from "@x-ac/web-design-core";
 
 /** 只声明驼峰属性，用来观察 Schema 里的通用名有没有被别名改写 */
 const AliasInput = defineComponent({

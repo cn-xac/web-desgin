@@ -1,4 +1,4 @@
-import type { ControlProps } from "@x-ac/design-react";
+import type { ControlProps } from "@x-ac/web-design-react";
 
 const str = (v: unknown) => (v === undefined || v === null ? "" : String(v));
 

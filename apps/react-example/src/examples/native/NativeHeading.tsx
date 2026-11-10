@@ -1,7 +1,7 @@
-import type { ControlProps } from "@x-ac/design-react";
+import type { ControlProps } from "@x-ac/web-design-react";
 
 // 原生展示组件：零 UI 库依赖，仅用原生标签。
-// ControlProps 来自 @x-ac/design-react，value/children/text 等均通过索引签名透传。
+// ControlProps 来自 @x-ac/web-design-react，value/children/text 等均通过索引签名透传。
 export function NativeHeading(props: ControlProps) {
   const text = (props.text as string) ?? String(props.value ?? props.children ?? "");
   const level = (props.level as 1 | 2 | 3) ?? 2;

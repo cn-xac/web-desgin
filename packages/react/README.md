@@ -1,22 +1,22 @@
-# @x-ac/design-react
+# @x-ac/web-design-react
 
-React 适配层：用同一份 `PageSchema` 渲染页面，内置表单校验与数据导出，并给 `react-*` 扩展仓提供组件作者 SDK（`@x-ac/design-react/kit`）。
+React 适配层：用同一份 `PageSchema` 渲染页面，内置表单校验与数据导出，并给 `react-*` 扩展仓提供组件作者 SDK（`@x-ac/web-design-react/kit`）。
 
 没有绑定任何 UI 库——默认映射到原生元素（input / select / table / button），所以只有 4 KB gzip；要换 antd / MUI，用 `/kit` 组装独立扩展仓即可。
 
 ## 安装
 
 ```bash
-pnpm add @x-ac/design-react @x-ac/design-core react react-dom
+pnpm add @x-ac/web-design-react @x-ac/web-design-core react react-dom
 ```
 
 ## 用法
 
 ```tsx
 import { useRef } from "react";
-import { SchemaRenderer } from "@x-ac/design-react";
-import type { SchemaRendererHandle } from "@x-ac/design-react";
-import "@x-ac/design-react/style.css";
+import { SchemaRenderer } from "@x-ac/web-design-react";
+import type { SchemaRendererHandle } from "@x-ac/web-design-react";
+import "@x-ac/web-design-react/style.css";
 
 export function Form({ page }: { page: PageSchema }) {
   const ref = useRef<SchemaRendererHandle>(null);
@@ -53,8 +53,8 @@ export function Form({ page }: { page: PageSchema }) {
 Vue 侧用 `app.use(createVueDesign({ adapter }))` 一次注入，整棵组件树共用一份适配包；React 侧用 Context 表达同一语义：
 
 ```tsx
-import { ReactDesignProvider, SchemaRenderer } from "@x-ac/design-react";
-import { antAdapter } from "@x-ac/design-react-ant";  // 未来的独立扩展仓
+import { ReactDesignProvider, SchemaRenderer } from "@x-ac/web-design-react";
+import { antAdapter } from "@x-ac/web-design-react-antd";  // 未来的独立扩展仓
 
 export function App() {
   return (
@@ -101,7 +101,7 @@ const DesignProvider = createReactDesign(antAdapter);
 **推荐做法**：用扩展仓提供的 `UiAdapter`，或 `registerMaterials()` 做不可变组合，在应用根部注入一次：
 
 ```tsx
-import { ReactDesignProvider, SchemaRenderer, nativeAdapter, registerMaterials } from "@x-ac/design-react";
+import { ReactDesignProvider, SchemaRenderer, nativeAdapter, registerMaterials } from "@x-ac/web-design-react";
 
 const adapter = registerMaterials(nativeAdapter, [
   { component: "biz-rate", title: "满意度", impl: BizRate, fields: [{ key: "text", label: "文案", type: "text" }] },
@@ -115,7 +115,7 @@ const adapter = registerMaterials(nativeAdapter, [
 **最小改动兼容做法**：直接改内置映射表。全局可变，SSR 多请求与并行测试有串味风险，不建议用于生产。
 
 ```tsx
-import { COMPONENTS } from "@x-ac/design-react";
+import { COMPONENTS } from "@x-ac/web-design-react";
 COMPONENTS.input = (props) => <Input {...props} />;
 ```
 
@@ -123,10 +123,10 @@ COMPONENTS.input = (props) => <Input {...props} />;
 
 ## 给 react-* 扩展仓用的适配层 SDK
 
-`react-*` 扩展仓（未来的 `react-ant` 等）基于 `/kit` 子入口实现，与 Vue 侧 `@x-ac/design-vue/kit` 对称：
+`react-*` 扩展仓（未来的 `react-antd` 等）基于 `/kit` 子入口实现，与 Vue 侧 `@x-ac/web-design-vue/kit` 对称：
 
 ```tsx
-import { defineReactAdapter, useFieldModel, REACT_BINDING } from "@x-ac/design-react/kit";
+import { defineReactAdapter, useFieldModel, REACT_BINDING } from "@x-ac/web-design-react/kit";
 
 export const antAdapter = defineReactAdapter({
   name: "antd",
@@ -137,7 +137,7 @@ export const antAdapter = defineReactAdapter({
 });
 ```
 
-`/kit` 是纯 TS 子入口，不加载 `styles.css` 与渲染器 Context；框架无关的协议与工具统一在 `@x-ac/design-core`。`nativeAdapter` 本身也由 `defineReactAdapter` 组装，可作为扩展仓的基座。
+`/kit` 是纯 TS 子入口，不加载 `styles.css` 与渲染器 Context；框架无关的协议与工具统一在 `@x-ac/web-design-core`。`nativeAdapter` 本身也由 `defineReactAdapter` 组装，可作为扩展仓的基座。
 
 **四个可选协议字段由渲染器 / 设计器真实消费**：`provider` 作为外层上下文包装（主题 / 语言 / 消息），配置后包住整棵渲染树，未配置时不产生额外 DOM；`propAliases` 把 Schema 通用属性名映射成 UI 库真实属性名（如 `{ maxlength: "maxLength" }`），只作用于透传给组件的普通属性，不碰绑定通道与事件名；`designer` 的 7 个控件槽位（`Button` / `Input` / `NumberInput` / `Select` / `Switch` / `Segmented` / `ColorInput`）与 `notify` 决定设计器自身的观感；`editors` 按 `PropFieldType` 覆盖属性面板的字段编辑器。
 
@@ -155,8 +155,8 @@ export const antAdapter = defineReactAdapter({
 | `onNodeEvent={fn}` | 埋点 / 日志 / 镜像状态，只读不干预 | 否 |
 
 ```tsx
-import { SchemaRenderer } from "@x-ac/design-react";
-import type { UiEventPayload } from "@x-ac/design-react";
+import { SchemaRenderer } from "@x-ac/web-design-react";
+import type { UiEventPayload } from "@x-ac/web-design-react";
 
 function onEvent(p: UiEventPayload): void | false {
   const [row] = p.args as [{ id: number }?];
@@ -190,9 +190,9 @@ ref API：`validate()` / `getData()` / `exportData()` / `getErrors()` / `reset()
 `/designer` 是独立子入口，主入口 `index.js` 不会因此变重（约 1.3 kB，设计器约 55 kB / gzip 14.7 kB）：
 
 ```tsx
-import { SchemaDesigner } from "@x-ac/design-react/designer";
-import type { SchemaDesignerHandle } from "@x-ac/design-react/designer";
-import { createMemoryRepository } from "@x-ac/design-core";
+import { SchemaDesigner } from "@x-ac/web-design-react/designer";
+import type { SchemaDesignerHandle } from "@x-ac/web-design-react/designer";
+import { createMemoryRepository } from "@x-ac/web-design-core";
 
 const repo = createMemoryRepository([page]);
 
@@ -209,15 +209,15 @@ const repo = createMemoryRepository([page]);
 - **ref API**：`exportSchema()` / `exportHtml()` / `importSchema(json)` / `save()`。导入会走 `migratePage` → `validatePage(knownComponents)` → 可撤销替换。
 - **四栏**：物料面板（搜索 / 分类 / 置灰未实现物料 / 点击或拖拽添加）、组件树（展开 / 悬停 / 拖拽调层级 / 行内复制删除）、画布（设备宽度 / 选中 / 拖拽落点）、检查器（属性 / 样式 / 校验 / 事件 / Schema，未选中时为页面设置）。
 - **顶栏**：撤销重做、脏标记、节点数、导入导出 JSON / HTML、预览、保存；快捷键 `Ctrl+Z/Y/S/D/C/V`、`Delete`、`Esc`，关闭前脏检查。
-- **状态机**：`@x-ac/design-core` 的 `DesignerStore`，Vue 的 `/designer` 与这里共用同一份实现（撤销栈、拖拽落点、属性编辑、导入导出、仓储），差别只在订阅方式（pinia vs `useSyncExternalStore`）。设计态画布通过 `RendererDesignerScene` 注入，运行时 `design=false` 不产生任何额外 DOM。
+- **状态机**：`@x-ac/web-design-core` 的 `DesignerStore`，Vue 的 `/designer` 与这里共用同一份实现（撤销栈、拖拽落点、属性编辑、导入导出、仓储），差别只在订阅方式（pinia vs `useSyncExternalStore`）。设计态画布通过 `RendererDesignerScene` 注入，运行时 `design=false` 不产生任何额外 DOM。
 
-`apps/react-example` 里是最小用法演示（基于 `@x-ac/design-react` + `@x-ac/design-core` 注册原生组件，`SchemaRenderer` 数据绑定与 `onNodeEvent` 事件通知），完整的设计器切换示例已随 `apps/react-demo` 一并精简移除。
+`apps/react-example` 里是最小用法演示（基于 `@x-ac/web-design-react` + `@x-ac/web-design-core` 注册原生组件，`SchemaRenderer` 数据绑定与 `onNodeEvent` 事件通知），完整的设计器切换示例已随 `apps/react-demo` 一并精简移除。
 
 ## 与 Vue 版差异
 
 | 项 | Vue | React |
 |---|---|---|
-| 扩展仓 SDK | `@x-ac/design-vue/kit`：`defineVueAdapter` / `useFieldModel` | `@x-ac/design-react/kit`：`defineReactAdapter` / `useFieldModel` |
+| 扩展仓 SDK | `@x-ac/web-design-vue/kit`：`defineVueAdapter` / `useFieldModel` | `@x-ac/web-design-react/kit`：`defineReactAdapter` / `useFieldModel` |
 | 适配包注入 | `app.use(createVueDesign({ adapter }))` + `UI_ADAPTER` InjectionKey | `<ReactDesignProvider adapter>` / `createReactDesign()` + `UI_ADAPTER_CONTEXT` |
 | 事件钩子 | `:on-event` / `@node-event`（只读通知） | `onEvent` / `onNodeEvent` prop |
 | 外部数据 | `v-model:data` / `@submit` | `data` + `onDataChange` / `onSubmit` |
@@ -225,7 +225,7 @@ const repo = createMemoryRepository([page]);
 | 双向绑定 | `modelValue` + `@update:modelValue` | `value` + `onChange` |
 | 响应式 | `reactive(scope)` 自动重渲染 | 手动 `flush()`（core 的 `setByPath` 只改对象） |
 | 失焦校验 | 外层 `focusout` 冒泡，不依赖 UI 库派发 blur | 字段外壳 `onBlur`（React 由 focusout 模拟），同样不依赖控件转发 |
-| 设计器 | `@x-ac/design-vue/designer`：`SchemaDesigner` + pinia store | `@x-ac/design-react/designer`：`SchemaDesigner` + `useSyncExternalStore`，共用 core `DesignerStore` |
+| 设计器 | `@x-ac/web-design-vue/designer`：`SchemaDesigner` + pinia store | `@x-ac/web-design-react/designer`：`SchemaDesigner` + `useSyncExternalStore`，共用 core `DesignerStore` |
 | 设计器控件契约 | `modelValue` + `update:modelValue` | `value` + `onChange(value)` |
 | 设计器样式 | `ui.css` + 组件 scoped 样式 | `designer.css`（由 Vue 样式同步生成，同一套 `--wb-*` 令牌） |
 

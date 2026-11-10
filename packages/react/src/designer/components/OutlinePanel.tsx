@@ -1,5 +1,5 @@
 import { useEffect, useState, type DragEvent } from "react";
-import { getBreadcrumb, type DropPosition, type NodeSchema } from "@x-ac/design-core";
+import { getBreadcrumb, type DropPosition, type NodeSchema } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 
 interface OutlineTreeProps {

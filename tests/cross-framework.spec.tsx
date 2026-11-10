@@ -3,8 +3,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import { renderToStaticMarkup } from "react-dom/server";
 import ElementPlus from "element-plus";
-import { SchemaRenderer as VueRenderer } from "@x-ac/design-vue";
-import { SchemaRenderer as ReactRenderer } from "@x-ac/design-react";
+import { SchemaRenderer as VueRenderer } from "@x-ac/web-design-vue";
+import { SchemaRenderer as ReactRenderer } from "@x-ac/web-design-react";
 import { createDemoPage } from "@/fixtures/createDemoPage";
 
 beforeAll(() => {

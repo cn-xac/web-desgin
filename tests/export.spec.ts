@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MATERIALS, createRegistry, registerMaterials, toHtml } from "@x-ac/design-core";
-import type { PageSchema } from "@x-ac/design-core";
+import { MATERIALS, createRegistry, registerMaterials, toHtml } from "@x-ac/web-design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 const page: PageSchema = {
   schemaVersion: "1.0.0",

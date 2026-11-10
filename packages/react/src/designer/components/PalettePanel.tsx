@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from "react";
-import { materialKey } from "@x-ac/design-core";
+import { materialKey } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
 

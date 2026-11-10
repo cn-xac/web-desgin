@@ -6,7 +6,7 @@ import ElementPlus from "element-plus";
 import DesignerView from "@/designer/DesignerView.vue";
 import { blankTemplate } from "@/data/templates";
 import { localStorageRepo, savePage } from "@/api/pageRepo";
-import { setPageRepository } from "@x-ac/design-vue/designer";
+import { setPageRepository } from "@x-ac/web-design-vue/designer";
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {

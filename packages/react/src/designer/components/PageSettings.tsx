@@ -3,7 +3,7 @@
  * 与 Vue 版 PageSettings.vue 功能对齐，差异只在受控通道 value / onChange。
  */
 import { useEffect, useState } from "react";
-import type { DeviceType, PageSchema } from "@x-ac/design-core";
+import type { DeviceType, PageSchema } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
 

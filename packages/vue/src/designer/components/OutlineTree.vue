@@ -7,7 +7,7 @@
  * 行内复制 / 删除。拖拽复用画布同一套 dropHint / applyDrop 链路，
  * 所以「从物料面板拖新组件扔到树上某一行」也是合法操作。
  */
-import type { NodeSchema } from "@x-ac/design-core";
+import type { NodeSchema } from "@x-ac/web-design-core";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 

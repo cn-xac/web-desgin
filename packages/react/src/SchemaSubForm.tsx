@@ -6,8 +6,8 @@ import {
   moveArrayItem,
   pushArrayItem,
   removeArrayItem,
-} from "@x-ac/design-core";
-import type { NodeSchema } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import type { NodeSchema } from "@x-ac/web-design-core";
 import { RenderContext, BINDING_BASE, useRenderContext } from "./context";
 import { SchemaNode } from "./SchemaNode";
 

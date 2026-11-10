@@ -2,7 +2,7 @@
  * 只读的 PageSchema 预览：复制 / 下载当前页面的紧凑 JSON。
  * 与 Vue 版 SchemaViewer.vue 功能对齐。
  */
-import { toJSON } from "@x-ac/design-core";
+import { toJSON } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
 

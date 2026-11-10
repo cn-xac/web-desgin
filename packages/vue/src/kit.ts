@@ -1,5 +1,5 @@
 /**
- * @x-ac/design-vue/kit —— Vue 扩展仓的适配层 SDK（纯净子入口）。
+ * @x-ac/web-design-vue/kit —— Vue 扩展仓的适配层 SDK（纯净子入口）。
  *
  * 给 `vue-*` 扩展仓（design-vue-element-plus、未来的 vue-icon-* / ant-design-vue）
  * 提供组件作者需要的工厂、受控通道与设计器控件归一化契约。
@@ -22,7 +22,7 @@ import {
   type BindingChannel,
   type DesignerKit,
   type UiAdapter,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 
 /** Vue 引擎认的组件实现：Vue 组件或原生标签名 */
 export type VueComponent = Component | string;
@@ -86,4 +86,4 @@ export type {
   DesignerKit,
   DesignerSlot,
   UiAdapter,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";

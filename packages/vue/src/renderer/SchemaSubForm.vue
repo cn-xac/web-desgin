@@ -8,14 +8,14 @@
  * - 设计态只渲染一个可编辑模板组，增删仅调整本地预览组数，不污染真实数据。
  */
 import { computed, inject, onMounted, provide, ref, watch } from "vue";
-import type { NodeSchema } from "@x-ac/design-core";
+import type { NodeSchema } from "@x-ac/web-design-core";
 import {
   ensureArray,
   getByPath,
   moveArrayItem,
   pushArrayItem,
   removeArrayItem,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 import { BINDING_BASE, RENDER_CONTEXT } from "./context";
 import { useMaterialCatalog } from "../materials/catalog";
 import SchemaNode from "./SchemaNode.vue";

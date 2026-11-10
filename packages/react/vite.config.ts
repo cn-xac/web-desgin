@@ -28,7 +28,7 @@ export default defineConfig({
     sourcemap: true,
     emptyOutDir: false,
     rollupOptions: {
-      external: ["react", "react-dom", "react/jsx-runtime", "@x-ac/design-core"],
+      external: ["react", "react-dom", "react/jsx-runtime", "@x-ac/web-design-core"],
       output: { entryFileNames: "[name].js", assetFileNames: "style.css" },
     },
   },

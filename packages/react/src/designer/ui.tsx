@@ -7,8 +7,8 @@
  */
 import { createElement } from "react";
 import type { ChangeEvent, ComponentType, ReactNode } from "react";
-import { DESIGNER_SLOTS } from "@x-ac/design-core";
-import type { DesignerKit, DesignerSlot, UiAdapter } from "@x-ac/design-core";
+import { DESIGNER_SLOTS } from "@x-ac/web-design-core";
+import type { DesignerKit, DesignerSlot, UiAdapter } from "@x-ac/web-design-core";
 import type { ReactMaterial } from "../adapter";
 import { useDesigner } from "./context";
 import type { DesignerNotifyType } from "./context";
@@ -205,7 +205,7 @@ function warnMissingDesignerKit(adapter: UiAdapter<ReactMaterial> | null): void 
   warnedAdapters.add(adapter);
   // eslint-disable-next-line no-console
   console.warn(
-    `[@x-ac/design-react] 适配包「${adapter.name}」未注册 designer kit：` +
+    `[@x-ac/web-design-react] 适配包「${adapter.name}」未注册 designer kit：` +
       `设计器控件已回落到内置原生实现（功能仍可用），但属性设置面板与运行时 UI 库观感不一致。` +
       `请在 defineReactAdapter({ ..., designer: createDesignerKit({ Button, Input, Select, ... }) }) 中补齐。`,
   );

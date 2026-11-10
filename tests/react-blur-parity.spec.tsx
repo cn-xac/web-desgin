@@ -7,9 +7,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { SchemaRenderer, createNativeAdapter, nativeAdapter } from "@x-ac/design-react";
-import type { ControlProps } from "@x-ac/design-react";
-import type { PageSchema } from "@x-ac/design-core";
+import { SchemaRenderer, createNativeAdapter, nativeAdapter } from "@x-ac/web-design-react";
+import type { ControlProps } from "@x-ac/web-design-react";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 /** 只接 value / onChange，明确不转发 onBlur（也不把它挂到 input 上） */
 function OpaqueInput({ value, onChange }: ControlProps) {

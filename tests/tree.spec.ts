@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { NodeSchema } from "@x-ac/design-core";
+import type { NodeSchema } from "@x-ac/web-design-core";
 import {
   cloneWithNewIds,
   countNodes,
@@ -12,7 +12,7 @@ import {
   relocateNode,
   removeNode,
   walk,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 
 const acceptsChildren = (component: string) => ["card", "grid", "container"].includes(component);
 

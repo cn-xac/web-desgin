@@ -3,8 +3,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { nextTick } from "vue";
 import { mount } from "@vue/test-utils";
 import ElementPlus from "element-plus";
-import { SchemaRenderer } from "@x-ac/design-vue";
-import type { PageSchema } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-vue";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {

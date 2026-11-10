@@ -3,10 +3,10 @@
  *
  * 标签即用：
  *   <SchemaDesigner page-id="p1" @saved="onSaved" @export-schema="onExport" />
- *   import { SchemaDesigner } from "@x-ac/design-vue/designer";
+ *   import { SchemaDesigner } from "@x-ac/web-design-vue/designer";
  *
  * 或异步拆包：
- *   const SchemaDesigner = defineAsyncComponent(() => import("@x-ac/design-vue/designer").then(m => m.SchemaDesigner));
+ *   const SchemaDesigner = defineAsyncComponent(() => import("@x-ac/web-design-vue/designer").then(m => m.SchemaDesigner));
  */
 export { default as DesignerView } from "./designer/DesignerView.vue";
 /** 设计器标签的语义化别名，与 DesignerView 等同 */

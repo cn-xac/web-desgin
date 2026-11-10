@@ -1,5 +1,5 @@
 /**
- * @x-ac/design-core —— 框架无关的搭建内核。
+ * @x-ac/web-design-core —— 框架无关的搭建内核。
  *
  * 约束（改动前请先读）：
  * 1. 本包不得 import vue / react / element-plus，也不得访问 window、document；

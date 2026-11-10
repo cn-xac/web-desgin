@@ -7,7 +7,7 @@
  * 所有组件都必须把 `style` 应用到根元素上——通用 margin / padding 依赖这一点。
  */
 import type { ComponentType, CSSProperties, ReactNode } from "react";
-import { materialKey, parseOptions, prefixedComponents } from "@x-ac/design-core";
+import { materialKey, parseOptions, prefixedComponents } from "@x-ac/web-design-core";
 
 export interface ControlProps {
   value?: unknown;

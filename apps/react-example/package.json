@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@x-ac/design-core": "workspace:*",
-    "@x-ac/design-react": "workspace:*",
+    "@x-ac/web-design-core": "workspace:*",
+    "@x-ac/web-design-react": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

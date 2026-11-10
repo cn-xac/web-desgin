@@ -8,13 +8,13 @@
  * 不在其中，校验时仅告警、不影响 valid）。
  */
 
-import type { PageSchema } from "@x-ac/design-core";
-import type { PageRepository } from "@x-ac/design-vue/designer";
-import { compactPage } from "@x-ac/design-core";
-import { createRegistry } from "@x-ac/design-core";
-import { migratePage } from "@x-ac/design-core";
-import { validatePage } from "@x-ac/design-core";
-import { elementPlusAdapter } from "@x-ac/design-vue-element-plus";
+import type { PageSchema } from "@x-ac/web-design-core";
+import type { PageRepository } from "@x-ac/web-design-vue/designer";
+import { compactPage } from "@x-ac/web-design-core";
+import { createRegistry } from "@x-ac/web-design-core";
+import { migratePage } from "@x-ac/web-design-core";
+import { validatePage } from "@x-ac/web-design-core";
+import { elementPlusAdapter } from "@x-ac/web-design-vue-element-plus";
 import { employeeOnboardTemplate, ticketTemplate } from "./templates";
 
 const STORAGE_KEY = "vue-design:pages:v1";

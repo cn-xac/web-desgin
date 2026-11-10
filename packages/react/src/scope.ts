@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import type { PageSchema } from "@x-ac/design-core";
-import { deepClone, loadPageData, setByPath } from "@x-ac/design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
+import { deepClone, loadPageData, setByPath } from "@x-ac/web-design-core";
 
 export interface PageStore {
   scope: Record<string, unknown>;

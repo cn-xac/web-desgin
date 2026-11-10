@@ -9,15 +9,15 @@ import type { ReactElement } from "react";
 import { act, createRef } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { SchemaRenderer, nativeAdapter, registerMaterials } from "@x-ac/design-react";
-import type { ControlProps, ReactMaterial, SchemaRendererHandle } from "@x-ac/design-react";
+import { SchemaRenderer, nativeAdapter, registerMaterials } from "@x-ac/web-design-react";
+import type { ControlProps, ReactMaterial, SchemaRendererHandle } from "@x-ac/web-design-react";
 import {
   type ActionSchema,
   type NodeSchema,
   type PageSchema,
   type UiAdapter,
   type UiEventPayload,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

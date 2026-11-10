@@ -7,8 +7,8 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import ElementPlus from "element-plus";
 import { defineComponent, h, nextTick } from "vue";
-import { SchemaRenderer } from "@x-ac/design-vue";
-import { elementPlusAdapter } from "@x-ac/design-vue-element-plus";
+import { SchemaRenderer } from "@x-ac/web-design-vue";
+import { elementPlusAdapter } from "@x-ac/web-design-vue-element-plus";
 import {
   camelizeEventName,
   createEventPayload,
@@ -21,7 +21,7 @@ import {
   type PageSchema,
   type UiAdapter,
   type UiEventPayload,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {

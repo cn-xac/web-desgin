@@ -7,11 +7,11 @@ import PalettePanel from "./components/PalettePanel.vue";
 import OutlinePanel from "./components/OutlinePanel.vue";
 import CanvasStage from "./components/CanvasStage.vue";
 import InspectorPanel from "./components/InspectorPanel.vue";
-import { migratePage } from "@x-ac/design-core";
-import { validatePage } from "@x-ac/design-core";
+import { migratePage } from "@x-ac/web-design-core";
+import { validatePage } from "@x-ac/web-design-core";
 import { useMaterialCatalog } from "../materials/catalog";
-import { toHtml } from "@x-ac/design-core";
-import type { DeviceType, PageSchema } from "@x-ac/design-core";
+import { toHtml } from "@x-ac/web-design-core";
+import type { DeviceType, PageSchema } from "@x-ac/web-design-core";
 import type { PageRepository } from "../persistence/repo";
 
 /**

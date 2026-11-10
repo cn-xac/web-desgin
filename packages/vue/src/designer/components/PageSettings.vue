@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import UiControl from "../ui/UiControl.vue";
-import type { DeviceType } from "@x-ac/design-core";
+import type { DeviceType } from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
 import { useNotify } from "../ui/kit";
 

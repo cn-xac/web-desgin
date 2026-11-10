@@ -24,8 +24,8 @@ import type {
   UiAdapter,
   UiEventHook,
   UiEventPayload,
-} from "@x-ac/design-core";
-import { exportData, createEmptyPage, MATERIALS, migratePage, validateData, validateNodeField } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import { exportData, createEmptyPage, MATERIALS, migratePage, validateData, validateNodeField } from "@x-ac/web-design-core";
 import SchemaNode from "./SchemaNode.vue";
 import { RENDER_CONTEXT, UI_ADAPTER } from "./context";
 import { usePageScope } from "./usePageScope";

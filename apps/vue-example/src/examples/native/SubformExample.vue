@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { SchemaRenderer } from "@x-ac/design-vue";
+import { SchemaRenderer } from "@x-ac/web-design-vue";
 import {
   validatePage,
   type NodeSchema,
   type PageSchema,
   type UiEventPayload,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 import { demoAdapter } from "./materials";
 
 /**

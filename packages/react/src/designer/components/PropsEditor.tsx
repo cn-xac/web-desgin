@@ -4,8 +4,8 @@
  */
 import { createElement, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { FIELD_GROUP_LABELS, fieldOptions, groupFields } from "@x-ac/design-core";
-import type { PropField, PropFieldGroup } from "@x-ac/design-core";
+import { FIELD_GROUP_LABELS, fieldOptions, groupFields } from "@x-ac/web-design-core";
+import type { PropField, PropFieldGroup } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
 

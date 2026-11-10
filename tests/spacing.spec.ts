@@ -10,8 +10,8 @@ import {
   resolveNodeStyle,
   spacingToCss,
   writeSpacing,
-} from "@x-ac/design-core";
-import { SchemaRenderer } from "@x-ac/design-vue";
+} from "@x-ac/web-design-core";
+import { SchemaRenderer } from "@x-ac/web-design-vue";
 
 beforeAll(() => {
   if (!("ResizeObserver" in globalThis)) {

@@ -38,7 +38,7 @@ export default defineConfig({
     // 清理由 scripts/clean-dist.mjs 负责（跨平台，不受 shell 删除限制）
     emptyOutDir: false,
     rollupOptions: {
-      external: ["vue", "pinia", "@x-ac/design-core"],
+      external: ["vue", "pinia", "@x-ac/web-design-core"],
       output: {
         entryFileNames: "[name].js",
         assetFileNames: "style.css",

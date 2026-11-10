@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { SchemaRenderer } from "@x-ac/design-react";
-import { toJSON, validatePage, type NodeSchema, type PageSchema, type UiEventPayload } from "@x-ac/design-core";
+import { SchemaRenderer } from "@x-ac/web-design-react";
+import { toJSON, validatePage, type NodeSchema, type PageSchema, type UiEventPayload } from "@x-ac/web-design-core";
 import { demoAdapter } from "./materials";
 
 // 一份演示 Schema：覆盖「按组件ID自动绑定」与「子表单（含嵌套）」。

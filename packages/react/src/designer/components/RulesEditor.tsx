@@ -10,8 +10,8 @@ import {
   getRuleDefinition,
   ruleMessage,
   ruleTypesFor,
-} from "@x-ac/design-core";
-import type { RuleType, ValidationRule } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import type { RuleType, ValidationRule } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
 

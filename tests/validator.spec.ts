@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { validatePage } from "@x-ac/design-core";
-import { KNOWN_COMPONENTS } from "@x-ac/design-core";
-import type { PageSchema } from "@x-ac/design-core";
+import { validatePage } from "@x-ac/web-design-core";
+import { KNOWN_COMPONENTS } from "@x-ac/web-design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 function basePage(): PageSchema {
   return {

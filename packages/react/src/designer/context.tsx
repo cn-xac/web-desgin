@@ -13,7 +13,7 @@ import type {
   DesignerStore,
   MaterialRegistry,
   UiAdapter,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 import type { ReactMaterial } from "../adapter";
 
 export type DesignerNotifyType = "success" | "warning" | "error" | "info";

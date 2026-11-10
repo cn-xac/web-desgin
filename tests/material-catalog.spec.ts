@@ -13,9 +13,9 @@ import {
   MATERIALS,
   resolveDefaults,
   type Material,
-} from "@x-ac/design-core";
-import { UI_ADAPTER } from "@x-ac/design-vue";
-import { elementPlusAdapter, elementPlusMaterials, EP_FIELD_PATCHES } from "@x-ac/design-vue-element-plus";
+} from "@x-ac/web-design-core";
+import { UI_ADAPTER } from "@x-ac/web-design-vue";
+import { elementPlusAdapter, elementPlusMaterials, EP_FIELD_PATCHES } from "@x-ac/web-design-vue-element-plus";
 import { useDesignerStore } from "@/designer/store";
 import PropsEditor from "@/designer/components/PropsEditor.vue";
 

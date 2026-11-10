@@ -1,12 +1,12 @@
 /**
- * @x-ac/design-vue —— 渲染器入口（轻量，不含设计器）。
+ * @x-ac/web-design-vue —— 渲染器入口（轻量，不含设计器）。
  *
  * 集成方式一（插件）：
- *   import { createVueDesign } from "@x-ac/design-vue";
+ *   import { createVueDesign } from "@x-ac/web-design-vue";
  *   app.use(createVueDesign());
  *
  * 集成方式二（按需）：
- *   import { SchemaRenderer } from "@x-ac/design-vue";
+ *   import { SchemaRenderer } from "@x-ac/web-design-vue";
  */
 import "./styles/tokens.css";
 
@@ -27,5 +27,5 @@ export {
   toHtml,
   toJSON,
   validatePage,
-} from "@x-ac/design-core";
-export type { Material, NodeSchema, PageSchema, UiAdapter } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+export type { Material, NodeSchema, PageSchema, UiAdapter } from "@x-ac/web-design-core";

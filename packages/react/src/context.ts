@@ -9,7 +9,7 @@ import type {
   UiAdapter,
   UiEventHook,
   UiEventPayload,
-} from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
 import type { ReactMaterial } from "./adapter";
 
 export type RenderMode = "view" | "edit";

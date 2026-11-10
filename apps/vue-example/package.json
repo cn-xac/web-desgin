@@ -10,8 +10,8 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@x-ac/design-core": "workspace:*",
-    "@x-ac/design-vue": "workspace:*",
+    "@x-ac/web-design-core": "workspace:*",
+    "@x-ac/web-design-vue": "workspace:*",
     "vue": "^3.5.45"
   },
   "devDependencies": {

@@ -11,8 +11,8 @@ import {
   createMemoryRepository,
   createRegistry,
   MATERIALS,
-} from "@x-ac/design-core";
-import type { PageSchema } from "@x-ac/design-core";
+} from "@x-ac/web-design-core";
+import type { PageSchema } from "@x-ac/web-design-core";
 
 function page(id = "p1"): PageSchema {
   return { ...createEmptyPage("测试页"), id, children: [] };
