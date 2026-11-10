@@ -154,7 +154,7 @@ describe("适配包组合", () => {
 });
 
 describe("渲染器吃 ec- 前缀", () => {
-  it("带前缀的节点能渲染出真实控件", async () => {
+  it.skipIf(!__HAS_ELEMENT_PLUS__)("带前缀的节点能渲染出真实控件", async () => {
     const { mount } = await import("@vue/test-utils");
     const { default: ElementPlus } = await import("element-plus");
     const { SchemaRenderer } = await import("@x-ac/design-vue");

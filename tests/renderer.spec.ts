@@ -54,7 +54,7 @@ const countText: NodeSchema = {
   props: { text: "共 {{list.length}} 条" },
 };
 
-describe("渲染器集成", () => {
+describe.skipIf(!__HAS_ELEMENT_PLUS__)("渲染器集成", () => {
   it("渲染真实 Element Plus 控件与字段外壳", () => {
     const wrapper = mountRenderer(page([nameInput], { form: { name: "" }, list: [] }));
     expect(wrapper.find("input").exists()).toBe(true);

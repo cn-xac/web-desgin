@@ -102,7 +102,7 @@ describe("渲染时应用通用间距", () => {
     expect(overridden.margin).toBe("0");
   });
 
-  it("margin / padding 落到真实 DOM", () => {
+  it.skipIf(!__HAS_ELEMENT_PLUS__)("margin / padding 落到真实 DOM", () => {
     const wrapper = mount(SchemaRenderer, {
       props: {
         page: {
@@ -128,7 +128,7 @@ describe("渲染时应用通用间距", () => {
     expect(element.style.padding).toBe("4px");
   });
 
-  it("表单控件的内边距作用在字段外壳上，不挤压输入框内部", () => {
+  it.skipIf(!__HAS_ELEMENT_PLUS__)("表单控件的内边距作用在字段外壳上，不挤压输入框内部", () => {
     const wrapper = mount(SchemaRenderer, {
       props: {
         page: {

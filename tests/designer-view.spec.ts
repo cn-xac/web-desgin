@@ -29,7 +29,7 @@ async function mountDesigner(pageId: string) {
   return wrapper;
 }
 
-describe("设计器整页装配", () => {
+describe.skipIf(!__HAS_ELEMENT_PLUS__)("设计器整页装配", () => {
   let pageId = "";
 
   beforeEach(() => {

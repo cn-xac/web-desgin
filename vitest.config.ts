@@ -5,6 +5,10 @@ import vue from "@vitejs/plugin-vue";
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
+// 扩展仓 design-vue-element-plus 是独立仓库，仅在本地联调时存在；CI 干净环境没有它。
+// 用 CI_NO_EP=1 可本地模拟 CI（强制走仓库内 stub），验证发布链路。
+const hasEp = process.env.CI_NO_EP ? false : existsSync(r("../design-vue-element-plus/src/index.ts"));
+
 /**
  * Vite 8 的 SSR 环境不再自动把 Node fs 交给 @vue/compiler-sfc，
  * 而扩展仓的 defineProps<ImportedType>() 需要读文件解析类型，故显式提供。
@@ -16,6 +20,10 @@ const sfcFs = {
 };
 
 export default defineConfig({
+  // 把「是否有 element-plus 扩展仓」注入测试，便于按环境跳过依赖真实 EP 数据的用例
+  define: {
+    __HAS_ELEMENT_PLUS__: hasEp,
+  },
   plugins: [vue({ script: { fs: sfcFs } })],
   // Vite 8 用 oxc 取代 esbuild；esbuild 选项已废弃，JSX 必须在这里声明。
   // 用对象形态 { runtime: "automatic" }：vue 插件会把 jsx 选项原样传给 oxc，
@@ -34,8 +42,11 @@ export default defineConfig({
       { find: "@x-ac/design-react", replacement: r("./packages/react/src/index.ts") },
       // 扩展仓基于适配层 SDK 子入口；必须在 @x-ac/design-vue 之前匹配
       { find: "@x-ac/design-vue/kit", replacement: r("./packages/vue/src/kit.ts") },
-      // 扩展包已拆到兄弟仓库 design-vue-element-plus，本地联调直接吃它的源码
-      { find: "@x-ac/design-vue-element-plus", replacement: r("../design-vue-element-plus/src/index.ts") },
+      // 扩展包已拆到兄弟仓库 design-vue-element-plus，本地联调直接吃它的源码；
+      // CI 干净环境没有它，别名回退到仓库内 stub（仅提供最小兼容导出）。
+      ...(hasEp
+        ? [{ find: "@x-ac/design-vue-element-plus", replacement: r("../design-vue-element-plus/src/index.ts") }]
+        : [{ find: "@x-ac/design-vue-element-plus", replacement: r("./tests/fixtures/element-plus-stub.ts") }]),
       { find: "@x-ac/design-vue/designer", replacement: r("./packages/vue/src/designer.ts") },
       { find: "@x-ac/design-vue", replacement: r("./packages/vue/src/index.ts") },
       { find: "@/designer", replacement: r("./packages/vue/src/designer") },

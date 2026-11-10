@@ -33,7 +33,7 @@ function mountVue(): HTMLElement {
   return wrapper.element as HTMLElement;
 }
 
-describe("同一份 Schema 跨框架渲染", () => {
+describe.skipIf(!__HAS_ELEMENT_PLUS__)("同一份 Schema 跨框架渲染", () => {
   const vue = mountVue();
   const reactHtml = renderToStaticMarkup(<ReactRenderer page={page} />);
 

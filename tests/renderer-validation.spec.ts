@@ -46,7 +46,7 @@ function mountRenderer() {
   });
 }
 
-describe("渲染器：校验与导出 API", () => {
+describe.skipIf(!__HAS_ELEMENT_PLUS__)("渲染器：校验与导出 API", () => {
   it("validate() 返回结果并把错误画到字段下", async () => {
     const wrapper = mountRenderer();
     const api = wrapper.vm as unknown as {

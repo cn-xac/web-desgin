@@ -78,7 +78,7 @@ describe("core 通用物料清单", () => {
   });
 });
 
-describe("Element Plus 适配包物料清单", () => {
+describe.skipIf(!__HAS_ELEMENT_PLUS__)("Element Plus 适配包物料清单", () => {
   it("core 物料全部保留并追加 EP 专有属性", () => {
     // 打补丁不是替换：core 的每个物料都必须还在清单里
     for (const material of MATERIALS) {
@@ -126,7 +126,7 @@ describe("Element Plus 适配包物料清单", () => {
 });
 
 describe("设计器属性面板跟随适配包", () => {
-  it("注入 EP 适配包时显示专有字段", () => {
+  it.skipIf(!__HAS_ELEMENT_PLUS__)("注入 EP 适配包时显示专有字段", () => {
     const wrapper = mountPropsPanel(elementPlusAdapter, true);
     expect(wrapper.text()).toContain("字数统计");
     expect(wrapper.text()).toContain("最大长度");

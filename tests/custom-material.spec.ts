@@ -138,7 +138,7 @@ describe("registerMaterials 组合", () => {
     expect(registry.knownComponents().has("ec-biz-risk-badge")).toBe(true);
   });
 
-  it("已提供实现的业务物料不再出现在缺失清单里，缺实现的仍在", () => {
+  it.skipIf(!__HAS_ELEMENT_PLUS__)("已提供实现的业务物料不再出现在缺失清单里，缺实现的仍在", () => {
     const adapter = registerMaterials(elementPlusAdapter, [riskBadge, { component: "biz-pending" }]);
     expect(missingComponents(adapter)).toEqual(["biz-pending"]);
   });

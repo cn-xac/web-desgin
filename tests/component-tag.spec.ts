@@ -54,7 +54,7 @@ const submitButton: NodeSchema = {
   events: { click: [{ action: "submitForm", args: { from: "form", to: "list" } }] },
 };
 
-describe("SchemaPage 标签", () => {
+describe.skipIf(!__HAS_ELEMENT_PLUS__)("SchemaPage 标签", () => {
   it("page 可以直接传 JSON 字符串", async () => {
     const schema = page([nameInput]);
     const wrapper = mount(SchemaPage, {
@@ -152,7 +152,7 @@ describe("SchemaPage 标签", () => {
   });
 });
 
-describe("SchemaDesigner 标签", () => {
+describe.skipIf(!__HAS_ELEMENT_PLUS__)("SchemaDesigner 标签", () => {
   it("repository prop：组件级仓储注入，不碰全局", async () => {
     // forks 单进程下多个测试文件共享一个 jsdom，先清场再验证「不写全局」
     localStorage.clear();
