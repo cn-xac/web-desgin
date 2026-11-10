@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "page_employee_onboard",
+  "type": "page",
+  "meta": {
+    "title": "员工入职登记",
+    "device": "pc",
+    "description": "示例页面：可直接导入 prototype/index.html 查看效果"
+  },
+  "children": [
+    {
+      "id": "n_card_001",
+      "component": "ec-card",
+      "props": { "title": "基本信息" },
+      "children": [
+        {
+          "id": "n_title_001",
+          "component": "ec-title",
+          "props": { "text": "员工入职登记", "level": 3 }
+        },
+        {
+          "id": "n_grid_001",
+          "component": "ec-grid",
+          "props": { "columns": 2, "gap": 12 },
+          "children": [
+            {
+              "id": "n_in_001",
+              "component": "ec-input",
+              "props": { "label": "姓名", "placeholder": "请输入姓名", "required": true, "modelValue": "{{form.name}}" }
+            },
+            {
+              "id": "n_in_002",
+              "component": "ec-input",
+              "props": { "label": "手机号", "placeholder": "请输入手机号", "required": true, "modelValue": "{{form.mobile}}" }
+            },
+            {
+              "id": "n_sel_001",
+              "component": "ec-select",
+              "props": { "label": "所属部门", "options": "技术中心,产品中心,设计中心", "required": true }
+            },
+            {
+              "id": "n_date_001",
+              "component": "ec-date",
+              "props": { "label": "入职日期", "required": true }
+            }
+          ]
+        },
+        {
+          "id": "n_textarea_001",
+          "component": "ec-textarea",
+          "props": { "label": "备注", "placeholder": "如：需准备设备、工位等" }
+        },
+        {
+          "id": "n_btn_001",
+          "component": "ec-button",
+          "props": { "text": "提交登记", "type": "primary" },
+          "events": { "click": [{ "action": "submitOnboard" }] }
+        }
+      ]
+    },
+    {
+      "id": "n_divider_001",
+      "component": "ec-divider",
+      "props": {}
+    },
+    {
+      "id": "n_table_001",
+      "component": "ec-table",
+      "props": { "columns": "姓名,部门,入职日期", "rows": 3 },
+      "directives": [{ "name": "show", "value": "list.length > 0" }]
+    }
+  ]
+}

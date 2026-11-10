@@ -4,7 +4,7 @@ import { compactNode, compactPage } from "@x-ac/design-core";
 import type { PageSchema } from "@x-ac/design-core";
 import { migratePage } from "@x-ac/design-core";
 
-const samplePath = new URL("../../docs/schema/sample-employee.json", import.meta.url);
+const samplePath = new URL("./fixtures/sample-employee.json", import.meta.url);
 
 describe("序列化与往返一致性", () => {
   it("与物料默认值相同的属性不落库", () => {
