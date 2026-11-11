@@ -179,17 +179,17 @@ GitHub Pages 部署由独立的 `.github/workflows/pages.yml` 负责，与 npm �
 **Trusted Publisher（已在 npmjs.com 配好，保留步骤备查）**：对每个包分别操作：
 1. 打开 `https://www.npmjs.com/package/@x-ac/web-design-core/access`（core / vue / react 各一次）；
 2. 找到 Publishing access → **Add a trusted publisher** → 选 **GitHub Actions**；
-3. 填 `owner=cn-xac`、`repository=web-desgin`、`Workflow 文件名=publish.yml`、`Environment` 留空；
+3. 填 `owner=cn-xac`、`repository=web-design`、`Workflow 文件名=publish.yml`、`Environment` 留空；
 4. 保存。三个包各自注册一次（monorepo 每个包独立）。
 
 ### 需要的仓库 Secret / 设置
 - **无 NPM_TOKEN 依赖**：本工作流完全走 OIDC，仓库 Secrets 里不需要任何 npm token。
 - Pages：仓库 Settings → Pages → Source 选「GitHub Actions」；
 - `id-token: write` 权限已写入工作流（见 `permissions`），这是 OIDC 发布的唯一权限前提；
-- 三个包的 Trusted Publisher 已在 npmjs.com 注册（owner=cn-xac / repository=web-desgin / Workflow=publish.yml）。
+- 三个包的 Trusted Publisher 已在 npmjs.com 注册（owner=cn-xac / repository=web-design / Workflow=publish.yml）。
 
 ### 决策记录
-- 三包版本定为 **1.0.0**（核心渲染 / 设计器能力已具备，功能层与 Vue 版对齐）；每个 `package.json` 同时补了 `repository` / `homepage` / `bugs`，指向 `cn-xac/web-desgin`。
+- 三包版本定为 **1.0.0**（核心渲染 / 设计器能力已具备，功能层与 Vue 版对齐）；每个 `package.json` 同时补了 `repository` / `homepage` / `bugs`，指向 `cn-xac/web-design`。
 - 示例按目录拆成两个独立项目（`apps/vue-example` 与 `apps/react-example`），各自只依赖对应适配层 + core，**零 UI 库依赖**，CI 可直接构建，不再依赖 `playground` 的兄弟 EP 仓（`link:../../../design-vue-element-plus`）。
 - 发布与示例部署分离：npm 发布只发 `packages/*` 三包，示例仅作 Pages 演示，不参与发版。
 - 发布脚本 `scripts/release.mjs` 仍保留给本地用（`release:check` / `release:version` / `release:publish`），但 CI 不走它。

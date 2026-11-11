@@ -8,8 +8,8 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 // 顺序敏感：/style.css、/kit 必须在 @x-ac/web-design-vue 之前，否则会被拼成 src/index.ts/style.css。
 const isPages = process.env.NODE_ENV === "production";
 export default defineConfig({
-  // 本地 dev 走根路径；构建产物部署到 GitHub Pages 项目页（仓库 web-desgin）时基路径为 /web-desgin/
-  base: isPages ? "/web-desgin/" : "/",
+  // 本地 dev 走根路径；构建产物部署到 GitHub Pages 项目页（仓库 web-design）时基路径为 /web-design/
+  base: isPages ? "/web-design/" : "/",
   plugins: [vue()],
   resolve: {
     dedupe: ["vue"],

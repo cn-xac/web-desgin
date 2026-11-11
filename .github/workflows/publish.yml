@@ -14,7 +14,7 @@
 #
 # 发布前置条件（一次性，在 npmjs.com 操作）：
 #   1. 每个包：包设置 → Publishing access → Add a trusted publisher → GitHub Actions，
-#      填 owner=cn-xac、repository=web-desgin、Workflow 文件名=publish.yml。
+#      填 owner=cn-xac、repository=web-design、Workflow 文件名=publish.yml。
 #   2. 三个包各自注册一次（monorepo 每个包独立）。
 #   3. 每个包 package.json 需有 repository 字段（1.0.0 已补）。
 #
@@ -52,6 +52,9 @@ jobs:
   publish:
     name: Publish packages to npm
     runs-on: ubuntu-latest
+    # 与 npm Trusted Publisher 的 Environment 字段（npm）必须一致；
+    # 缺省或不符会导致 OIDC 令牌交换 404，进而匿名发布被拒（404 Not Found）。
+    environment: npm
     steps:
       - uses: actions/checkout@v4
 

@@ -6,11 +6,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cn-xac/web-desgin.git"
+    "url": "git+https://github.com/cn-xac/web-design.git"
   },
-  "homepage": "https://github.com/cn-xac/web-desgin#readme",
+  "homepage": "https://github.com/cn-xac/web-design#readme",
   "bugs": {
-    "url": "https://github.com/cn-xac/web-desgin/issues"
+    "url": "https://github.com/cn-xac/web-design/issues"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

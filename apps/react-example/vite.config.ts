@@ -4,11 +4,11 @@ import react from "@vitejs/plugin-react";
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
-// 本地 dev 走根路径；构建产物部署到 GitHub Pages 项目页（仓库 web-desgin）时，
-// react 示例位于 /web-desgin/react/ 子路径。顺序敏感：/style.css、/kit 必须在 @x-ac/web-design-react 之前。
+// 本地 dev 走根路径；构建产物部署到 GitHub Pages 项目页（仓库 web-design）时，
+// react 示例位于 /web-design/react/ 子路径。顺序敏感：/style.css、/kit 必须在 @x-ac/web-design-react 之前。
 const isPages = process.env.NODE_ENV === "production";
 export default defineConfig({
-  base: isPages ? "/web-desgin/react/" : "/",
+  base: isPages ? "/web-design/react/" : "/",
   plugins: [react()],
   resolve: {
     dedupe: ["react", "react-dom"],
