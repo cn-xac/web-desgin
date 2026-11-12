@@ -242,7 +242,7 @@ export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererPro
       style={{ maxWidth: deviceMaxWidth(schema), ...style }}
     >
       {alert ? <div className="ux-renderer__alert">{alert}</div> : null}
-      {schema.children.map((node) => (
+      {(schema.children ?? []).map((node) => (
         <SchemaNode key={node.id} node={node} />
       ))}
     </div>

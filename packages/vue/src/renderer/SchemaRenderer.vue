@@ -123,6 +123,11 @@ const resolved = computed<PageSchema>(() => {
 });
 
 const pageRef = resolved;
+/**
+ * 根级子节点兜底：畸形 Schema（旧版本残留、手工构造、截断 JSON 等）可能缺 children。
+ * 此处与 SchemaNode 的 `node.children ?? []` 保持一致，避免渲染器在入口就崩。
+ */
+const pageChildren = computed(() => pageRef.value.children ?? []);
 const dataEnabled = computed(() => props.mode === "view");
 const { scope, loading, dataError, resetScope } = usePageScope(pageRef, dataEnabled, () => props.data);
 
@@ -239,9 +244,9 @@ const deviceWidth = computed(() => {
       <div v-if="parseError" class="wb-renderer__alert">{{ parseError }}</div>
       <div v-else-if="dataError" class="wb-renderer__alert">{{ dataError }}</div>
 
-      <template v-if="pageRef.children.length">
+      <template v-if="pageChildren.length">
         <SchemaNode
-          v-for="node in pageRef.children"
+          v-for="node in pageChildren"
           :key="node.id"
           :node="node"
           :scope="scope"
