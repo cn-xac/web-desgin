@@ -139,6 +139,10 @@ const mergedStyle = computed<CSSProperties>(() => {
   ) as CSSProperties;
 
   if (hiddenByShow.value) style.display = "none";
+  // 穿透节点（如栅格列）在空内容时给最小高度，否则高度塌成 0 根本点不中 / 拖不进
+  if (isPassthrough.value && !(props.node.children?.length) && !style.minHeight) {
+    style.minHeight = "56px";
+  }
   return style;
 });
 
@@ -211,10 +215,29 @@ function onFieldBlur(event: FocusEvent): void {
 
 const wrapperClass = computed(() => ({
   "wb-node--design": props.design,
+  "wb-node--passthrough": props.design && Boolean(material.value?.wrapperPassthrough),
   "is-selected": props.design && scene?.selectedId() === props.node.id,
   "is-hovered": props.design && scene?.hoveredId?.() === props.node.id,
   "is-hidden": hiddenByShow.value,
 }));
+
+/**
+ * 包裹层穿透：设计态下让节点成为父级 flex/grid 的直系子项，
+ * 否则 .wb-node--design 的 display:block 会打断 el-row > el-col 关系，
+ * 导致列宽由内容撑开而非由 span 决定（栅格列「控制的是内容」这一原始 bug）。
+ */
+const isPassthrough = computed(() => props.design && Boolean(material.value?.wrapperPassthrough));
+/** 选中 / 悬停框改画到组件根节点（包裹层已无盒子，无法承载 outline） */
+const passthroughClass = computed(() =>
+  isPassthrough.value
+    ? {
+        "is-selected": scene?.selectedId() === props.node.id,
+        "is-hovered": scene?.hoveredId?.() === props.node.id,
+      }
+    : null,
+);
+/** 让组件根可拖拽：display:contents 的包裹层自身无法作为拖拽源 */
+const passthroughDraggable = computed(() => (isPassthrough.value ? "true" : undefined));
 
 /** 空容器在设计态给一块可点击的占位区，否则高度塌成 0 根本点不中 */
 const showEmptyHint = computed(
@@ -299,7 +322,7 @@ function selectSelf(): void {
     @dragleave="onDragLeave"
     @drop="onDrop"
   >
-    <template v-if="design">
+    <template v-if="design && !isPassthrough">
       <span class="wb-node__tag">{{ nodeLabel }}</span>
       <span v-if="hint === 'before'" class="wb-drop wb-drop--before" />
       <span v-if="hint === 'after'" class="wb-drop wb-drop--after" />
@@ -307,7 +330,7 @@ function selectSelf(): void {
     </template>
 
     <!-- 空容器占位：设计态可点选、可拖入；view 模式不渲染 -->
-    <div v-if="showEmptyHint" class="wb-node__empty">空容器 · 点击选中，或把组件拖进来</div>
+    <div v-if="showEmptyHint && !isPassthrough" class="wb-node__empty">空容器 · 点击选中，或把组件拖进来</div>
 
     <!-- 未知组件：降级为占位块，保留子节点，绝不白屏 -->
     <div v-else-if="isUnknown" class="wb-node__unknown">
@@ -343,7 +366,15 @@ function selectSelf(): void {
       <component :is="resolved" v-bind="bindProps" v-on="eventHandlers" />
     </FieldShell>
 
-    <component :is="resolved" v-else v-bind="bindProps" v-on="eventHandlers" :style="mergedStyle">
+    <component
+      :is="resolved"
+      v-else
+      v-bind="bindProps"
+      v-on="eventHandlers"
+      :class="passthroughClass"
+      :draggable="passthroughDraggable"
+      :style="mergedStyle"
+    >
       <template v-if="slotText !== null">{{ slotText }}</template>
       <template v-if="material?.acceptsChildren">
         <SchemaNode
@@ -382,6 +413,20 @@ function selectSelf(): void {
 }
 .wb-node--design.is-selected {
   outline: 2px solid var(--wb-primary);
+}
+/* 穿透节点：设计态包裹层不产生盒子，让 el-col / Col 回到 el-row / Row 的直系 flex 子项 */
+.wb-node--design.wb-node--passthrough {
+  display: contents;
+  position: static;
+}
+/* 选中 / 悬停框改画到组件根节点（包裹层已无盒子，无法承载 outline） */
+.wb-node--passthrough .is-selected {
+  outline: 2px solid var(--wb-primary);
+  outline-offset: 2px;
+}
+.wb-node--passthrough .is-hovered {
+  outline: 1px dashed #b9c6ff;
+  outline-offset: 2px;
 }
 .wb-node__empty {
   min-height: 56px;
