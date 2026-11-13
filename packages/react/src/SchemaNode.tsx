@@ -48,12 +48,14 @@ function DesignerWrap({ node, children }: { node: NodeSchema; children: ReactNod
 
   const material = ctx.catalog.get(node.component);
   const accepts = Boolean(material?.acceptsChildren);
+  const isPt = Boolean(material?.wrapperPassthrough);
   const hint = scene.hintFor(node.id);
   const className = [
     "ux-node",
     "ux-node--design",
-    scene.selectedId() === node.id ? "is-selected" : "",
-    scene.hoveredId() === node.id ? "is-hovered" : "",
+    isPt ? "ux-node--passthrough" : "",
+    isPt ? "" : scene.selectedId() === node.id ? "is-selected" : "",
+    isPt ? "" : scene.hoveredId() === node.id ? "is-hovered" : "",
     hint ? `is-hint-${hint}` : "",
   ]
     .filter(Boolean)
@@ -62,6 +64,7 @@ function DesignerWrap({ node, children }: { node: NodeSchema; children: ReactNod
   return (
     <div
       className={className}
+      style={isPt ? { display: "contents" } : undefined}
       data-node-id={node.id}
       data-node-label={material?.title ?? node.component}
       draggable
@@ -98,9 +101,9 @@ function DesignerWrap({ node, children }: { node: NodeSchema; children: ReactNod
         scene.onNodeDrop({ id: node.id, position: positionFromEvent(event, accepts) });
       }}
     >
-      <span className="ux-node__tag">{material?.title ?? node.component}</span>
-      {hint ? <span className={`ux-drop ux-drop--${hint}`} /> : null}
-      {accepts && !node.children?.length ? (
+      {!isPt ? <span className="ux-node__tag">{material?.title ?? node.component}</span> : null}
+      {hint && !isPt ? <span className={`ux-drop ux-drop--${hint}`} /> : null}
+      {!isPt && accepts && !node.children?.length ? (
         <div className="ux-node__empty">空容器 · 点击选中，或把组件拖进来</div>
       ) : null}
       {children}
@@ -156,6 +159,12 @@ function NodeBody({ node }: { node: NodeSchema }) {
 
   const hidden = (node.directives ?? []).some((d) => d.name === "show" && !resolveBoolean(d.value, ctx.scope));
   if (hidden) style.display = "none";
+
+  // 包裹层穿透：选中 / 悬停框改画到组件根节点，空内容时给最小高度保证可点选
+  const isPt = ctx.design && Boolean(material?.wrapperPassthrough);
+  const selected = isPt && ctx.designer?.selectedId() === node.id;
+  const hovered = isPt && ctx.designer?.hoveredId?.() === node.id;
+  if (isPt && !(node.children?.length) && !style.minHeight) style.minHeight = "56px";
 
   if (!material) {
     return (
@@ -284,7 +293,12 @@ function NodeBody({ node }: { node: NodeSchema }) {
   }
 
   // 非表单组件把样式挂在自身；display 为 none 时同样生效
-  return <Fragment>{createElement(Component ?? "div", { ...bound, ...handlers, style }, children)}</Fragment>;
+  const controlClassName = [selected ? "is-selected" : "", hovered ? "is-hovered" : ""].filter(Boolean).join(" ") || undefined;
+  const controlProps: Record<string, unknown> = { ...bound, ...handlers, style };
+  if (controlClassName) controlProps.className = controlClassName;
+  if (isPt) controlProps.draggable = true;
+
+  return <Fragment>{createElement(Component ?? "div", controlProps, children)}</Fragment>;
 }
 
 /** 递归渲染入口：先处理 if / for，再渲染节点本体 */

@@ -1395,6 +1395,21 @@ select.wbd-input.wbd-sm {
   outline: 2px solid var(--wb-primary);
 }
 
+/* 包裹层穿透：设计态不产生盒子，让 Col 回到 Row 的直系 flex 子项（修复列宽由内容撑开） */
+.ux-node--design.ux-node--passthrough {
+  display: contents;
+  position: static;
+}
+/* 选中 / 悬停框改画到组件根节点（包裹层已无盒子，无法承载 outline） */
+.ux-node--passthrough .is-selected {
+  outline: 2px solid var(--wb-primary);
+  outline-offset: 2px;
+}
+.ux-node--passthrough .is-hovered {
+  outline: 1px dashed #b9c6ff;
+  outline-offset: 2px;
+}
+
 .ux-node__empty {
   min-height: 56px;
   display: flex;
