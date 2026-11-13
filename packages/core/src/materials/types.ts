@@ -79,6 +79,14 @@ export interface Material {
   events?: MaterialEvent[];
   /** 能否接收子节点 */
   acceptsChildren?: boolean;
+  /**
+   * 设计态是否穿透包裹层（display: contents）。
+   * 用于「栅格列」这类必须成为父级 flex/grid 直系子项的节点：
+   * 设计态默认包裹层是 display:block，会打断 el-row > el-col 的 flex 关系，
+   * 导致列宽由内容撑开而非由 span 决定。标 true 后包裹层改为 display:contents，
+   * 选中框/悬停框改画到组件根节点，由引擎统一处理。
+   */
+  wrapperPassthrough?: boolean;
   /** 组件正文来自哪个属性（用于 tag / button 这类无 children 的组件） */
   textProp?: string;
   /** 由渲染器消费、不应透传到 DOM 的属性（如 text 的 size / muted） */
