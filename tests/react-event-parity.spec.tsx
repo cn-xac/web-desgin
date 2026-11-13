@@ -232,7 +232,14 @@ describe("React 事件回调（与 Vue 同形状）", () => {
 
 describe("React 渲染器能力对齐", () => {
   it("dataSource.http 自动取数并进入表达式", async () => {
-    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ name: "远端" }) }));
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => ({ name: "远端" }),
+      text: async () => JSON.stringify({ name: "远端" }),
+    }));
     vi.stubGlobal("fetch", fetchMock);
     const page = makePage([]);
     page.dataSource = { remote: { type: "http", url: "/api/user" } };
