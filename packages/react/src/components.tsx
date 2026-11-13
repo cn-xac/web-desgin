@@ -79,6 +79,41 @@ function CardBlock({ title, children, onClick, style }: ControlProps) {
   );
 }
 
+/* ---------------- 布局：栅格（原生 flex 实现） ---------------- */
+
+/**
+ * 栅格行：原生 flex 容器。gutter 走水平间距、gutterVertical 走垂直间距，
+ * 与 core 统一 row 物料的语义对齐（col 通过 flex-basis 占 24 栅格宽度）。
+ */
+function RowBlock({ gutter, gutterVertical, justify, align, wrap, style, children }: ControlProps) {
+  const justifyContent = (justify as CSSProperties["justifyContent"]) || "flex-start";
+  const alignItems = (align as CSSProperties["alignItems"]) || "stretch";
+  const rowStyle: CSSProperties = {
+    display: "flex",
+    flexWrap: wrap === false ? "nowrap" : "wrap",
+    justifyContent,
+    alignItems,
+    columnGap: `${Number(gutter) || 0}px`,
+    rowGap: `${Number(gutterVertical) || 0}px`,
+    ...style,
+  };
+  return <div style={rowStyle}>{children}</div>;
+}
+
+/**
+ * 栅格列：通过 flex-basis 占 24 栅格中的 N 份；offset 用左外边距实现。
+ * 响应式断点（xs…xxl）依赖具体 UI 库的栅格系统，原生兜底只保证基础 span/offset/order/flex。
+ */
+function ColBlock({ span, offset, order, flex, style, children }: ControlProps) {
+  const colStyle: CSSProperties = {
+    flex: flex ? String(flex) : `0 0 ${((Number(span) || 24) / 24) * 100}%`,
+    marginLeft: offset ? `${(Number(offset) / 24) * 100}%` : undefined,
+    order: order !== undefined ? Number(order) : undefined,
+    ...style,
+  };
+  return <div style={colStyle}>{children}</div>;
+}
+
 interface TableColumn {
   label: string;
   prop: string;
@@ -289,6 +324,8 @@ const COMPONENT_TABLE: Record<string, ComponentType<ControlProps>> = {
   container: Wrapper,
   grid: Wrapper,
   space: Wrapper,
+  row: RowBlock,
+  col: ColBlock,
   card: CardBlock,
   title: Heading,
   text: Paragraph,
