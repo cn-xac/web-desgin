@@ -4,18 +4,22 @@
  * Vue 的 usePageScope 与 React 的 usePageStore 共用这一份实现，
  * 避免「同一份 Schema 在 Vue 会取数、在 React 不取数」这类分叉。
  *
- * core 的约束是「副作用通过参数传入」：这里不直接持有 fetch，
- * 宿主可注入 fetchImpl（测试 / SSR / 拦截器都好接），缺省才取 globalThis.fetch。
+ * 取数统一走 core 内置请求层（./request）：
+ * - 缺省复用全局默认实例，应用层配的拦截器（鉴权 / 错误处理）自动生效；
+ * - 测试 / SSR 仍可注入 fetchImpl（会建一个隔离实例，不污染全局默认实例）。
  */
 import type { Scope } from "./expression";
 import type { PageSchema } from "./types";
+import type { FetchImpl, Method } from "../request/types";
+import { request as defaultRequest, createRequest } from "../request";
 import { deepClone } from "../utils/clone";
 
-export type FetchLike = typeof fetch;
+/** 兼容别名：底层 fetch 实现签名（来自 request 层） */
+export type FetchLike = FetchImpl;
 
 export interface LoadPageDataOptions {
-  /** 自定义 fetch；缺省 globalThis.fetch（SSR 可注入自己的实现） */
-  fetchImpl?: FetchLike;
+  /** 自定义 fetch；缺省走 core 内置请求层（含拦截器）。注入后会建隔离实例，不污染全局默认实例 */
+  fetchImpl?: FetchImpl;
   /** 取消信号；换页 / 卸载时由宿主 abort */
   signal?: AbortSignal;
   onLoading?: (loading: boolean) => void;
@@ -24,7 +28,9 @@ export interface LoadPageDataOptions {
 
 /** 是否存在会自动发起的请求，供宿主决定 loading 初值 */
 export function hasAutoHttpSource(page: PageSchema): boolean {
-  return Object.values(page.dataSource ?? {}).some((item) => item.type === "http" && item.auto !== false);
+  return Object.values(page.dataSource ?? {}).some(
+    (item) => item.type === "http" && item.auto !== false,
+  );
 }
 
 /**
@@ -39,7 +45,10 @@ export async function loadPageData(
   const entries = Object.entries(page.dataSource ?? {});
   if (!entries.length) return;
 
-  const fetchImpl: FetchLike = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
+  const req = options.fetchImpl
+    ? createRequest({ defaults: { fetchImpl: options.fetchImpl } })
+    : defaultRequest;
+
   options.onLoading?.(hasAutoHttpSource(page));
 
   for (const [key, item] of entries) {
@@ -51,19 +60,19 @@ export async function loadPageData(
     if (!item.url) continue;
 
     try {
-      const response = await fetchImpl(item.url, {
-        method: item.method ?? "GET",
+      const res = await req.request({
+        url: item.url,
+        method: (item.method ?? "GET") as Method,
+        ...(item.method === "GET" ? { params: item.params } : { data: item.params }),
         signal: options.signal,
-        headers: item.method === "POST" ? { "Content-Type": "application/json" } : undefined,
-        body: item.method === "POST" ? JSON.stringify(item.params ?? {}) : undefined,
+        responseType: "json",
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      scope[key] = await response.json();
+      scope[key] = res.data;
       options.onError?.("");
     } catch (error) {
-      if ((error as Error).name === "AbortError") return;
+      if ((error as Error)?.name === "AbortError") return;
       options.onError?.(`数据源 ${key} 加载失败：${(error as Error).message}`);
-      console.warn(`[vue-design][datasource] ${key} 加载失败`, error);
+      console.warn(`[web-design][datasource] ${key} 加载失败`, error);
     }
   }
 
