@@ -44,19 +44,22 @@ beforeEach(() => {
 });
 
 describe("core 通用物料清单", () => {
-  it("27 个物料，字段全部固化了显式 portability", () => {
-    expect(MATERIALS).toHaveLength(27);
+  it("29 个物料，字段全部固化了显式 portability", () => {
+    expect(MATERIALS).toHaveLength(29);
     expect(coreFields.length).toBeGreaterThan(100);
     expect(coreFields.every((field) => Boolean(field.portability))).toBe(true);
   });
 
-  it("三档均有覆盖，且行为档占比最高", () => {
+  it("三档均有覆盖，且行为档多于内容档", () => {
     const counts = coreFields.reduce<Record<string, number>>((acc, field) => {
       acc[field.portability!] = (acc[field.portability!] ?? 0) + 1;
       return acc;
     }, {});
     expect(Object.keys(counts).sort()).toEqual(["behavior", "content", "visual"]);
-    expect(counts.behavior).toBeGreaterThan(counts.visual);
+    // 栅格/间距等布局物料的字段按 portability 约定归视觉档（不改数据/交互，只改结构呈现），
+    // 引入 row/col 后视觉档数量上升，不再强制「行为档 > 视觉档」；
+    // 但行为档（表单禁用/长度/格式等数据相关）仍应多于只承载文案/选项的内容档。
+    expect(counts.behavior).toBeGreaterThan(counts.content);
   });
 
   it("同名不同义字段按物料显式覆盖", () => {
