@@ -79,7 +79,11 @@ export function resolveBinding(
   const key = cacheKey(binding, resolved);
   const now = Date.now();
 
-  if (store) {
+  // ttl = 0 表示「不入缓存、每次都真取」：既不去重也不落值。
+  // ttl 缺省表示页面级不过期（对应 rg4KCt「只请求一次」）。
+  const cacheable = cache?.ttl !== 0;
+
+  if (store && cacheable) {
     const entry = store.get(key);
     if (entry) {
       // 命中有效值
@@ -96,7 +100,7 @@ export function resolveBinding(
     return normalize(binding, res.data, ctx);
   })();
 
-  if (store) {
+  if (store && cacheable) {
     const ttl = cache?.ttl;
     store.set(key, { promise, expireAt: ttl && ttl > 0 ? now + ttl : Infinity });
     // 成功后落地 value、清除 in-flight；失败则移除该键（错误不污染缓存）

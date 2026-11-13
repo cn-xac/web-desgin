@@ -11,6 +11,7 @@
 
 import type { ActionSchema, DeviceType, NodeSchema, PageSchema } from "../schema/types";
 import { createEmptyPage } from "../schema/types";
+import type { ExternalDataSource } from "../data/external";
 import { normalizeRules, type ValidationRule } from "../validation/rules";
 import {
   cloneWithNewIds,
@@ -390,6 +391,25 @@ export class DesignerStore {
     this.emit();
   }
 
+  /**
+   * 更新指定节点的属性（跨节点写入）。
+   * 外部数据源的「响应映射到某个元素」需要改的不是当前选中节点，所以单独开一个入口。
+   */
+  updateNodeProp(nodeId: string, key: string, value: unknown): void {
+    this.mutatePage((page) => {
+      const node = findLocation(page.children, nodeId)?.node;
+      if (!node) return false;
+      node.props = node.props ?? {};
+      const defaultValue = this.materialOf(node.component)?.defaultProps?.[key];
+      const shouldDrop =
+        value === undefined ||
+        (defaultValue !== undefined && JSON.stringify(defaultValue) === JSON.stringify(value));
+      if (shouldDrop) delete node.props[key];
+      else node.props[key] = value;
+    }, `prop:${nodeId}:${key}`);
+    this.emit();
+  }
+
   updateStyle(key: string, value: unknown): void {
     if (!this.selectedId) return;
     const id = this.selectedId;
@@ -445,8 +465,23 @@ export class DesignerStore {
     this.emit();
   }
 
-  setDirective(name: "show" | "if" | "for", value: string): void {
+  /**
+   * 写入节点的外部数据源配置（rg4KCt）。
+   * 传 undefined 表示移除该节点的外部数据源。
+   */
+  setNodeDataSource(source: ExternalDataSource | undefined): void {
     if (!this.selectedId) return;
+    const id = this.selectedId;
+    this.mutatePage((page) => {
+      const node = findLocation(page.children, id)?.node;
+      if (!node) return false;
+      if (!source) delete node.dataSource;
+      else node.dataSource = clone(source);
+    }, `datasource:${id}`);
+    this.emit();
+  }
+
+  setDirective(name: "show" | "if" | "for", value: string): void {    if (!this.selectedId) return;
     const id = this.selectedId;
     this.mutatePage((page) => {
       const node = findLocation(page.children, id)?.node;

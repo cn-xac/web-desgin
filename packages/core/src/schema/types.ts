@@ -4,6 +4,7 @@
  */
 
 import type { ValidationRule } from "../validation/rules";
+import type { ExternalDataSource } from "../data/external";
 
 export type DeviceType = "pc" | "pad" | "h5";
 
@@ -37,6 +38,11 @@ export interface NodeSchema {
    * 校验是数据契约，与「用哪个控件展示」解耦。
    */
   rules?: ValidationRule[];
+  /**
+   * 外部数据源配置（rg4KCt）。
+   * 挂在节点上：谁用它，决定了参数映射选哪些元素、响应映射写到哪里。
+   */
+  dataSource?: ExternalDataSource;
   children?: NodeSchema[];
 }
 
