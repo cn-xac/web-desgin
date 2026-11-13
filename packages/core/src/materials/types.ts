@@ -14,6 +14,7 @@ export type PropFieldType =
   | "select"
   | "color"
   | "options"
+  | "optionPair"
   | "columns";
 
 /**
@@ -30,6 +31,14 @@ export interface PropOption {
   label: string;
   value: string | number;
 }
+
+/**
+ * 字段类型的两种选项形态（属性面板据此选编辑器）：
+ * - `options`：简单列表，只有一列文字（分段控制器 / 穿梭框 / 自动补全的候选项）；
+ * - `optionPair`：名称 + 值成对，用独立弹窗录入（单选 / 多选 / 下拉的真实选项）。
+ */
+export const PROP_OPTION_FORMATS = ["options", "optionPair"] as const;
+export type PropOptionFormat = (typeof PROP_OPTION_FORMATS)[number];
 
 export interface PropField {
   key: string;

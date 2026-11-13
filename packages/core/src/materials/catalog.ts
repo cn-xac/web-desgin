@@ -368,7 +368,7 @@ const MATERIALS_RAW: Material[] = [
     },
     fields: [
       { key: "label", label: "标签", type: "text" },
-      { key: "options", label: "选项", type: "options", tip: "逗号分隔，如 技术中心,产品中心" },
+      { key: "options", label: "选项", type: "optionPair", tip: "一行一个选项，名称在前值在后，如「技术中心 tech」" },
       { key: "modelValue", label: "数据绑定", type: "text", tip: "如 {{form.dept}}" },
       { key: "placeholder", label: "占位提示", type: "text" },
       { key: "clearable", label: "可清空", type: "boolean" },
@@ -385,7 +385,7 @@ const MATERIALS_RAW: Material[] = [
     defaultProps: { label: "选项", options: "选项一,选项二", required: false },
     fields: [
       { key: "label", label: "标签", type: "text" },
-      { key: "options", label: "选项", type: "options" },
+      { key: "options", label: "选项", type: "optionPair" },
       { key: "modelValue", label: "数据绑定", type: "text" },
     ],
     events: commonEvents.inputEvents,
@@ -400,7 +400,7 @@ const MATERIALS_RAW: Material[] = [
     defaultProps: { label: "选项", options: "选项一,选项二,选项三", required: false },
     fields: [
       { key: "label", label: "标签", type: "text" },
-      { key: "options", label: "选项", type: "options" },
+      { key: "options", label: "选项", type: "optionPair" },
       { key: "modelValue", label: "数据绑定", type: "text" },
     ],
     events: commonEvents.inputEvents,
