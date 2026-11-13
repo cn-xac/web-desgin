@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from "node:url";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 
@@ -14,9 +14,21 @@ const hasEp = process.env.CI_NO_EP ? false : existsSync(r("../design-vue-element
  * 而扩展仓的 defineProps<ImportedType>() 需要读文件解析类型，故显式提供。
  * 只实现 compiler-sfc 需要的两个方法，不引入额外依赖。
  */
+const isFile = (file: string): boolean => {
+  try {
+    return statSync(file).isFile();
+  } catch {
+    return false;
+  }
+};
+
 const sfcFs = {
-  fileExists: (file: string) => existsSync(file),
-  readFile: (file: string) => (existsSync(file) ? readFileSync(file, "utf8") : undefined),
+  // 必须只认「文件」：existsSync 对目录同样返回 true，
+  // 会让 compiler-sfc 把相对目录导入（如 core 的 export * from "./request"）
+  // 当成模块文件直接 readFile，抛 EISDIR。
+  // 排除目录后，解析器会继续回退到目录下的 index.ts / index.d.ts。
+  fileExists: isFile,
+  readFile: (file: string) => (isFile(file) ? readFileSync(file, "utf8") : undefined),
 };
 
 export default defineConfig({
