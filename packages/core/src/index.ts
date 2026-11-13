@@ -19,6 +19,9 @@ export * from "./schema/array";
 /** 统一请求层：拦截器 + 上传，供所有 URL 请求收口 */
 export * from "./request";
 
+/** 数据调控中心：数据源绑定 + provider 注册表 + 缓存 + 形态归一化 */
+export * from "./data";
+
 export * from "./validation/rules";
 export * from "./validation/engine";
 
