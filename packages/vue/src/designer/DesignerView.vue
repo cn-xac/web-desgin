@@ -7,6 +7,10 @@ import PalettePanel from "./components/PalettePanel.vue";
 import OutlinePanel from "./components/OutlinePanel.vue";
 import CanvasStage from "./components/CanvasStage.vue";
 import InspectorPanel from "./components/InspectorPanel.vue";
+import BindingPicker from "./components/BindingPicker.vue";
+import OptionsDialog from "./components/OptionsDialog.vue";
+import ExternalSourceDialog from "./components/ExternalSourceDialog.vue";
+import HeadersDialog from "./components/HeadersDialog.vue";
 import { migratePage } from "@x-ac/web-design-core";
 import { validatePage } from "@x-ac/web-design-core";
 import { useMaterialCatalog } from "../materials/catalog";
@@ -287,6 +291,12 @@ function backToList(): void {
     </div>
 
     <input ref="fileInput" type="file" accept=".json,application/json" class="hidden-input" @change="onFileChange" />
+
+    <!-- 设计器级弹窗：绑定选择 / 选项录入 / 外部数据源 / 请求头 -->
+    <BindingPicker />
+    <OptionsDialog />
+    <ExternalSourceDialog />
+    <HeadersDialog />
   </div>
 </template>
 

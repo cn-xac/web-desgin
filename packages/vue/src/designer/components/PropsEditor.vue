@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { computed, reactive, type Component } from "vue";
 import type { PropField, PropFieldGroup } from "@x-ac/web-design-core";
-import { FIELD_GROUP_LABELS, fieldOptions, groupFields } from "@x-ac/web-design-core";
+import { FIELD_GROUP_LABELS, fieldOptions, groupFields, parseOptions } from "@x-ac/web-design-core";
 import UiControl from "../ui/UiControl.vue";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
 import { useNotify } from "../ui/kit";
 import { useUiAdapter } from "../../renderer/context";
+import { useBindingPicker, useExternalSourceDialog, useOptionsDialog } from "../dialogs";
 
 const notify = useNotify();
 
 const store = useDesignerStore();
 const catalog = useMaterialCatalog();
 const uiAdapter = useUiAdapter();
+const bindingPicker = useBindingPicker();
+const optionsDialog = useOptionsDialog();
+const externalDialog = useExternalSourceDialog();
 
 /**
  * 字段编辑器覆盖：适配包可以用自己库的控件替换某一类字段的编辑器。
@@ -30,7 +34,6 @@ const node = computed(() => store.selectedNode);
 const material = computed(() => (node.value ? catalog.get(node.value.component) : undefined));
 const effective = computed(() => (node.value ? catalog.defaults(node.value.component, node.value.props) : {}));
 const customKeys = computed(() => new Set(Object.keys(node.value?.props ?? {})));
-const stateKeys = computed(() => Object.keys(store.page.state ?? {}));
 
 /**
  * 分组折叠状态：`advanced` 默认收起。
@@ -113,9 +116,37 @@ function removeColumn(key: string, index: number): void {
   writeColumns(key, list);
 }
 
-function insertBinding(key: string, path: string): void {
-  set(key, `{{${path}}}`);
+/* ---------------- 弹窗入口 ---------------- */
+
+/** 打开绑定选择器：把当前属性绑到页面上可绑定的数据 */
+function openBinding(key: string, label: string): void {
+  if (!node.value) return;
+  bindingPicker.open({ nodeId: node.value.id, key, label, where: "props" });
 }
+
+/** 打开选项录入弹窗（rSulo9） */
+function openOptions(key: string, label: string): void {
+  if (!node.value) return;
+  optionsDialog.open({ nodeId: node.value.id, key, label });
+}
+
+/** 打开外部数据源配置弹窗（rg4KCt） */
+function openExternal(): void {
+  if (!node.value) return;
+  externalDialog.open({ nodeId: node.value.id, label: material.value?.title ?? node.value.component });
+}
+
+/** 选项摘要：面板上不铺开整份选项，只给个数和前几个名字 */
+function optionsSummary(key: string): { count: number; text: string } {
+  const items = parseOptions(value(key));
+  const names = items.map((item) => item.label).filter(Boolean);
+  const head = names.slice(0, 3).join("、");
+  const more = names.length > 3 ? ` 等 ${names.length} 项` : names.length ? `（${names.length} 项）` : "";
+  return { count: items.length, text: names.length ? `${head}${more}` : "尚未设置" };
+}
+
+/** 节点是否已配外部数据源 */
+const hasExternal = computed(() => Boolean(node.value?.dataSource?.url));
 
 function copyId(): void {
   if (!node.value) return;
@@ -129,6 +160,15 @@ function copyId(): void {
     <div class="props__head">
       <span class="props__chip">{{ material.title }}</span>
       <span class="props__id" :title="node?.id" @click="copyId">{{ node?.id }}</span>
+      <button
+        type="button"
+        class="props__ext"
+        :class="{ 'is-on': hasExternal }"
+        :title="hasExternal ? '已配置外部数据源，点击修改' : '配置外部数据源（接口取数）'"
+        @click="openExternal"
+      >
+        外部数据源{{ hasExternal ? " ●" : "" }}
+      </button>
     </div>
 
     <div v-if="material.hint" class="props__hint">{{ material.hint }}</div>
@@ -151,6 +191,14 @@ function copyId(): void {
             <span>{{ field.label }}</span>
             <span v-if="isCustom(field.key)" class="props__dot" title="与默认值不同，会写入 Schema">●</span>
             <span v-if="isBound(value(field.key))" class="props__bind">绑定</span>
+            <button
+              type="button"
+              class="props__link"
+              :title="`把「${field.label}」绑定到页面数据`"
+              @click="openBinding(field.key, field.label)"
+            >
+              🔗
+            </button>
           </div>
 
           <!-- 适配包覆盖优先：给了就用它的控件，没给走下面的内置实现 -->
@@ -215,6 +263,14 @@ function copyId(): void {
             @update:model-value="(v: unknown) => set(field.key, v)"
           />
 
+          <!-- 名称/值成对的选项：走独立弹窗录入（rSulo9） -->
+          <div v-else-if="field.type === 'optionPair'" class="props__options">
+            <button type="button" class="props__options-btn" @click="openOptions(field.key, field.label)">
+              <span class="props__options-text">{{ optionsSummary(field.key).text }}</span>
+              <span class="props__options-edit">编辑…</span>
+            </button>
+          </div>
+
           <template v-if="field.type === 'columns'">
             <div class="columns">
               <div v-for="(column, index) in columnsOf(field.key)" :key="index" class="columns__row">
@@ -237,13 +293,6 @@ function copyId(): void {
           </template>
 
           <div v-if="field.tip" class="props__tip">{{ field.tip }}</div>
-
-          <div v-if="field.key === 'modelValue' && stateKeys.length" class="props__vars">
-            <span class="props__vars-label">可用变量</span>
-            <button v-for="key in stateKeys" :key="key" class="props__var" @click="insertBinding('modelValue', `${key}.`)">
-              {{ key }}
-            </button>
-          </div>
         </div>
       </div>
     </section>
@@ -387,6 +436,74 @@ function copyId(): void {
 .props__var:hover {
   border-color: var(--wb-primary);
   color: var(--wb-primary);
+}
+/* 绑定入口：每个可配置属性右侧一个链子，点开就是可绑定数据清单 */
+.props__link {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.props__link:hover {
+  opacity: 1;
+}
+/* 外部数据源入口：节点级配置，挂在属性面板头部 */
+.props__ext {
+  margin-left: auto;
+  border: 1px solid var(--wb-line);
+  border-radius: 4px;
+  background: #fff;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--wb-ink2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.props__ext:hover {
+  border-color: var(--wb-primary);
+  color: var(--wb-primary);
+}
+.props__ext.is-on {
+  border-color: var(--wb-primary);
+  background: var(--wb-primary-soft);
+  color: var(--wb-primary);
+}
+/* 选项录入入口：摘要 + 编辑按钮，点开是独立弹窗 */
+.props__options {
+  width: 100%;
+}
+.props__options-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--wb-line);
+  border-radius: 5px;
+  background: #fff;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.props__options-btn:hover {
+  border-color: var(--wb-primary);
+}
+.props__options-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--wb-ink2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.props__options-edit {
+  font-size: 11px;
+  color: var(--wb-primary);
+  white-space: nowrap;
 }
 .props__empty {
   padding: 20px 0;

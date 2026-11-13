@@ -14,6 +14,7 @@ import type {
   ActionSchema,
   DesignerState,
   DeviceType,
+  ExternalDataSource,
   PageSchema,
   PageRepository,
   ValidationRule,
@@ -79,6 +80,9 @@ export const useDesignerStore = defineStore("designer", () => {
   const copySelected = () => kernel.copySelected();
   const pasteNode = () => kernel.pasteNode();
   const updateProp = (key: string, value: unknown) => kernel.updateProp(key, value);
+  const updateNodeProp = (nodeId: string, key: string, value: unknown) =>
+    kernel.updateNodeProp(nodeId, key, value);
+  const setNodeDataSource = (source: ExternalDataSource | undefined) => kernel.setNodeDataSource(source);
   const updateStyle = (key: string, value: unknown) => kernel.updateStyle(key, value);
   const updateSpacing = (key: SpacingKey, box: SpacingBox) => kernel.updateSpacing(key, box);
   const setRules = (rules: ValidationRule[]) => kernel.setRules(rules);
@@ -134,6 +138,8 @@ export const useDesignerStore = defineStore("designer", () => {
     copySelected,
     pasteNode,
     updateProp,
+    updateNodeProp,
+    setNodeDataSource,
     updateStyle,
     updateSpacing,
     setRules,
