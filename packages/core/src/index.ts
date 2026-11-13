@@ -16,6 +16,9 @@ export * from "./schema/migrate";
 export * from "./schema/datasource";
 export * from "./schema/array";
 
+/** 统一请求层：拦截器 + 上传，供所有 URL 请求收口 */
+export * from "./request";
+
 export * from "./validation/rules";
 export * from "./validation/engine";
 
