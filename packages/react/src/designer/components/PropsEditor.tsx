@@ -2,9 +2,9 @@
  * 属性面板：按物料字段分组编辑当前选中节点的 props。
  * 与 Vue 版 PropsEditor.vue 功能对齐，差异只在 React 的受控通道 value / onChange。
  */
-import { createElement, useState } from "react";
+import { createElement, useMemo, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { FIELD_GROUP_LABELS, fieldOptions, groupFields } from "@x-ac/web-design-core";
+import { FIELD_GROUP_LABELS, collectBindableData, fieldOptions, groupFields } from "@x-ac/web-design-core";
 import type { PropField, PropFieldGroup } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
@@ -71,8 +71,16 @@ export function PropsEditor() {
   // 有效属性 = 物料默认值 + 节点自身属性（默认值不落库）
   const effective = registry.defaults(node.component, node.props);
   const customKeys = new Set(Object.keys(node.props ?? {}));
-  const stateKeys = Object.keys(state.page.state ?? {});
   const sections = groupFields(material.fields);
+
+  /**
+   * 可绑定数据清单（ruUqAF）：由 core 从页面 Schema 生成，与 Vue 侧同一份实现。
+   * React 侧没有弹窗基建，这里用原生下拉直接选，改动最小且功能等价。
+   */
+  const bindables = useMemo(
+    () => collectBindableData(state.page, { registry }),
+    [state.page, registry],
+  );
 
   const value = (key: string): unknown => effective[key];
   const isCustom = (key: string): boolean => customKeys.has(key);
@@ -99,11 +107,10 @@ export function PropsEditor() {
     });
   };
 
-  /** 插入 {{path}} 绑定；已有值则追加到末尾，不覆盖已写内容 */
-  const insertBinding = (key: string, path: string): void => {
-    const current = String(value(key) ?? "");
-    const binding = `{{${path}}}`;
-    set(key, current ? `${current}${binding}` : binding);
+  /** 绑定选择：选一个可绑定数据，写成 {{path}}（覆盖当前值） */
+  const applyBinding = (key: string, path: string): void => {
+    if (!path) return;
+    set(key, `{{${path}}}`);
   };
 
   /**
@@ -247,6 +254,17 @@ export function PropsEditor() {
             onChange={(v: unknown) => set(field.key, v)}
           />
         );
+      // 名称/值成对的选项：Vue 侧走独立弹窗，React 侧用多行输入等价录入
+      case "optionPair":
+        return (
+          <UiControl
+            as="Input"
+            size="small"
+            rows={4}
+            value={String(current ?? "")}
+            onChange={(v: unknown) => set(field.key, v)}
+          />
+        );
       case "text":
         return (
           <UiControl
@@ -300,27 +318,27 @@ export function PropsEditor() {
                     </span>
                   ) : null}
                   {isBound(value(field.key)) ? <span className="props__bind">绑定</span> : null}
+                  {/* 绑定选择器（ruUqAF）：列出可绑定数据，选一条即完成绑定 */}
+                  <select
+                    className="props__bind-select"
+                    value=""
+                    title="绑定页面数据"
+                    onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+                      applyBinding(field.key, event.target.value)
+                    }
+                  >
+                    <option value="">🔗</option>
+                    {bindables.map((item) => (
+                      <option key={item.path} value={item.path}>
+                        {item.group} · {item.label}（{item.path}）
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {renderControl(field)}
 
                 {field.tip ? <div className="props__tip">{field.tip}</div> : null}
-
-                {field.key === "modelValue" && stateKeys.length ? (
-                  <div className="props__vars">
-                    <span className="props__vars-label">可用变量</span>
-                    {stateKeys.map((key) => (
-                      <button
-                        type="button"
-                        className="props__var"
-                        key={key}
-                        onClick={() => insertBinding("modelValue", `${key}.`)}
-                      >
-                        {key}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
               </div>
             ))}
           </div>

@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { PageSchema } from "@x-ac/web-design-core";
-import { deepClone, loadPageData, setByPath } from "@x-ac/web-design-core";
+import {
+  collectBindableElements,
+  collectExternalSources,
+  deepClone,
+  getByPath,
+  loadExternalSource,
+  loadExternalSources,
+  loadPageData,
+  setByPath,
+} from "@x-ac/web-design-core";
 
 export interface PageStore {
   scope: Record<string, unknown>;
@@ -43,24 +52,73 @@ export function usePageStore(page: PageSchema, seed?: Record<string, unknown>): 
 
   const load = useCallback((signal?: AbortSignal): Promise<void> => {
     // 没配数据源时不要触发无谓的重渲染
-    if (!Object.keys(pageRef.current.dataSource ?? {}).length) return Promise.resolve();
+    const hasPageSource = Object.keys(pageRef.current.dataSource ?? {}).length > 0;
+    const hasExternal = collectExternalSources(pageRef.current).length > 0;
+    if (!hasPageSource && !hasExternal) return Promise.resolve();
     return loadPageData(pageRef.current, scopeRef.current, {
       signal,
       onLoading: setLoading,
       onError: setDataError,
-    }).then(() => force());
+    })
+      .then(() =>
+        loadExternalSources(pageRef.current, scopeRef.current, {
+          signal,
+          onError: (message) => {
+            if (message) setDataError(message);
+          },
+        }),
+      )
+      .then(() => force());
   }, []);
 
   const stateKey = JSON.stringify(page.state ?? {});
+
+  /** 外部数据源（rg4KCt）：输入达到「触发长度」才发请求 */
+  const lastTriggered = useRef(new Map<string, string>());
+  const controllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const sources = collectExternalSources(pageRef.current).filter(
+      ({ source }) => Number(source.triggerLength ?? 0) > 0,
+    );
+    if (!sources.length) return;
+
+    const elementPaths = new Map(
+      collectBindableElements(pageRef.current).map((item) => [item.nodeId, item.path]),
+    );
+
+    for (const { node, source } of sources) {
+      const path = source.triggerPath ?? elementPaths.get(node.id) ?? "";
+      if (!path) continue;
+      const raw = getByPath(scopeRef.current, path);
+      const threshold = Number(source.triggerLength ?? 0);
+      const text = raw === null || raw === undefined ? "" : String(raw);
+      if (text.length < threshold) continue;
+      const key = `${source.url}|${path}|${threshold}`;
+      if (lastTriggered.current.get(key) === text) continue;
+      lastTriggered.current.set(key, text);
+      void loadExternalSource(source, scopeRef.current, {
+        signal: controllerRef.current?.signal,
+        onError: (message) => {
+          if (message) setDataError(message);
+        },
+      }).then(() => force());
+    }
+  }, [version]);
 
   useEffect(() => {
     initial.current = deepClone(page.state ?? {});
     scopeRef.current = deepClone(initial.current);
     setErrors({});
     const controller = new AbortController();
+    controllerRef.current = controller;
+    lastTriggered.current.clear();
     void load(controller.signal);
     force();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      controllerRef.current = null;
+    };
   }, [page.id, stateKey, load]);
 
   const setValue = useCallback((path: string, value: unknown, nodeId?: string) => {
