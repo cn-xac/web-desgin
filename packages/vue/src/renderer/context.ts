@@ -1,5 +1,5 @@
 import { inject, type InjectionKey } from "vue";
-import type { NodeSchema, Material, PageSchema, UiAdapter, UiEventHook, UiEventPayload } from "@x-ac/web-design-core";
+import type { ExternalVisibility, NodeSchema, Material, PageSchema, UiAdapter, UiEventHook, UiEventPayload } from "@x-ac/web-design-core";
 
 /** 渲染上下文：动作执行、字段校验、跨页跳转都从这里拿 */
 export interface RenderContext {
@@ -16,6 +16,8 @@ export interface RenderContext {
   notifyEvent: (payload: UiEventPayload) => void;
   /** 宿主传入的可拦截钩子：返回 false 或 payload.preventDefault() 阻断预设动作 */
   onEvent?: UiEventHook;
+  /** 宿主按节点 id 传入的显隐控制（r5u4Ul），可标记 force */
+  visibility?: ExternalVisibility;
 }
 
 export const RENDER_CONTEXT: InjectionKey<RenderContext> = Symbol("wb-render-context");

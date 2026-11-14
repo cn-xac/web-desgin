@@ -11,11 +11,31 @@ import {
   type SpacingKey,
   type SpacingSide,
 } from "@x-ac/web-design-core";
+import { CONDITION_MODE_OPTIONS } from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
+import { useConditionDialog } from "../dialogs";
 import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
 const node = computed(() => store.selectedNode);
+const conditionDialog = useConditionDialog();
+
+/** 条件摘要：让属性面板在不打开弹窗时也能看出配置状态 */
+function conditionSummary(kind: "show" | "hide"): string {
+  const group = node.value?.visibility?.[kind];
+  if (!group?.rows.length) return "未配置";
+  const mode = CONDITION_MODE_OPTIONS.find((option) => option.value === group.mode)?.label ?? group.mode;
+  return `${group.rows.length} 条 · ${mode}`;
+}
+
+function openConditions(kind: "show" | "hide"): void {
+  if (!node.value) return;
+  conditionDialog.open({
+    nodeId: node.value.id,
+    label: String(node.value.props?.label ?? node.value.component),
+    kind,
+  });
+}
 
 interface StyleField {
   key: string;
@@ -262,7 +282,23 @@ function directiveValue(name: "show" | "if" | "for"): string {
       />
     </div>
 
-    <div class="style__section">显示与循环</div>
+    <div class="style__section">显示 / 隐藏条件</div>
+    <div class="style__row style__row--block">
+      <label>显示条件</label>
+      <button type="button" class="style__cond-btn" @click="openConditions('show')">
+        {{ conditionSummary("show") }} · 配置
+      </button>
+      <div class="style__tip">命中即显示，优先级高于隐藏条件</div>
+    </div>
+    <div class="style__row style__row--block">
+      <label>隐藏条件</label>
+      <button type="button" class="style__cond-btn" @click="openConditions('hide')">
+        {{ conditionSummary("hide") }} · 配置
+      </button>
+      <div class="style__tip">仅在显示条件未命中时生效</div>
+    </div>
+
+    <div class="style__section">显示与循环（旧指令）</div>
     <div v-for="directive in DIRECTIVES" :key="directive.name" class="style__row style__row--block">
       <label>{{ directive.label }}</label>
       <UiControl as="Input"
@@ -275,13 +311,29 @@ function directiveValue(name: "show" | "if" | "for"): string {
     </div>
 
     <div class="style__section">预览元素</div>
-    <pre class="style__preview">{{ JSON.stringify({ style: node.style ?? {}, directives: node.directives ?? [] }, null, 2) }}</pre>
+    <pre class="style__preview">{{ JSON.stringify({ style: node.style ?? {}, visibility: node.visibility ?? {}, directives: node.directives ?? [] }, null, 2) }}</pre>
   </div>
 </template>
 
 <style scoped>
 .style {
   padding: 14px;
+}
+.style__cond-btn {
+  width: 100%;
+  border: 1px solid var(--wb-line);
+  border-radius: 5px;
+  background: #fff;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--wb-ink2);
+  cursor: pointer;
+}
+.style__cond-btn:hover {
+  border-color: var(--wb-primary);
+  color: var(--wb-primary);
 }
 .style__section {
   margin: 16px 0 10px;

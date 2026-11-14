@@ -11,6 +11,7 @@ import BindingPicker from "./components/BindingPicker.vue";
 import OptionsDialog from "./components/OptionsDialog.vue";
 import ExternalSourceDialog from "./components/ExternalSourceDialog.vue";
 import HeadersDialog from "./components/HeadersDialog.vue";
+import ConditionBuilder from "./components/ConditionBuilder.vue";
 import { migratePage } from "@x-ac/web-design-core";
 import { validatePage } from "@x-ac/web-design-core";
 import { useMaterialCatalog } from "../materials/catalog";
@@ -292,11 +293,12 @@ function backToList(): void {
 
     <input ref="fileInput" type="file" accept=".json,application/json" class="hidden-input" @change="onFileChange" />
 
-    <!-- 设计器级弹窗：绑定选择 / 选项录入 / 外部数据源 / 请求头 -->
+    <!-- 设计器级弹窗：绑定选择 / 选项录入 / 外部数据源 / 请求头 / 显示隐藏条件 -->
     <BindingPicker />
     <OptionsDialog />
     <ExternalSourceDialog />
     <HeadersDialog />
+    <ConditionBuilder />
   </div>
 </template>
 

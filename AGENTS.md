@@ -65,7 +65,7 @@ pnpm add @x-ac/web-design-react @x-ac/web-design-core react react-dom
 
 **类型（部分）**
 - `PageSchema`：`{ schemaVersion: string; id: string; type: "page"; meta?: { title?, device?: "pc"|"pad"|"h5", ... }; state?: Record<string,unknown>; dataSource?: Record<string, DataSourceConfig>; children: NodeSchema[] }`
-- `NodeSchema`：`{ id: string; component: string; props?: Record<string,unknown>; style?: Record<string,string|number>; directives?: DirectiveSchema[]; events?: Record<string, ActionSchema[]>; rules?: ValidationRule[]; children?: NodeSchema[] }`
+- `NodeSchema`：`{ id: string; component: string; props?: Record<string,unknown>; style?: Record<string,string|number>; directives?: DirectiveSchema[]; events?: Record<string, ActionSchema[]>; rules?: ValidationRule[]; dataSource?: ExternalDataSource; visibility?: VisibilityConfig; children?: NodeSchema[] }`
 - `Material`：物料元数据（`component`/`title`/`category`/`kind`/`icon`/`defaultProps`/`fields`/`events?`/`acceptsChildren?`/`textProp?`/`isFormControl?`/`portable?` 等）
 - `UiAdapter<T>`：适配包契约（见 §6）
 - `DirectiveSchema`：`{ name: "show"|"if"|"for"; value?: string; itemKey?; indexKey? }`
@@ -94,6 +94,7 @@ pnpm add @x-ac/web-design-react @x-ac/web-design-core react react-dom
 - **树操作**：`walk` / `findNode` / `findLocation` / `countNodes` / `maxDepth` / `insertNode` / `removeNode` / `moveNode` / `relocateNode` / `cloneWithNewIds` / `getBreadcrumb` / `createNodeId`。
 - **设计器内核**：`DesignerStore`（状态机）、`PageRepository` / `PageRecord` / `createMemoryRepository(seed?)` / `setPageRepository(repo)` / `getPageRepository()`。
 - **表达式/工具**：`resolveValue(expr, scope)` / `getByPath` / `setByPath` / `deepClone` / `materialKey` / `resolveNodeStyle` / `resolveDefaults` / `isBindable` / `resolveBoolean`。
+- **显隐与多条件（1.1.0 起）**：`resolveVisibility(node, scope, external?, ctx?)`（优先级：外部 force → 本地 show → 本地 hide → 外部非强制 → 旧 directives → 默认显示）/ `resolveDirectiveVisibility` / `resolveLoopInstances` / `evaluateConditionGroup` / `evaluateConditionRow` / `validateAdvancedExpression` / `aggregateSeries` / `collectConditionElements`；类型 `VisibilityConfig` `ConditionGroup` `ConditionRow` `ExternalVisibility` `VisibilityDecision`。`collectConditionElements(page, { nodeId })` 是设计期条件源清单，按子表单单向裁剪。
 
 ### 4.2 `@x-ac/web-design-vue`
 
@@ -131,7 +132,7 @@ pnpm add @x-ac/web-design-react @x-ac/web-design-core react react-dom
 
 ```jsonc
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "id": "page_employee",
   "type": "page",
   "meta": { "title": "员工登记", "device": "pc" },
@@ -153,7 +154,8 @@ pnpm add @x-ac/web-design-react @x-ac/web-design-core react react-dom
 - `component`：物料名；业务物料建议 `biz-` 前缀，**不得占用 `ec-` 协议命名空间**。
 - 绑定：把 `props.modelValue` 写成 `"{{scopeVar}}"`，引擎按路径双向同步（Vue `modelValue/update:modelValue`，React `value/onChange`）。
 - 校验规则 `rules[].type`：`required`/`minLength`/`maxLength`/`min`/`max`/`pattern`(可带 `flags`)/`email`/`phone`/`integer`；通用 `message`(支持 `{label}`/`{value}`)、`when`(条件表达式)。
-- 指令 `directives`：`show`/`if`(布尔表达式控制显隐)、`for`(`value` 遍历表达式，`itemKey`/`indexKey` 别名)。
+- 指令 `directives`：`show`/`if`(布尔表达式控制显隐)、`for`(`value` 遍历表达式，`itemKey`/`indexKey` 别名)。**旧指令保留兼容**，新页面优先用 `visibility`。
+- `visibility`：`{ show?: ConditionGroup; hide?: ConditionGroup }`，配置在目标节点自身、只控制自身；显示高于隐藏。条件行 `left` / `aggregate` / `operator` / `value`，`mode` 为 `and` | `or` | `advanced`（`expression` 如 `1 and (2 or 3)`）。子表单内只能引用同一子表单，子表单外引用明细字段需 `aggregate: sum|avg|min|max`（缺省 sum）。宿主可用 `SchemaRenderer` 的 `visibility` prop 按节点 id 传 `{ visible, force? }`。
 - 事件 `events`：键为事件名（kebab 如 `row-click`，引擎转 `rowClick`/`onRowClick`）；值为 `ActionSchema[]`。
 
 ## 6. UiAdapter 适配包契约
@@ -300,3 +302,4 @@ pnpm --filter react-example dev   # http://127.0.0.1:5175
 ## 14. 近期变更（供 AI 注意）
 
 - `SchemaRenderer`（vue `SchemaRenderer.vue` 与 react `SchemaRenderer.tsx`）现已对根级 `schema.children` 兜底 `?? []`：畸形 Schema（缺 `children`）不再在渲染入口崩溃，安全降级为空态。递归的 `SchemaNode` 此前已对 `node.children` 兜底。
+- `schemaVersion` 已升 `1.1.0`（迁移链 `1.0.0 → 1.1.0`，旧结构无需变换）。新增节点级 `visibility` 显隐契约与通用多条件组件；`if` / `show` / `for` 的判定统一收敛到 core 的 `resolveVisibility` / `resolveLoopInstances`，Vue / React / 静态 HTML 三端共用。两端 `SchemaRenderer` 新增 `visibility` prop 支持外部强制控制；子表单的显隐求值使用行级隔离 scope。详见 `docs/INTEGRATION.md` 第 11 节。

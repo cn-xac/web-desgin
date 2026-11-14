@@ -90,6 +90,30 @@ export function useExternalSourceDialog() {
   return { visible: externalVisible, target: externalTarget, open, close };
 }
 
+/* ---------------- 显示 / 隐藏条件（r5u4Ul） ---------------- */
+
+/** 条件配置的落点：哪个节点的显示条件或隐藏条件 */
+export interface ConditionTarget {
+  nodeId: string;
+  label: string;
+  kind: "show" | "hide";
+}
+
+const conditionVisible = ref(false);
+const conditionTarget = ref<ConditionTarget | null>(null);
+
+export function useConditionDialog() {
+  function open(target: ConditionTarget): void {
+    conditionTarget.value = target;
+    conditionVisible.value = true;
+  }
+  function close(): void {
+    conditionVisible.value = false;
+    conditionTarget.value = null;
+  }
+  return { visible: conditionVisible, target: conditionTarget, open, close };
+}
+
 /* ---------------- 请求头（独立弹窗） ---------------- */
 
 const headersVisible = ref(false);

@@ -15,6 +15,7 @@ import {
   moveArrayItem,
   pushArrayItem,
   removeArrayItem,
+  setByPath,
 } from "@x-ac/web-design-core";
 import { BINDING_BASE, RENDER_CONTEXT } from "./context";
 import { useMaterialCatalog } from "../materials/catalog";
@@ -45,6 +46,19 @@ const title = computed(() => String(effective.value.label ?? "明细"));
 
 /** 设计态用一个本地预览组数，避免改动真实数据数组 */
 const designCount = ref(1);
+
+/**
+ * 子表单内的显隐条件用「行级隔离作用域」求值：
+ * 只把当前行放回原来的明细路径下（占位下标 0），组内元素读不到子表单外部数据。
+ * 绑定仍走 BINDING_BASE + 全量 scope，不受影响。
+ */
+function isolatedScope(index: number): Record<string, unknown> {
+  const arr = (getByPath(props.scope, fullPath.value) as unknown[] | undefined) ?? [];
+  const row = arr[index] ?? {};
+  const isolated: Record<string, unknown> = {};
+  setByPath(isolated, `${fullPath.value}[0]`, row);
+  return isolated;
+}
 
 const groups = computed<{ key: string; base: string }[]>(() => {
   if (props.design) {
@@ -172,6 +186,8 @@ if (renderCtx) {
           :key="child.id"
           :node="child"
           :scope="scope"
+          :visibility-scope="isolatedScope(index)"
+          :visibility-row-index="0"
           :mode="mode"
           :design="design"
         />

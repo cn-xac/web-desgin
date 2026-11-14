@@ -9,7 +9,7 @@ import type { NodeSchema } from "@x-ac/web-design-core";
 import { DEFAULT_BINDING, camelizeEventName, createEventPayload, materialKey, runEventHooks } from "@x-ac/web-design-core";
 import FieldShell from "./FieldShell.vue";
 import SchemaSubForm from "./SchemaSubForm.vue";
-import { extractPath, getByPath, isBindable, isRequired, resolveBoolean, resolveNodeStyle, resolveValue, setByPath } from "@x-ac/web-design-core";
+import { extractPath, getByPath, isBindable, isRequired, resolveDirectiveVisibility, resolveLoopInstances, resolveNodeStyle, resolveValue, resolveVisibility, setByPath } from "@x-ac/web-design-core";
 import { BINDING_BASE, DESIGNER_SCENE, RENDER_CONTEXT, useUiAdapter } from "./context";
 import { useMaterialCatalog } from "../materials/catalog";
 import { runNodeActions } from "./runActions";
@@ -21,6 +21,10 @@ const props = withDefaults(
     mode?: "view" | "edit";
     design?: boolean;
     ignoreFor?: boolean;
+    /** 子表单传入的行级隔离作用域；不传时用全量页面 scope */
+    visibilityScope?: Record<string, unknown>;
+    /** 当前明细行下标，用于把条件路径里的 [0] 占位替换成真实行 */
+    visibilityRowIndex?: number;
   }>(),
   { mode: "view", design: false, ignoreFor: false },
 );
@@ -42,35 +46,33 @@ const resolved = computed<Component | string | null>(() => {
 });
 const nodeLabel = computed(() => material.value?.title ?? props.node.component);
 
-/* ---------------- 指令 ---------------- */
+/* ---------------- 显隐判定（core 统一契约） ---------------- */
 
-const forDirective = computed(() =>
-  props.ignoreFor ? undefined : props.node.directives?.find((d) => d.name === "for"),
-);
-
-const loopInstances = computed<Array<{ key: string; scope: Record<string, unknown> }> | null>(() => {
-  const directive = forDirective.value;
-  if (!directive) return null;
-
-  const raw = directive.value ?? "";
-  const expression = raw.includes("{{") ? raw : `{{${raw}}}`;
-  const list = resolveValue(expression, props.scope);
-  const items = Array.isArray(list) ? list : [];
-  const itemKey = directive.itemKey ?? "item";
-  const indexKey = directive.indexKey ?? "index";
-
-  return items.map((item, index) => ({
-    key: `${props.node.id}-${index}`,
-    scope: { ...props.scope, [itemKey]: item, [indexKey]: index } as Record<string, unknown>,
-  }));
+/**
+ * 新配置用「隔离后的行级作用域」求值：子表单内条件只能看到本子表单当前行。
+ * 旧 directives 仍用全量页面 scope，保证老页面行为不回归。
+ */
+const visibilityDecision = computed(() => {
+  const isolated = props.visibilityScope ?? props.scope;
+  const local = resolveVisibility(props.node, isolated, renderCtx?.visibility, {
+    rowIndex: props.visibilityRowIndex,
+  });
+  if (local.source === "directive" || local.source === "default") {
+    return resolveDirectiveVisibility(props.node, props.scope);
+  }
+  return local;
 });
 
-const hiddenByIf = computed(() =>
-  (props.node.directives ?? []).some((d) => d.name === "if" && !resolveBoolean(d.value, props.scope)),
+const hiddenByIf = computed(
+  () => !visibilityDecision.value.visible && visibilityDecision.value.mode === "if",
+);
+const hiddenByShow = computed(
+  () => !visibilityDecision.value.visible && visibilityDecision.value.mode !== "if",
 );
 
-const hiddenByShow = computed(() =>
-  (props.node.directives ?? []).some((d) => d.name === "show" && !resolveBoolean(d.value, props.scope)),
+/** for 展开：核心逻辑收敛到 core，裸表达式与 {{}} 写法等价 */
+const loopInstances = computed(() =>
+  props.ignoreFor ? null : resolveLoopInstances(props.node, props.scope),
 );
 
 /* ---------------- 属性 ---------------- */
@@ -302,6 +304,7 @@ function selectSelf(): void {
       :key="instance.key"
       :node="node"
       :scope="instance.scope"
+      :visibility-scope="instance.scope"
       :mode="mode"
       :design="design"
       ignore-for

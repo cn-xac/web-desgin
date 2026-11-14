@@ -19,6 +19,7 @@ import type { Component } from "vue";
 import type {
   DataExportOptions,
   DataExportResult,
+  ExternalVisibility,
   NodeSchema,
   PageSchema,
   UiAdapter,
@@ -52,6 +53,11 @@ const props = withDefaults(
      * 返回 false 或调用 payload.preventDefault() 可跳过该事件配置的预设动作。
      */
     onEvent?: UiEventHook;
+    /**
+     * 外部显隐控制：按节点 id 传入 { visible, force? }。
+     * force=true 忽略节点自身条件；否则仅在本地条件均未命中时生效。
+     */
+    visibility?: ExternalVisibility;
   }>(),
   { mode: "view", design: false },
 );
@@ -224,9 +230,12 @@ provide(RENDER_CONTEXT, {
   },
   onFormSubmit: (payload) => emit("submit", payload),
   notifyEvent: (payload) => emit("nodeEvent", payload),
-  // getter：宿主后续替换 onEvent 时，子树无需重建即可生效
+  // getter：宿主后续替换 onEvent / visibility 时，子树无需重建即可生效
   get onEvent() {
     return props.onEvent;
+  },
+  get visibility() {
+    return props.visibility;
   },
 });
 
