@@ -92,7 +92,8 @@ export function usePageScope(
 
   const triggerPaths = computed(() =>
     triggerSources.value.map(
-      ({ node, source }) => source.triggerPath ?? elementPaths.value.get(node.id) ?? "",
+      ({ node, source }) =>
+        source.triggerPath ?? (node ? elementPaths.value.get(node.id) ?? "" : ""),
     ),
   );
 

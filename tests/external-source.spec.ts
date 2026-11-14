@@ -45,6 +45,7 @@ function page(children: PageSchema["children"] = []): PageSchema {
 }
 
 const source = (partial: Partial<ExternalDataSource> = {}): ExternalDataSource => ({
+  id: "s_auto",
   url: "/api/dept",
   ...partial,
 });
@@ -244,18 +245,24 @@ describe("loadExternalSource：运行时取数", () => {
 describe("collectExternalSources / loadExternalSources：页面级遍历", () => {
   it("收集页面里所有带外部数据源的节点", () => {
     const list = collectExternalSources(
-      page([
-        { id: "a", component: "ec-select", props: {}, dataSource: source() },
-        { id: "b", component: "ec-input", props: {} },
-        {
-          id: "c",
-          component: "ec-container",
-          props: {},
-          children: [{ id: "d", component: "ec-input", props: {}, dataSource: source({ url: "/x" }) }],
+      {
+        ...page([
+          { id: "a", component: "ec-select", props: {}, externalRef: "e1" },
+          { id: "b", component: "ec-input", props: {} },
+          {
+            id: "c",
+            component: "ec-container",
+            props: {},
+            children: [{ id: "d", component: "ec-input", props: {}, externalRef: "e2" }],
+          },
+        ]),
+        externalSources: {
+          e1: { ...source(), id: "e1" },
+          e2: { ...source({ url: "/x" }), id: "e2" },
         },
-      ]),
+      },
     );
-    expect(list.map((item) => item.node.id)).toEqual(["a", "d"]);
+    expect(list.map((item) => item.node?.id)).toEqual(["a", "d"]);
   });
 
   it("加载时跳过触发型数据源（等输入够长度再触发）", async () => {
@@ -272,14 +279,10 @@ describe("collectExternalSources / loadExternalSources：页面级遍历", () =>
     );
     const scope: Record<string, unknown> = {};
     await loadExternalSources(
-      page([
-        {
-          id: "a",
-          component: "ec-input",
-          props: {},
-          dataSource: source({ triggerLength: 2 }),
-        },
-      ]),
+      {
+        ...page([{ id: "a", component: "ec-input", props: {}, externalRef: "e1" }]),
+        externalSources: { e1: { ...source({ triggerLength: 2 }), id: "e1" } },
+      },
       scope,
     );
     expect(calls).toBe(0);

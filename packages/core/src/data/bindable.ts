@@ -166,24 +166,20 @@ function collectPageDataSources(page: PageSchema): BindableItem[] {
   );
 }
 
-/** 外部数据源的响应写进 scope 的各自路径，那些路径即可绑定项 */
+/** 页面级外部数据源的响应写进 scope 的各自路径，那些路径即可绑定项 */
 function collectExternalSources(page: PageSchema): BindableItem[] {
   const out: BindableItem[] = [];
-  const walk = (nodes: NodeSchema[]): void => {
-    for (const node of nodes ?? []) {
-      const source = node.dataSource;
-      for (const response of responsesOf(source)) {
-        const scopePath = response.scopePath;
-        if (scopePath) {
-          out.push(
-            makeItem(scopePath, scopePath, GROUP_EXTERNAL, "external", source?.name ?? source?.url ?? ""),
-          );
-        }
+  for (const source of Object.values(page.externalSources ?? {})) {
+    if (!source) continue;
+    for (const response of responsesOf(source)) {
+      const scopePath = response.scopePath;
+      if (scopePath) {
+        out.push(
+          makeItem(scopePath, scopePath, GROUP_EXTERNAL, "external", source?.name ?? source?.url ?? ""),
+        );
       }
-      walk(node.children ?? []);
     }
-  };
-  walk(page.children ?? []);
+  }
   return out;
 }
 
@@ -388,7 +384,7 @@ export function collectSpecialSettings(
     for (const node of nodes ?? []) {
       const material = registry.get(node.component);
       const flags: SpecialSettingFlags = {
-        external: Boolean(node.dataSource?.url),
+        external: Boolean(node.externalRef),
         visibility: Boolean(node.visibility),
         rules: Boolean(node.rules?.length),
         events: Boolean(node.events && Object.keys(node.events).length),

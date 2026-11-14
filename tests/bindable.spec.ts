@@ -97,21 +97,18 @@ describe("collectBindableData：可绑定数据清单", () => {
     expect(item?.hint).toBe("/api/dept");
   });
 
-  it("外部数据源的响应路径可绑定", () => {
+  it("页面级外部数据源的响应路径可绑定", () => {
     const items = collectBindableData(
       page({
-        children: [
-          {
-            id: "s1",
-            component: "ec-select",
-            props: {},
-            dataSource: {
-              url: "/api/dept",
-              name: "部门",
-              responses: [{ scopePath: "external.dept" }],
-            },
+        externalSources: {
+          ext1: {
+            id: "ext1",
+            url: "/api/dept",
+            name: "部门",
+            responses: [{ scopePath: "external.dept" }],
           },
-        ],
+        },
+        children: [{ id: "s1", component: "ec-select", props: {}, externalRef: "ext1" }],
       }),
     );
     const item = items.find((entry) => entry.path === "external.dept");

@@ -7,8 +7,8 @@
  * 2. 选项数据源（#5）：从接口取选项，只需配置 label / value 映射——
  *    label 必填，value 留空则运行时默认等于 label。配置后 options 自动绑到结果路径。
  *
- * 选项数据源本质就是节点上的 `dataSource`（asOptions: true，单个 select 形态响应），
- * 与「外部数据源」共用同一套运行时；这里只是给它一个更省心的录入入口。
+ * 选项数据源本质就是一条页面级外部数据源（asOptions: true，单个 select 形态响应），
+ * 节点通过 externalRef 引用；与「外部数据源」共用同一套运行时，这里只是给它一个更省心的录入入口。
  */
 import { computed, reactive, ref, watch } from "vue";
 import type { ExternalDataSource, ExternalResponseMap, Method } from "@x-ac/web-design-core";
@@ -70,6 +70,12 @@ const elementOptions = computed(() =>
 /** 已配置的「选项数据源」信息（用于展示已启用状态） */
 const preview = computed(() => parseOptionLines(text.value));
 
+/** 当前编辑的选项数据源 id（页面级 externalSources 的键） */
+const optSourceId = ref("");
+function genOptSourceId(): string {
+  return `ext_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function defaultOpt(): void {
   Object.assign(optDraft, {
     url: "",
@@ -85,10 +91,12 @@ function defaultOpt(): void {
 function load(): void {
   text.value = toOptionLines(node.value?.props?.options);
 
-  const source = node.value?.dataSource;
+  const ref = node.value?.externalRef;
+  const source = ref ? store.page.externalSources?.[ref] : undefined;
   const enabled = Boolean(source?.url && source.asOptions && responsesOf(source)[0]);
   optOn.value = enabled;
   if (enabled && source) {
+    optSourceId.value = source.id;
     const resp = responsesOf(source)[0]!;
     Object.assign(optDraft, {
       url: source.url,
@@ -100,6 +108,7 @@ function load(): void {
       once: source.once !== false,
     });
   } else {
+    optSourceId.value = genOptSourceId();
     defaultOpt();
   }
 }
@@ -145,6 +154,7 @@ function save(): void {
     if (!nodeId) return;
     const scopePath = `options.${nodeId}`;
     const source: ExternalDataSource = {
+      id: optSourceId.value || genOptSourceId(),
       url: optDraft.url.trim(),
       method: optDraft.method,
       once: optDraft.once,
@@ -161,7 +171,8 @@ function save(): void {
         } as ExternalResponseMap,
       ],
     };
-    store.setNodeDataSource(source);
+    store.upsertExternalSource(source);
+    store.setNodeExternalRef(nodeId, source.id);
     store.updateNodeProp(nodeId, "options", `{{${scopePath}}}`);
     dialog.close();
     notify("选项数据源已保存", "success");
@@ -169,8 +180,13 @@ function save(): void {
   }
 
   // 关闭选项数据源：若之前是 asOptions 源，清掉以免遗留
-  if (node.value?.dataSource?.asOptions) {
-    store.setNodeDataSource(undefined);
+  const existingRef = node.value?.externalRef;
+  if (existingRef) {
+    const existing = store.page.externalSources?.[existingRef];
+    if (existing?.asOptions) {
+      store.removeExternalSource(existing.id);
+      store.setNodeExternalRef(target.nodeId, undefined);
+    }
   }
   store.updateProp(target.key, text.value);
   dialog.close();

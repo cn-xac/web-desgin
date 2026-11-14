@@ -83,7 +83,10 @@ export const useDesignerStore = defineStore("designer", () => {
   const updateProp = (key: string, value: unknown) => kernel.updateProp(key, value);
   const updateNodeProp = (nodeId: string, key: string, value: unknown) =>
     kernel.updateNodeProp(nodeId, key, value);
-  const setNodeDataSource = (source: ExternalDataSource | undefined) => kernel.setNodeDataSource(source);
+  const upsertExternalSource = (source: ExternalDataSource) => kernel.upsertExternalSource(source);
+  const removeExternalSource = (sourceId: string) => kernel.removeExternalSource(sourceId);
+  const setNodeExternalRef = (nodeId: string, ref: string | undefined) =>
+    kernel.setNodeExternalRef(nodeId, ref);
   const updateStyle = (key: string, value: unknown) => kernel.updateStyle(key, value);
   const updateSpacing = (key: SpacingKey, box: SpacingBox) => kernel.updateSpacing(key, box);
   const setRules = (rules: ValidationRule[]) => kernel.setRules(rules);
@@ -141,7 +144,9 @@ export const useDesignerStore = defineStore("designer", () => {
     pasteNode,
     updateProp,
     updateNodeProp,
-    setNodeDataSource,
+    upsertExternalSource,
+    removeExternalSource,
+    setNodeExternalRef,
     updateStyle,
     updateSpacing,
     setRules,

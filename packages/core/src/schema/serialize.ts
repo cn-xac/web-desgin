@@ -27,6 +27,7 @@ export function compactNode(node: NodeSchema, dropDefaults = true): NodeSchema {
 
   if (node.style && !isEmptyObject(node.style)) output.style = node.style;
   if (node.directives?.length) output.directives = node.directives;
+  if (node.externalRef) output.externalRef = node.externalRef;
   if (node.visibility && !isEmptyObject(node.visibility)) output.visibility = node.visibility;
   if (node.events && !isEmptyObject(node.events)) output.events = node.events;
   if (node.rules?.length) output.rules = node.rules;
@@ -46,6 +47,7 @@ export function compactPage(page: PageSchema): PageSchema {
   if (page.meta && !isEmptyObject(page.meta)) output.meta = page.meta;
   if (page.state && !isEmptyObject(page.state)) output.state = page.state;
   if (page.dataSource && !isEmptyObject(page.dataSource)) output.dataSource = page.dataSource;
+  if (page.externalSources && !isEmptyObject(page.externalSources)) output.externalSources = page.externalSources;
 
   return output;
 }

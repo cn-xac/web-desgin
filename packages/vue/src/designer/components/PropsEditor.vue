@@ -145,8 +145,8 @@ function optionsSummary(key: string): { count: number; text: string } {
   return { count: items.length, text: names.length ? `${head}${more}` : "尚未设置" };
 }
 
-/** 节点是否已配外部数据源 */
-const hasExternal = computed(() => Boolean(node.value?.dataSource?.url));
+/** 节点是否已配外部数据源（通过 externalRef 引用页面级源） */
+const hasExternal = computed(() => Boolean(node.value?.externalRef));
 
 function copyId(): void {
   if (!node.value) return;

@@ -6,8 +6,9 @@
  *
  * 三条设计约束（决定了下面的实现形状）：
  *
- * 1. **配置挂在节点上**（node.dataSource）。谁用它，决定了参数映射选哪些元素、
- *    响应映射写到哪里；放在页面级则每个元素都得重复写一遍「我引用哪个源」。
+ * 1. **配置集中在页面级**（page.externalSources，键为 id），节点只用 `externalRef` 引用。
+ *    既避免同一份取数配置在多个元素上重复书写，也让「一个源喂多个元素」天然成立；
+ *    响应映射各自写不同 scope 路径即可，与既有表达式机制同构。
  *
  * 2. **结果统一写进 scope 的一个路径**，元素再通过 {{}} 读它。
  *    这样「响应映射到某个元素」= 把 scopePath 指向该元素的绑定路径，
@@ -57,6 +58,8 @@ export interface ExternalResponseMap {
 }
 
 export interface ExternalDataSource {
+  /** 数据源唯一 id（页面级 externalSources 的键）；由设计器生成，运行时按 id 反查触发节点 */
+  id: string;
   /** 数据源名称，仅用于展示 */
   name?: string;
   /** 请求方法；缺省 GET */
@@ -231,22 +234,42 @@ export async function loadExternalSource(
 
 /* ----------------------------- 页面级遍历 ----------------------------- */
 
-/** 遍历页面树，收集所有带外部数据源的节点 */
-export function collectExternalSources(page: PageSchema): Array<{ node: NodeSchema; source: ExternalDataSource }> {
-  const out: Array<{ node: NodeSchema; source: ExternalDataSource }> = [];
+/** 反查「触发 / 拥有」某条页面级外部数据源的节点（externalRef === source.id） */
+function findTriggerNode(page: PageSchema, sourceId: string): NodeSchema | undefined {
+  let found: NodeSchema | undefined;
   const walk = (nodes: NodeSchema[]): void => {
     for (const node of nodes ?? []) {
-      if (node.dataSource?.url) out.push({ node, source: node.dataSource });
+      if (node.externalRef === sourceId) {
+        found = node;
+        return;
+      }
       walk(node.children ?? []);
+      if (found) return;
     }
   };
   walk(page.children ?? []);
+  return found;
+}
+
+/**
+ * 遍历页面级外部数据源，返回每条 { node, source }。
+ * node 为「触发 / 拥有」该源的节点（externalRef === source.id），运行时据此按节点解析默认触发路径；
+ * 找不到触发节点时为 undefined（此时触发路径必须显式配置）。
+ */
+export function collectExternalSources(
+  page: PageSchema,
+): Array<{ node: NodeSchema | undefined; source: ExternalDataSource }> {
+  const out: Array<{ node: NodeSchema | undefined; source: ExternalDataSource }> = [];
+  for (const source of Object.values(page.externalSources ?? {})) {
+    if (!source?.url) continue;
+    out.push({ node: findTriggerNode(page, source.id), source });
+  }
   return out;
 }
 
 /** 页面里是否存在外部数据源（渲染器据此决定要不要挂触发监听） */
 export function hasExternalSource(page: PageSchema): boolean {
-  return collectExternalSources(page).length > 0;
+  return Object.values(page.externalSources ?? {}).some((s) => Boolean(s?.url));
 }
 
 /**

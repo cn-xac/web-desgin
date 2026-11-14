@@ -40,10 +40,11 @@ export interface NodeSchema {
    */
   rules?: ValidationRule[];
   /**
-   * 外部数据源配置（rg4KCt）。
-   * 挂在节点上：谁用它，决定了参数映射选哪些元素、响应映射写到哪里。
+   * 外部数据源引用（rg4KCt）。
+   * 指向 PageSchema.externalSources 中的某条配置 id；仅作为「触发 / 拥有」该源的节点标记，
+   * 实际取数配置与响应映射都集中在页面级，避免重复与分叉。
    */
-  dataSource?: ExternalDataSource;
+  externalRef?: string;
   /**
    * 显示 / 隐藏控制（r5u4Ul）。配置在目标节点自身，只控制该节点。
    * 与 directives 并存：未配置时回落到旧指令，旧 Schema 行为不变。
@@ -77,6 +78,11 @@ export interface PageSchema {
   state?: Record<string, unknown>;
   /** 声明式取数配置，键名即 scope 变量名 */
   dataSource?: Record<string, DataSourceConfig>;
+  /**
+   * 页面级外部数据源配置（rg4KCt）：键为数据源 id，配置集中管理、按 id 引用。
+   * 节点通过 externalRef 指向其中一条，避免同一份取数配置在多个元素上重复书写。
+   */
+  externalSources?: Record<string, ExternalDataSource>;
   children: NodeSchema[];
 }
 

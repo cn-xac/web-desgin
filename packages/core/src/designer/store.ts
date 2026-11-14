@@ -467,18 +467,39 @@ export class DesignerStore {
   }
 
   /**
-   * 写入节点的外部数据源配置（rg4KCt）。
-   * 传 undefined 表示移除该节点的外部数据源。
+   * 写入 / 更新页面级外部数据源配置（rg4KCt）。
+   * 配置集中在 page.externalSources，键为 source.id；节点通过 externalRef 引用，
+   * 避免同一份取数配置在多个元素上重复书写。
    */
-  setNodeDataSource(source: ExternalDataSource | undefined): void {
-    if (!this.selectedId) return;
-    const id = this.selectedId;
+  upsertExternalSource(source: ExternalDataSource): void {
     this.mutatePage((page) => {
-      const node = findLocation(page.children, id)?.node;
+      page.externalSources = page.externalSources ?? {};
+      page.externalSources[source.id] = clone(source);
+    }, `external:${source.id}`);
+    this.emit();
+  }
+
+  /** 删除页面级外部数据源配置（按 id） */
+  removeExternalSource(sourceId: string): void {
+    this.mutatePage((page) => {
+      if (!page.externalSources) return false;
+      delete page.externalSources[sourceId];
+      if (!Object.keys(page.externalSources).length) delete page.externalSources;
+    }, `external-del:${sourceId}`);
+    this.emit();
+  }
+
+  /**
+   * 设置 / 清除节点的外部数据源引用（externalRef）。
+   * 传 undefined 表示移除该节点的引用（源本身是否删除由调用方决定）。
+   */
+  setNodeExternalRef(nodeId: string, ref: string | undefined): void {
+    this.mutatePage((page) => {
+      const node = findLocation(page.children, nodeId)?.node;
       if (!node) return false;
-      if (!source) delete node.dataSource;
-      else node.dataSource = clone(source);
-    }, `datasource:${id}`);
+      if (ref) node.externalRef = ref;
+      else delete node.externalRef;
+    }, `external-ref:${nodeId}`);
     this.emit();
   }
 

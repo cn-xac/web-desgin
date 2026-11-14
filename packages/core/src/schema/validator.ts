@@ -4,6 +4,7 @@
  */
 
 import type { NodeSchema, PageSchema } from "./types";
+import type { ExternalDataSource } from "../data/external";
 import { compilePattern, getRuleDefinition, RULE_TYPES } from "../validation/rules";
 import { materialKey } from "../materials/keys";
 import {
@@ -76,6 +77,32 @@ export function validatePage(input: unknown, knownComponents?: Set<string>): Val
 
   if (input.dataSource !== undefined && !isRecord(input.dataSource)) {
     error("dataSource", "dataSource 必须是对象");
+  }
+
+  if (input.externalSources !== undefined) {
+    if (!isRecord(input.externalSources)) {
+      error("externalSources", "externalSources 必须是对象");
+    } else {
+      for (const [key, rawSource] of Object.entries(input.externalSources)) {
+        const sPath = `externalSources.${key}`;
+        if (!isRecord(rawSource)) {
+          error(sPath, "外部数据源必须是对象");
+          continue;
+        }
+        const source = rawSource as unknown as ExternalDataSource;
+        if (typeof source.id !== "string" || !source.id.trim()) {
+          error(`${sPath}.id`, "外部数据源必须包含 id");
+        } else if (source.id !== key) {
+          error(`${sPath}.id`, `外部数据源 id 必须与键名一致：${key}`);
+        }
+        if (typeof source.url !== "string" || !source.url.trim()) {
+          error(`${sPath}.url`, "外部数据源必须包含 url");
+        }
+        if (source.responses !== undefined && !Array.isArray(source.responses)) {
+          error(`${sPath}.responses`, "responses 必须是数组");
+        }
+      }
+    }
   }
 
   const seen = new Set<string>();

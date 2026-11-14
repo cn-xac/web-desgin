@@ -171,10 +171,13 @@ describe("设计器：外部数据源弹窗", () => {
     await tick();
 
     const node = store.page.children[0];
-    expect(node.dataSource?.url).toBe("/api/dept/list");
-    expect(node.dataSource?.name).toBe("部门列表");
+    const ref = node.externalRef;
+    expect(ref).toBeTruthy();
+    const source = store.page.externalSources?.[ref!];
+    expect(source?.url).toBe("/api/dept/list");
+    expect(source?.name).toBe("部门列表");
     // 缺省「只请求一次」
-    expect(node.dataSource?.once).toBe(true);
+    expect(source?.once).toBe(true);
   });
 
   it("移除数据源会清掉节点上的配置", async () => {
@@ -189,12 +192,14 @@ describe("设计器：外部数据源弹窗", () => {
     await wrapper.find('input[placeholder="/api/dept/list"]').setValue("/api/dept/list");
     await wrapper.find(".ext__ok").trigger("click");
     await tick();
-    expect(store.page.children[0].dataSource?.url).toBe("/api/dept/list");
+    const inserted = store.page.externalSources ?? {};
+    expect(Object.values(inserted).some((s) => s.url === "/api/dept/list")).toBe(true);
 
     await wrapper.find(".props__ext").trigger("click");
     await tick();
     await wrapper.find(".ext__remove").trigger("click");
     await tick();
-    expect(store.page.children[0].dataSource).toBeUndefined();
+    expect(store.page.children[0].externalRef).toBeUndefined();
+    expect(Object.keys(store.page.externalSources ?? {}).length).toBe(0);
   });
 });

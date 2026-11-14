@@ -88,7 +88,7 @@ export function usePageStore(page: PageSchema, seed?: Record<string, unknown>): 
     );
 
     for (const { node, source } of sources) {
-      const path = source.triggerPath ?? elementPaths.get(node.id) ?? "";
+      const path = source.triggerPath ?? (node ? elementPaths.get(node.id) ?? "" : "");
       if (!path) continue;
       const raw = getByPath(scopeRef.current, path);
       const threshold = Number(source.triggerLength ?? 0);

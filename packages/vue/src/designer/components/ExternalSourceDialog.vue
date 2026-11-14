@@ -11,7 +11,7 @@
  *
  * 仅选项类目标会在保存时把它的 options 绑到结果路径（取数与 label/value 映射都归本弹窗管）。
  */
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import type { DataShape, ExternalDataSource, ExternalResponseMap } from "@x-ac/web-design-core";
 import {
   collectBindableElements,
@@ -65,6 +65,18 @@ const draft = reactive({
   responses: [] as DraftResponse[],
 });
 
+/** 当前编辑的外部数据源 id（新建时生成，保存即作为 page.externalSources 的键） */
+const currentSourceId = ref("");
+function genSourceId(): string {
+  return `ext_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** 当前节点引用的页面级外部数据源（若有） */
+function currentSource(): ExternalDataSource | undefined {
+  const ref = node.value?.externalRef;
+  return ref ? store.page.externalSources?.[ref] : undefined;
+}
+
 const node = computed(() => {
   const target = dialog.target.value;
   if (!target) return undefined;
@@ -109,7 +121,8 @@ function defaultScopePath(): string {
 }
 
 function reset(): void {
-  const source = node.value?.dataSource;
+  const source = currentSource();
+  currentSourceId.value = source?.id ?? genSourceId();
   Object.assign(draft, {
     name: source?.name ?? "",
     method: (source?.method ?? "GET") as Method,
@@ -218,6 +231,7 @@ function optionNodeIdsOf(responses: ExternalResponseMap[]): string[] {
 
 function buildSource(): ExternalDataSource {
   const source: ExternalDataSource = {
+    id: currentSourceId.value || genSourceId(),
     method: draft.method,
     url: draft.url.trim(),
   };
@@ -261,9 +275,10 @@ function save(): void {
     return;
   }
 
-  const prevIds = optionNodeIdsOf(responsesOf(node.value?.dataSource));
+  const prevIds = optionNodeIdsOf(responsesOf(currentSource()));
   const source = buildSource();
-  store.setNodeDataSource(source);
+  store.upsertExternalSource(source);
+  store.setNodeExternalRef(target.nodeId, source.id);
 
   // 选项类目标的 options 绑到结果路径；曾被绑定但本次不再绑定的要清掉，避免悬空引用
   const newIds = optionNodeIdsOf(source.responses ?? []);
@@ -282,8 +297,9 @@ function save(): void {
 function remove(): void {
   const target = dialog.target.value;
   if (!target) return;
-  const prevIds = optionNodeIdsOf(responsesOf(node.value?.dataSource));
-  store.setNodeDataSource(undefined);
+  const prevIds = optionNodeIdsOf(responsesOf(currentSource()));
+  store.removeExternalSource(currentSourceId.value);
+  store.setNodeExternalRef(target.nodeId, undefined);
   for (const id of prevIds) store.updateNodeProp(id, "options", "");
   dialog.close();
   notify("已移除外部数据源", "success");
