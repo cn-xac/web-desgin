@@ -5,7 +5,7 @@
  * 引擎必须能在没装任何 UI 库的环境里跑起来（测试、CLI、未来其它框架）。
  * 适配包若提供 designer kit，则整体替换这里的实现，保证「设计时与上线同观感」。
  */
-import { defineComponent, h, type PropType } from "vue";
+import { Teleport, computed, defineComponent, h, onBeforeUnmount, onMounted, ref, type PropType } from "vue";
 
 export interface SelectOption {
   label: string;
@@ -247,5 +247,109 @@ export const NativeColor = defineComponent({
         onChange: (event: Event) => emit("change", (event.target as HTMLInputElement).value),
       });
     };
+  },
+});
+
+/**
+ * 说明提示的原生实现（零 UI 库依赖）。
+ *
+ * 契约：接受 `text` prop（说明文案）+ 默认插槽（触发元素）。
+ * 适配包提供 designer.Tooltip 时整体替换本实现，保证「设计时与上线同观感」。
+ *
+ * 弹层 Teleport 到 body 并用 fixed 定位：设计器弹窗外壳（ModalShell）的
+ * panel 是 overflow:hidden、body 是滚动容器，绝对定位的浮层必被裁掉。
+ */
+export const NativeTooltip = defineComponent({
+  name: "WbdTooltip",
+  inheritAttrs: false,
+  props: {
+    text: { type: String, default: "" },
+  },
+  setup(props, { slots, attrs }) {
+    const host = ref<HTMLElement | null>(null);
+    const visible = ref(false);
+    /** 弹层位置：top 与 bottom 二选一，靠近视口底部时自动翻到上方 */
+    const pos = ref<{ top: number | null; bottom: number | null; left: number }>({
+      top: 0,
+      bottom: null,
+      left: 0,
+    });
+
+    const POP_WIDTH = 264;
+    /** 预估弹层高度：用于判断下方是否放得下，放不下就翻到上方 */
+    const ESTIMATED_HEIGHT = 140;
+
+    function place(): void {
+      const el = host.value;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const gap = 8;
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - POP_WIDTH - 8));
+      const below = rect.bottom + gap;
+      const fitsBelow = below + ESTIMATED_HEIGHT <= window.innerHeight;
+      if (fitsBelow) {
+        pos.value = { top: below, bottom: null, left };
+      } else {
+        pos.value = { top: null, bottom: Math.max(8, window.innerHeight - rect.top + gap), left };
+      }
+    }
+
+    function show(): void {
+      place();
+      visible.value = true;
+    }
+
+    function hide(): void {
+      visible.value = false;
+    }
+
+    /** 指针只是在包裹盒内部移动时不隐藏（避免在问号与插槽之间移动就闪掉） */
+    function onOut(event: MouseEvent): void {
+      const to = event.relatedTarget as Node | null;
+      if (to && host.value?.contains(to)) return;
+      hide();
+    }
+
+    /** 弹窗内容滚动 / 窗口缩放时重新定位，避免提示与触发点错位 */
+    function reposition(): void {
+      if (visible.value) place();
+    }
+
+    onMounted(() => {
+      // capture 阶段才能收到内部滚动容器的 scroll 事件
+      window.addEventListener("scroll", reposition, true);
+      window.addEventListener("resize", reposition);
+    });
+
+    onBeforeUnmount(() => {
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+      visible.value = false;
+    });
+
+    const popStyle = computed(() => ({
+      top: pos.value.top === null ? "auto" : `${pos.value.top}px`,
+      bottom: pos.value.bottom === null ? "auto" : `${pos.value.bottom}px`,
+      left: `${pos.value.left}px`,
+    }));
+
+    return () =>
+      h(
+        "span",
+        {
+          ...attrs,
+          ref: host,
+          class: ["wbd-tip", (attrs.class as string) ?? ""],
+          // 用 mouseover/mouseout（会冒泡）而非 mouseenter：触发点在插槽里也能生效
+          onMouseover: show,
+          onMouseout: onOut,
+        },
+        [
+          slots.default?.(),
+          visible.value
+            ? h(Teleport, { to: "body" }, h("div", { class: "wbd-tip__pop", style: popStyle.value }, props.text))
+            : null,
+        ],
+      );
   },
 });

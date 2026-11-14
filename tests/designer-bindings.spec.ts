@@ -17,6 +17,7 @@ import { blankTemplate } from "@/data/templates";
 import { localStorageRepo, savePage } from "@/api/pageRepo";
 import { setPageRepository } from "@x-ac/web-design-vue/designer";
 import { useSubMapDialog } from "@/designer/dialogs";
+import { NativeTooltip } from "@/designer/ui/native";
 import type { NodeSchema } from "@x-ac/web-design-core";
 
 beforeAll(() => {
@@ -359,7 +360,7 @@ describe("设计器：子映射（#4）", () => {
     await tick();
 
     // 说明图标 + 说明项
-    expect(wrapper.find(".wb-tip__trigger").exists()).toBe(true);
+    expect(wrapper.find(".wbd-tip__trigger").exists()).toBe(true);
     expect(wrapper.find(".sub__tip").text()).toContain("每一行");
 
     // 左侧是子表单里已有的字段
@@ -484,7 +485,7 @@ describe("设计器：外部数据源弹窗交互修正", () => {
     expect(targetRow.findAll("input").length).toBe(1);
 
     // 说明改为问号图标（HelpTip 组件），鼠标指向时展示
-    const help = wrapper.find(".wb-tip__trigger");
+    const help = wrapper.find(".wbd-tip__trigger");
     expect(help.exists()).toBe(true);
     expect(help.attributes("aria-label")).toBeTruthy();
     // 卡片内不再铺开说明正文
@@ -492,22 +493,18 @@ describe("设计器：外部数据源弹窗交互修正", () => {
   });
 
   it("问号提示弹层挂到 body，不会被弹窗的 overflow 裁剪", async () => {
-    const { wrapper } = await openExternalDialog();
-
-    const addResponse = wrapper
-      .findAll(".ext__ghost--block")
-      .find((btn) => btn.text().includes("添加响应映射"));
-    await addResponse!.trigger("click");
+    // 直接测引擎自带的原生回落实现（宿主适配包提供 Tooltip 时走的是它那条路）
+    const wrapper = mount(NativeTooltip, {
+      props: { text: "说明文案" },
+      slots: { default: '<button class="trg">?</button>' },
+    });
+    await wrapper.find(".trg").trigger("mouseover");
     await tick();
 
-    await wrapper.find(".wb-tip__trigger").trigger("mouseenter");
-    await tick();
-
-    const pop = document.body.querySelector(".wb-tip__pop");
+    const pop = document.body.querySelector(".wbd-tip__pop");
     expect(pop).toBeTruthy();
-    expect(pop?.textContent).toBeTruthy();
-    // 弹层不在弹窗面板内部：ModalShell 的 panel 是 overflow:hidden，放里面必被裁掉
-    const panel = wrapper.find(".wbd-modal__panel").element;
-    expect(panel.contains(pop)).toBe(false);
+    expect(pop?.textContent).toContain("说明文案");
+    // 触发点在组件内、弹层在 body 上 → 不受任何 overflow 容器裁剪
+    expect(wrapper.element.contains(pop)).toBe(false);
   });
 });

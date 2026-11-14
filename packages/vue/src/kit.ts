@@ -73,6 +73,7 @@ export function createDesignerKit<TComponent extends VueComponent>(kit: Designer
     const value = kit[slot];
     if (value !== undefined) target[slot] = value;
   }
+  if (kit.Tooltip !== undefined) result.Tooltip = kit.Tooltip;
   if (kit.notify) result.notify = kit.notify;
   return result;
 }

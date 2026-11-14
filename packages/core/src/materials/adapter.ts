@@ -32,8 +32,22 @@ export interface DesignerKit<TComponent = unknown> {
   Switch?: TComponent;
   Segmented?: TComponent;
   ColorInput?: TComponent;
+  /**
+   * 说明提示（问号图标等）：包裹触发元素并展示说明文案。
+   *
+   * 契约：接受 `text` prop（说明文案）+ 默认插槽（触发元素），浮层由该库自行实现。
+   * 各家 API 不同（Element Plus 是 content、antd 是 title、naive 走默认插槽），
+   * 差异由适配包用一层包装组件消化，引擎侧只认 `text`。
+   */
+  Tooltip?: TComponent;
   /** 命令式提示；缺省用内置轻提示 */
   notify?: (message: string, type?: "success" | "warning" | "error" | "info") => void;
+}
+
+/** Tooltip 槽位的 props 契约：适配包的包装组件按它实现 */
+export interface DesignerTooltipProps {
+  /** 说明文案 */
+  text: string;
 }
 
 export interface UiAdapter<TComponent = unknown> {
