@@ -14,23 +14,31 @@ import PageSettings from "./PageSettings.vue";
 const store = useDesignerStore();
 const catalog = useMaterialCatalog();
 
-type TabKey = "props" | "style" | "rules" | "events" | "schema";
-const TABS: Array<{ key: TabKey; label: string }> = [
+/** 选中节点时的面板：Schema 是整页视图，归到页面设置，不放这里 */
+type NodeTabKey = "props" | "style" | "rules" | "events";
+const NODE_TABS: Array<{ key: NodeTabKey; label: string }> = [
   { key: "props", label: "属性" },
   { key: "style", label: "样式" },
   { key: "rules", label: "校验" },
   { key: "events", label: "事件" },
+];
+
+/** 未选中节点时的面板：页面设置 + 整页 Schema */
+type PageTabKey = "settings" | "schema";
+const PAGE_TABS: Array<{ key: PageTabKey; label: string }> = [
+  { key: "settings", label: "页面设置" },
   { key: "schema", label: "Schema" },
 ];
 
-const tab = ref<TabKey>("props");
+const nodeTab = ref<NodeTabKey>("props");
+const pageTab = ref<PageTabKey>("settings");
 const hasSelection = computed(() => Boolean(store.selectedNode));
 
 const selectedMaterial = computed(() => catalog.get(store.selectedNode?.component ?? ""));
 /** 只有表单控件才有校验面板 */
 const isField = computed(() => Boolean(selectedMaterial.value?.isFormControl));
 
-const visibleTabs = computed(() => TABS.filter((item) => item.key !== "rules" || isField.value));
+const visibleTabs = computed(() => NODE_TABS.filter((item) => item.key !== "rules" || isField.value));
 
 const ruleCount = computed(() => {
   const node = store.selectedNode;
@@ -39,12 +47,11 @@ const ruleCount = computed(() => {
 });
 
 watch(hasSelection, (selected) => {
-  if (selected) tab.value = "props";
-  else if (tab.value === "schema") tab.value = "props";
+  if (selected) nodeTab.value = "props";
 });
 
 watch(isField, (field) => {
-  if (!field && tab.value === "rules") tab.value = "props";
+  if (!field && nodeTab.value === "rules") nodeTab.value = "props";
 });
 
 const breadcrumbText = computed(() =>
@@ -67,8 +74,8 @@ const tabEvents = computed(() => selectedMaterial.value?.events ?? []);
           v-for="item in visibleTabs"
           :key="item.key"
           class="inspector__tab"
-          :class="{ 'is-active': tab === item.key }"
-          @click="tab = item.key"
+          :class="{ 'is-active': nodeTab === item.key }"
+          @click="nodeTab = item.key"
         >
           {{ item.label }}
           <span v-if="item.key === 'rules' && ruleCount" class="inspector__count">{{ ruleCount }}</span>
@@ -77,11 +84,10 @@ const tabEvents = computed(() => selectedMaterial.value?.events ?? []);
       </div>
 
       <div class="inspector__body wb-scroll">
-        <PropsEditor v-if="tab === 'props'" />
-        <StyleEditor v-else-if="tab === 'style'" />
-        <RulesEditor v-else-if="tab === 'rules'" />
-        <EventsEditor v-else-if="tab === 'events'" />
-        <SchemaViewer v-else />
+        <PropsEditor v-if="nodeTab === 'props'" />
+        <StyleEditor v-else-if="nodeTab === 'style'" />
+        <RulesEditor v-else-if="nodeTab === 'rules'" />
+        <EventsEditor v-else />
       </div>
 
       <div class="inspector__footer">
@@ -93,11 +99,20 @@ const tabEvents = computed(() => selectedMaterial.value?.events ?? []);
     </template>
 
     <template v-else>
-      <div class="inspector__tabs inspector__tabs--single">
-        <button class="inspector__tab is-active">页面设置</button>
+      <div class="inspector__tabs">
+        <button
+          v-for="item in PAGE_TABS"
+          :key="item.key"
+          class="inspector__tab"
+          :class="{ 'is-active': pageTab === item.key }"
+          @click="pageTab = item.key"
+        >
+          {{ item.label }}
+        </button>
       </div>
       <div class="inspector__body wb-scroll">
-        <PageSettings />
+        <PageSettings v-if="pageTab === 'settings'" />
+        <SchemaViewer v-else />
       </div>
       <div class="inspector__footer inspector__footer--tip">点击画布中的任意元素以编辑其属性</div>
     </template>
