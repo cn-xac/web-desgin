@@ -316,3 +316,90 @@ describe("辅助函数", () => {
     expect(out).toEqual({ keyword: "abc" });
   });
 });
+
+describe("显示内容模板（#3）", () => {
+  it("下拉：逐项渲染模板作为展示文本，值仍按 valueField 映射", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() =>
+            mockResponse({ list: [{ id: 1, name: "张三", code: "ZS001" }] }),
+          ),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = {};
+    await loadExternalSource(
+      source({
+        responses: [
+          {
+            scopePath: "external.dept",
+            shape: "select",
+            listField: "list",
+            labelField: "name",
+            valueField: "id",
+            display: "{{data.name}}/{{data.code}}",
+          },
+        ],
+      }),
+      scope,
+    );
+    expect((scope.external as Record<string, unknown>).dept).toEqual([
+      { label: "张三/ZS001", value: "1" },
+    ]);
+  });
+
+  it("输入框：把整段响应渲染成字符串写入目标路径", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() => mockResponse({ a: "x", b: "y" })),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = {};
+    await loadExternalSource(
+      source({
+        responses: [{ scopePath: "external.info", shape: "form", display: "{{data.a}}/{{data.b}}" }],
+      }),
+      scope,
+    );
+    expect((scope.external as Record<string, unknown>).info).toBe("x/y");
+  });
+
+  it("模板既能读响应数据，也能读页面 scope", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() => mockResponse({ a: "x" })),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = { form: { code: "C1" } };
+    await loadExternalSource(
+      source({
+        responses: [{ scopePath: "external.info", shape: "form", display: "{{form.code}}-{{data.a}}" }],
+      }),
+      scope,
+    );
+    expect((scope.external as Record<string, unknown>).info).toBe("C1-x");
+  });
+
+  it("响应字段可平铺取用：{{a}} 等价于 {{data.a}}", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() => mockResponse({ a: "x" })),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = {};
+    await loadExternalSource(
+      source({
+        responses: [{ scopePath: "external.info", shape: "form", display: "[{{a}}]" }],
+      }),
+      scope,
+    );
+    expect((scope.external as Record<string, unknown>).info).toBe("[x]");
+  });
+});

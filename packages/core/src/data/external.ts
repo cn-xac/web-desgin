@@ -24,7 +24,7 @@ import type { Scope } from "../schema/expression";
 import type { NodeSchema, PageSchema } from "../schema/types";
 import type { BindingContext, DataBinding, DataShape } from "./types";
 import { getProvider } from "./registry";
-import { normalize } from "./normalize";
+import { normalize, toOption } from "./normalize";
 
 /* ----------------------------- 配置契约 ----------------------------- */
 
@@ -55,6 +55,15 @@ export interface ExternalResponseMap {
   valueField?: string;
   /** 归一化形态；缺省由目标元素类型推断（选项类 → select，否则 form） */
   shape?: DataShape;
+  /**
+   * 显示内容模板（#3）：用 {{}} 从响应数据取数并自由拼接，如 `{{data.a}}/{{data.b}}`。
+   * - 选项形态：逐项渲染，结果作为该选项的展示文本（值仍按 valueField 映射）；
+   * - 表单形态：渲染整段响应，结果作为写入目标路径的字符串。
+   *
+   * 求值上下文 = 页面 scope + `data`（本次响应数据），响应的一级字段也会平铺到顶层，
+   * 因此 `{{data.a}}` 与 `{{a}}` 两种写法都能取到响应里的值。
+   */
+  display?: string;
 }
 
 export interface ExternalDataSource {
@@ -172,8 +181,17 @@ export function toDataBinding(source: ExternalDataSource): DataBinding {
  * valueField 缺省时的回退规则：
  * - 选项数据源（asOptions，#5）：未配值字段 → 值默认等于名称（label）；
  * - 其它外部数据源：沿用通用约定，值默认取对象的 value 字段。
+ *
+ * 配了 display（显示内容模板，#3）时：
+ * - 选项形态：逐项渲染模板，渲染结果作为该项的展示文本（值仍按 valueField 映射）；
+ * - 表单形态：渲染整段响应，渲染结果作为写入目标路径的字符串。
  */
-function normalizeResponse(raw: unknown, response: ExternalResponseMap, fallbackValueToLabel: boolean): unknown {
+function normalizeResponse(
+  raw: unknown,
+  response: ExternalResponseMap,
+  fallbackValueToLabel: boolean,
+  scope: Scope,
+): unknown {
   const labelField = response.labelField ?? "label";
   const valueField = response.valueField || (fallbackValueToLabel ? labelField : "value");
   const binding: DataBinding = {
@@ -184,7 +202,45 @@ function normalizeResponse(raw: unknown, response: ExternalResponseMap, fallback
     labelField,
     valueField,
   };
-  return normalize(binding, raw, { scope: {} });
+
+  const template = response.display?.trim();
+  if (!template) {
+    return normalize(binding, raw, { scope });
+  }
+
+  // 表单形态：模板渲染整段响应
+  if ((binding.shape ?? "form") === "form") {
+    return renderDisplay(template, raw, scope);
+  }
+
+  // 选项形态：逐项渲染，值仍按 label/value 字段映射
+  let list: unknown = raw;
+  if (binding.listField && raw && typeof raw === "object") {
+    const extracted = getByPath(raw as Record<string, unknown>, binding.listField);
+    if (Array.isArray(extracted)) list = extracted;
+  }
+  if (!Array.isArray(list)) list = [];
+
+  return (list as unknown[]).map((item) => {
+    const option = toOption(item, binding);
+    return { ...option, label: renderDisplay(template, item, scope) };
+  });
+}
+
+/**
+ * 渲染显示内容模板。
+ * 上下文 = 页面 scope + `data`（响应数据）；响应的一级字段平铺到顶层（data 键除外）。
+ */
+function renderDisplay(template: string, data: unknown, scope: Scope): string {
+  const ctx: Scope = { ...scope, data };
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+      if (key === "data") continue;
+      ctx[key] = value;
+    }
+  }
+  const out = resolveValue(template, ctx);
+  return out === null || out === undefined ? "" : String(out);
 }
 
 /* ----------------------------- 运行时 ----------------------------- */
@@ -221,7 +277,7 @@ export async function loadExternalSource(
     const raw = await provider.load(binding, ctx);
 
     for (const response of responsesOf(source)) {
-      const mapped = normalizeResponse(raw, response, Boolean(source.asOptions));
+      const mapped = normalizeResponse(raw, response, Boolean(source.asOptions), scope);
       setByPath(scope, response.scopePath, mapped);
     }
     options.onError?.("", source);

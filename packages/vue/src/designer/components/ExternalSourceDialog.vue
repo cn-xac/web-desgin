@@ -40,6 +40,12 @@ const notify = useNotify();
 const METHODS: Method[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 const METHOD_OPTIONS = METHODS.map((m) => ({ label: m, value: m }));
 
+/**
+ * 「显示内容」输入框的占位文案。
+ * 模板里直接写 {{}} 会被 Vue 当成插值解析，所以这类文案统一放脚本里。
+ */
+const DISPLAY_PLACEHOLDER = "如 {{data.name}}/{{data.code}}（留空 = 用名称字段）";
+
 interface DraftParam {
   key: string;
   path: string;
@@ -53,6 +59,8 @@ interface DraftResponse {
   listField: string;
   labelField: string;
   valueField: string;
+  /** 显示内容模板：用 {{}} 从响应数据取数并自由拼接（#3） */
+  display: string;
   /** 当前推断形态：选项类目标 → select，否则 form */
   shape: DataShape;
 }
@@ -129,6 +137,15 @@ function isOptionTarget(resp: DraftResponse): boolean {
   return Boolean(elementByNodeId(resp.targetNodeId)?.isOption);
 }
 
+/** 目标是否为「可输入 / 下拉」类 —— 这类元素才需要「显示内容」模板（#3） */
+function isValueTarget(resp: DraftResponse): boolean {
+  const el = elementByNodeId(resp.targetNodeId);
+  return Boolean(el && (el.isFormControl || el.isOption));
+}
+
+/** 页面里「可输入 / 下拉」类元素：外部数据源通常喂给这些元素 */
+const valueElements = computed(() => elements.value.filter((el) => el.isFormControl || el.isOption));
+
 const headerCount = computed(() => Object.keys(draft.headers).length);
 
 /** 默认响应路径：external.<名称> */
@@ -154,6 +171,7 @@ function reset(): void {
       listField: r.listField ?? "",
       labelField: r.labelField ?? "",
       valueField: r.valueField ?? "",
+      display: r.display ?? "",
       shape: r.shape ?? "form",
     })),
   });
@@ -205,14 +223,27 @@ function onParamElement(index: number, path: string): void {
 /* ---------------- 响应映射（多条，#4） ---------------- */
 
 function addResponse(): void {
-  draft.responses.push({
+  const resp: DraftResponse = {
     targetNodeId: "",
     scopePath: defaultScopePath(),
     listField: "",
     labelField: "",
     valueField: "",
+    display: "",
     shape: "form",
-  });
+  };
+  // 只有一个「可输入 / 下拉」元素时默认选中目标，省去一次手动选择（#3）
+  if (valueElements.value.length === 1) {
+    const el = valueElements.value[0]!;
+    resp.targetNodeId = el.nodeId;
+    resp.scopePath = el.path;
+    resp.shape = el.isOption ? "select" : "form";
+    if (el.isOption) {
+      resp.labelField = "label";
+      resp.valueField = "value";
+    }
+  }
+  draft.responses.push(resp);
 }
 function removeResponse(index: number): void {
   draft.responses.splice(index, 1);
@@ -279,6 +310,8 @@ function buildSource(): ExternalDataSource {
         out.valueField = r.valueField.trim();
       }
       if (r.listField.trim()) out.listField = r.listField.trim();
+      // 显示内容模板：只对「可输入 / 下拉」目标有意义（#3）
+      if (r.display.trim()) out.display = r.display.trim();
       return out;
     });
   if (responses.length) source.responses = responses;
@@ -448,10 +481,23 @@ function remove(): void {
               <input v-model="resp.labelField" class="ext__input wb-mono" placeholder="label" spellcheck="false" />
             </div>
           </div>
-          <div v-else-if="!resp.targetNodeId" class="ext__note">
+          <div v-if="isValueTarget(resp)" class="ext__row">
+            <label class="ext__label">显示内容</label>
+            <input
+              v-model="resp.display"
+              class="ext__input wb-mono"
+              :placeholder="DISPLAY_PLACEHOLDER"
+              spellcheck="false"
+            />
+          </div>
+          <div v-if="isValueTarget(resp)" class="ext__note">
+            支持用 <code v-text="'{{}}'"></code> 从响应数据取数并自由拼接（如
+            <code v-text="'{{data.a}}/{{data.b}}'"></code>）；下拉逐项渲染，输入框把整段响应渲染成字符串。
+          </div>
+          <div v-if="!resp.targetNodeId" class="ext__note">
             未选目标元素：结果整体写入 <code>{{ resp.scopePath }}</code>，由你自行把某元素属性绑到该路径。
           </div>
-          <div v-else class="ext__note">
+          <div v-else-if="!isOptionTarget(resp)" class="ext__note">
             目标不是选项类元素，响应将整体写入 <code>{{ resp.scopePath }}</code> 的值。
           </div>
           <div class="ext__row">

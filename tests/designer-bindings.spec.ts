@@ -269,3 +269,29 @@ describe("设计器：外部数据源绑定到点击的源元素", () => {
     expect(node.externalRef).toBeTruthy();
   });
 });
+
+describe("设计器：显示内容模板与单元素默认选中（#3）", () => {
+  it("只有一个可输入元素时，新增响应映射默认选中它", async () => {
+    const { wrapper } = await mountWithNode({
+      id: "i1",
+      component: "input",
+      props: { label: "姓名" },
+    });
+
+    await wrapper.find(".props__ext").trigger("click");
+    await tick();
+
+    const addResponse = wrapper
+      .findAll(".ext__ghost--block")
+      .find((btn) => btn.text().includes("添加响应映射"));
+    expect(addResponse).toBeTruthy();
+    await addResponse!.trigger("click");
+    await tick();
+
+    // 唯一候选元素被自动选中：写入路径即该元素的绑定路径
+    const scopePath = wrapper.find('input[placeholder="如 external.deptList"]');
+    expect((scopePath.element as HTMLInputElement).value).toBe("form.i1");
+    // 目标为可输入元素 → 提供「显示内容」配置
+    expect(wrapper.find(".ext__resp").text()).toContain("显示内容");
+  });
+});

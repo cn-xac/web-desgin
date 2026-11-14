@@ -40,7 +40,11 @@ export function normalize(binding: DataBinding, raw: unknown, ctx: BindingContex
   return (list as unknown[]).map((item) => toOption(item, binding));
 }
 
-function toOption(item: unknown, binding: DataBinding): OptionItem {
+/**
+ * 单个数组项 → OptionItem。
+ * 导出供「外部数据源的显示内容模板」复用：模板只改展示文本，值仍按 valueField 映射。
+ */
+export function toOption(item: unknown, binding: DataBinding): OptionItem {
   // 标量直接包成 { label, value }
   if (item === null || typeof item !== "object") {
     return { label: item == null ? "" : String(item), value: item == null ? "" : String(item) };
