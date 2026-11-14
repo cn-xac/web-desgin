@@ -90,7 +90,10 @@ export interface ExternalDataSource {
   once?: boolean;
   /** 触发长度：输入达到该长度才发请求；0 / 缺省 = 页面加载即取 */
   triggerLength?: number;
-  /** 触发时读取的输入路径；缺省用数据源所在元素自身的绑定路径 */
+  /**
+   * @deprecated 触发元素固定为「绑定该源的节点」，运行时按该节点自身的绑定路径取触发值；
+   * 此字段仅保留兼容旧 Schema，新配置不再写入。
+   */
   triggerPath?: string;
 }
 

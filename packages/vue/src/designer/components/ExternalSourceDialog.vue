@@ -9,6 +9,9 @@
  * 4. 触发由「数据源所在元素自身的值」或「额外选中的参数」驱动，不依赖绑定元素（#2）；
  * 5. 下拉全部改用宿主 UI 库的 Select（设计态与运行时同观感）并支持搜索（#3）。
  *
+ * 配置写在页面级 page.externalSources，本元素通过 externalRef 引用它：
+ * 触发元素固定为「打开弹窗时点击的那个元素」，弹窗不再提供触发元素选择。
+ *
  * 仅选项类目标会在保存时把它的 options 绑到结果路径（取数与 label/value 映射都归本弹窗管）。
  */
 import { computed, reactive, ref, watch } from "vue";
@@ -61,7 +64,6 @@ const draft = reactive({
   headers: {} as Record<string, string>,
   once: true,
   triggerLength: 0,
-  triggerPath: "",
   params: [] as DraftParam[],
   responses: [] as DraftResponse[],
 });
@@ -103,6 +105,20 @@ const targetOptions = computed(() =>
   })),
 );
 
+/** 本数据源绑定的元素：打开弹窗时点击的那个（触发值即取自它） */
+const boundLabel = computed(() => {
+  const target = dialog.target.value;
+  if (!target) return "";
+  return target.label || node.value?.component || target.nodeId;
+});
+
+/** 绑定元素实际的数据路径（仅用于展示） */
+const boundPath = computed(() => {
+  const target = dialog.target.value;
+  if (!target) return "";
+  return elements.value.find((el) => el.nodeId === target.nodeId)?.path ?? "";
+});
+
 function elementByNodeId(nodeId: string): BindableElement | undefined {
   return elements.value.find((item) => item.nodeId === nodeId);
 }
@@ -131,7 +147,6 @@ function reset(): void {
     headers: { ...(source?.headers ?? {}) },
     once: source?.once !== false,
     triggerLength: Number(source?.triggerLength ?? 0),
-    triggerPath: source?.triggerPath ?? "",
     params: (source?.params ?? []).map((item) => ({ ...item })),
     responses: responsesOf(source).map((r) => ({
       targetNodeId: "",
@@ -271,7 +286,6 @@ function buildSource(): ExternalDataSource {
   source.once = draft.once;
   if (draft.triggerLength > 0) {
     source.triggerLength = draft.triggerLength;
-    if (draft.triggerPath) source.triggerPath = draft.triggerPath;
   }
   return source;
 }
@@ -347,7 +361,7 @@ function remove(): void {
         </button>
       </div>
 
-      <!-- 触发 -->
+      <!-- 触发：本数据源绑定在点击的元素上，触发值即取自该元素 -->
       <div class="ext__row ext__row--split">
         <div class="ext__cell">
           <label class="ext__label">触发长度</label>
@@ -360,18 +374,13 @@ function remove(): void {
           />
         </div>
         <div class="ext__cell ext__cell--grow">
-          <label class="ext__label">触发字段</label>
-          <UiControl
-            as="Select"
-            :model-value="draft.triggerPath"
-            :options="elementOptions"
-            filterable
-            clearable
-            size="small"
-            placeholder="（用本元素自身的值）"
-            @update:model-value="(v: string) => (draft.triggerPath = v)"
-          />
+          <label class="ext__label">触发元素</label>
+          <div class="ext__static" :title="boundPath">{{ boundLabel }}</div>
         </div>
+      </div>
+      <div class="ext__note">
+        本数据源绑定在「<b>{{ boundLabel }}</b>」<span v-if="boundPath">（{{ boundPath }}）</span>
+        上，触发值取自该元素自身的值，无需另选触发元素。
       </div>
 
       <label class="ext__switch">
@@ -504,6 +513,18 @@ function remove(): void {
   outline: none;
   border-color: var(--wb-primary);
   box-shadow: 0 0 0 3px rgba(47, 75, 255, 0.1);
+}
+/* 触发元素：只读展示（触发元素固定为打开弹窗时点击的那个元素） */
+.ext__static {
+  padding: 6px 8px;
+  border: 1px dashed var(--wb-line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  color: var(--wb-ink2);
+  background: #fbfcfe;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .ext__ghost {
   border: 1px solid var(--wb-line);

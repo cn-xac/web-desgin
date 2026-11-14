@@ -241,3 +241,31 @@ describe("设计器：不可变元素禁用外部数据源", () => {
     expect(wrapper.find(".wbd-modal__title").text()).toContain("外部数据源");
   });
 });
+
+describe("设计器：外部数据源绑定到点击的源元素", () => {
+  it("弹窗不再提供触发元素选择，触发值固定取自绑定元素", async () => {
+    const { wrapper, store } = await mountWithNode({
+      id: "i1",
+      component: "input",
+      props: { label: "姓名" },
+    });
+
+    await wrapper.find(".props__ext").trigger("click");
+    await tick();
+
+    // 触发元素变为只读展示，界面里不再有「触发字段」选择器
+    expect(wrapper.find(".ext__static").exists()).toBe(true);
+    expect(wrapper.text()).not.toContain("触发字段");
+
+    await wrapper.find('input[placeholder="/api/dept/list"]').setValue("/api/dept/list");
+    await wrapper.find(".ext__ok").trigger("click");
+    await tick();
+
+    const node = store.page.children[0];
+    const source = store.page.externalSources?.[node.externalRef ?? ""];
+    expect(source?.url).toBe("/api/dept/list");
+    // 触发元素由绑定关系决定，不再单独写 triggerPath
+    expect(source?.triggerPath).toBeUndefined();
+    expect(node.externalRef).toBeTruthy();
+  });
+});
