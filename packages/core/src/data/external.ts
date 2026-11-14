@@ -43,6 +43,18 @@ export interface ExternalParamMap {
   label?: string;
 }
 
+/**
+ * 子映射项（响应目标为子表单时，映射明细行内的字段）。
+ * - field：子表单内的字段（相对明细数组），主映射的父字段名由 parentField 给出；
+ * - from：响应行对象里取值的字段名。
+ */
+export interface ExternalSubMap {
+  /** 子表单内的字段名（支持 a.b 嵌套） */
+  field: string;
+  /** 响应行里取值的字段名（支持 a.b 嵌套） */
+  from: string;
+}
+
 /** 响应数据映射（一条） */
 export interface ExternalResponseMap {
   /** 结果写入 scope 的路径。映射到某个元素时 = 该元素的绑定路径 */
@@ -64,6 +76,16 @@ export interface ExternalResponseMap {
    * 因此 `{{data.a}}` 与 `{{a}}` 两种写法都能取到响应里的值。
    */
   display?: string;
+  /**
+   * 父字段名（响应目标为子表单时）：明细数组所在的字段名，如 items。
+   * 与 subMaps 配合：主映射给出父字段，子映射只需填「父字段里的子字段」。
+   */
+  parentField?: string;
+  /**
+   * 子映射（响应目标为子表单时）：响应数组的每一行按这些映射填成明细对象。
+   * 未配置时整个响应数组原样写入。
+   */
+  subMaps?: ExternalSubMap[];
 }
 
 export interface ExternalDataSource {
@@ -204,6 +226,28 @@ function normalizeResponse(
   };
 
   const template = response.display?.trim();
+
+  // 子映射（响应目标为子表单时，#4）：逐行把响应数组映射成明细对象
+  if (response.subMaps?.length) {
+    let rows: unknown = raw;
+    if (response.listField && raw && typeof raw === "object") {
+      const extracted = getByPath(raw as Record<string, unknown>, response.listField);
+      if (Array.isArray(extracted)) rows = extracted;
+    }
+    if (!Array.isArray(rows)) rows = [];
+
+    return (rows as unknown[]).map((row) => {
+      const source = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
+      const out: Record<string, unknown> = {};
+      for (const map of response.subMaps!) {
+        if (!map.field) continue;
+        const value = map.from ? getByPath(source, map.from) : undefined;
+        setByPath(out, map.field, value);
+      }
+      return out;
+    });
+  }
+
   if (!template) {
     return normalize(binding, raw, { scope });
   }

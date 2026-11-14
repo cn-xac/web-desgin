@@ -16,6 +16,7 @@ import { useDesignerStore } from "@/designer/store";
 import { blankTemplate } from "@/data/templates";
 import { localStorageRepo, savePage } from "@/api/pageRepo";
 import { setPageRepository } from "@x-ac/web-design-vue/designer";
+import { useSubMapDialog } from "@/designer/dialogs";
 import type { NodeSchema } from "@x-ac/web-design-core";
 
 beforeAll(() => {
@@ -293,5 +294,83 @@ describe("设计器：显示内容模板与单元素默认选中（#3）", () =>
     expect((scopePath.element as HTMLInputElement).value).toBe("form.i1");
     // 目标为可输入元素 → 提供「显示内容」配置
     expect(wrapper.find(".ext__resp").text()).toContain("显示内容");
+  });
+});
+
+describe("设计器：子映射（#4）", () => {
+  /** 挂载一个「输入框（拥有者）+ 子表单（响应目标）」的页面，并预置一条指向子表单的响应映射 */
+  async function mountWithSubFormTarget() {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(DesignerView, {
+      props: { pageId },
+      global: { plugins: [pinia] },
+    });
+    await tick(60);
+
+    const store = useDesignerStore(pinia);
+    store.setPage({
+      ...blankTemplate("子映射测试"),
+      children: [
+        { id: "i1", component: "input", props: { label: "姓名" }, externalRef: "ext_1" },
+        {
+          id: "sf1",
+          component: "ec-subform",
+          props: { label: "明细", itemPath: "items" },
+          children: [{ id: "g1", component: "ec-input", props: { label: "商品" } }],
+        },
+      ],
+      externalSources: {
+        ext_1: {
+          id: "ext_1",
+          url: "/api/rows",
+          responses: [{ scopePath: "form.items", shape: "form", parentField: "items" }],
+        },
+      },
+    });
+    store.select("i1");
+    await tick(40);
+    return { wrapper, store };
+  }
+
+  it("响应目标是子表单时，主映射出现父字段名与子映射入口", async () => {
+    const { wrapper } = await mountWithSubFormTarget();
+
+    await wrapper.find(".props__ext").trigger("click");
+    await tick();
+
+    const resp = wrapper.find(".ext__resp");
+    expect(resp.exists()).toBe(true);
+    expect(resp.text()).toContain("父字段名");
+    expect(resp.text()).toContain("设置子映射");
+  });
+
+  it("子映射弹窗列出子表单字段，带说明图标与说明项", async () => {
+    const { wrapper } = await mountWithSubFormTarget();
+
+    const subMap = useSubMapDialog();
+    void subMap.open({
+      responseIndex: 0,
+      parentField: "items",
+      groupNodeId: "sf1",
+      label: "明细",
+      maps: [],
+    });
+    await tick();
+
+    // 说明图标 + 说明项
+    expect(wrapper.find(".sub__tip-icon").exists()).toBe(true);
+    expect(wrapper.find(".sub__tip").text()).toContain("每一行");
+
+    // 左侧是子表单里已有的字段
+    const row = wrapper.find(".sub__row");
+    expect(row.exists()).toBe(true);
+    expect(row.text()).toContain("商品");
+
+    // 右侧填响应字段名后确定
+    await wrapper.find(".sub__input").setValue("goodsName");
+    await wrapper.find(".sub__ok").trigger("click");
+    await tick();
+    expect(subMap.visible.value).toBe(false);
   });
 });

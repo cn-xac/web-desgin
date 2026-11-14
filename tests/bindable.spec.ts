@@ -3,6 +3,7 @@ import {
   canOwnExternalSource,
   collectBindableData,
   collectBindableElements,
+  collectSubFormFields,
   filterBindableData,
   groupBindableData,
   type PageSchema,
@@ -204,5 +205,33 @@ describe("canOwnExternalSource：哪些元素可以拥有外部数据源", () =>
   it("带不带 ec- 前缀结果一致", () => {
     expect(canOwnExternalSource("input")).toBe(canOwnExternalSource("ec-input"));
     expect(canOwnExternalSource("text")).toBe(canOwnExternalSource("ec-text"));
+  });
+});
+
+describe("collectSubFormFields：子表单字段清单（#4 子映射用）", () => {
+  it("列出子表单的直接子字段，字段名即明细对象的键", () => {
+    const fields = collectSubFormFields(
+      page({
+        children: [
+          {
+            id: "sf1",
+            component: "ec-subform",
+            props: { itemPath: "items" },
+            children: [
+              { id: "g1", component: "ec-input", props: { label: "商品" } },
+              { id: "q1", component: "ec-number", props: { label: "数量" } },
+            ],
+          },
+        ],
+      }),
+      "sf1",
+    );
+    expect(fields.map((f) => f.field)).toEqual(["g1", "q1"]);
+    expect(fields[0]?.label).toBe("商品");
+    expect(fields[0]?.path).toBe("form.items[0].g1");
+  });
+
+  it("找不到子表单时返回空清单", () => {
+    expect(collectSubFormFields(page({ children: [] }), "nope")).toEqual([]);
   });
 });

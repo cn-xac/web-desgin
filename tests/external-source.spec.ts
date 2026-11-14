@@ -403,3 +403,82 @@ describe("显示内容模板（#3）", () => {
     expect((scope.external as Record<string, unknown>).info).toBe("[x]");
   });
 });
+
+describe("子映射（#4）", () => {
+  it("响应数组的每一行按子映射填成明细对象", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() =>
+            mockResponse({ rows: [{ goodsName: "A", qty: 2 }, { goodsName: "B", qty: 5 }] }),
+          ),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = {};
+    await loadExternalSource(
+      source({
+        responses: [
+          {
+            scopePath: "form.items",
+            shape: "form",
+            listField: "rows",
+            parentField: "items",
+            subMaps: [
+              { field: "goods", from: "goodsName" },
+              { field: "qty", from: "qty" },
+            ],
+          },
+        ],
+      }),
+      scope,
+    );
+    expect(scope.form).toEqual({
+      items: [
+        { goods: "A", qty: 2 },
+        { goods: "B", qty: 5 },
+      ],
+    });
+  });
+
+  it("子映射支持嵌套字段名", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() => mockResponse([{ price: { qty: 3 } }])),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = {};
+    await loadExternalSource(
+      source({
+        responses: [
+          {
+            scopePath: "form.items",
+            shape: "form",
+            parentField: "items",
+            subMaps: [{ field: "detail.qty", from: "price.qty" }],
+          },
+        ],
+      }),
+      scope,
+    );
+    expect(scope.form).toEqual({ items: [{ detail: { qty: 3 } }] });
+  });
+
+  it("未配子映射时整个响应数组原样写入", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() => mockResponse([{ goodsName: "A" }])),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = {};
+    await loadExternalSource(
+      source({ responses: [{ scopePath: "form.items", shape: "form", parentField: "items" }] }),
+      scope,
+    );
+    expect(scope.form).toEqual({ items: [{ goodsName: "A" }] });
+  });
+});

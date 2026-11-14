@@ -8,6 +8,7 @@
  * 组件内部不读路由、不写 localStorage，这里只是内存态，宿主刷新即失效 —— 正合适。
  */
 import { ref } from "vue";
+import type { ExternalSubMap } from "@x-ac/web-design-core";
 
 /* ---------------- 绑定选择器 ---------------- */
 
@@ -112,6 +113,51 @@ export function useConditionDialog() {
     conditionTarget.value = null;
   }
   return { visible: conditionVisible, target: conditionTarget, open, close };
+}
+
+/* ---------------- 子映射（响应目标为子表单时） ---------------- */
+
+/** 子映射的落点：属于哪条响应映射、目标子表单是谁 */
+export interface SubMapTarget {
+  /** 所属响应映射在草稿里的下标 */
+  responseIndex: number;
+  /** 父字段名（明细数组所在的字段） */
+  parentField: string;
+  /** 目标子表单节点 id */
+  groupNodeId: string;
+  /** 目标子表单名称（标题用） */
+  label: string;
+  /** 已有子映射 */
+  maps: ExternalSubMap[];
+}
+
+const subMapVisible = ref(false);
+const subMapTarget = ref<SubMapTarget | null>(null);
+const subMapResolve = ref<((value: ExternalSubMap[] | null) => void) | null>(null);
+
+export function useSubMapDialog() {
+  /**
+   * 打开子映射弹窗。返回 Promise，resolve 出用户确认后的子映射；
+   * 取消时 resolve null（表示「没改」，调用方保留原配置）。
+   */
+  function open(target: SubMapTarget): Promise<ExternalSubMap[] | null> {
+    subMapTarget.value = target;
+    subMapVisible.value = true;
+    return new Promise((resolve) => {
+      subMapResolve.value = resolve;
+    });
+  }
+  function confirm(value: ExternalSubMap[]): void {
+    subMapVisible.value = false;
+    subMapResolve.value?.(value);
+    subMapResolve.value = null;
+  }
+  function cancel(): void {
+    subMapVisible.value = false;
+    subMapResolve.value?.(null);
+    subMapResolve.value = null;
+  }
+  return { visible: subMapVisible, target: subMapTarget, open, confirm, cancel };
 }
 
 /* ---------------- 请求头（独立弹窗） ---------------- */

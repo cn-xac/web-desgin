@@ -15,7 +15,7 @@
  * 仅选项类目标会在保存时把它的 options 绑到结果路径（取数与 label/value 映射都归本弹窗管）。
  */
 import { computed, reactive, ref, watch } from "vue";
-import type { DataShape, ExternalDataSource, ExternalResponseMap } from "@x-ac/web-design-core";
+import type { DataShape, ExternalDataSource, ExternalResponseMap, ExternalSubMap } from "@x-ac/web-design-core";
 import {
   canOwnExternalSource,
   collectBindableElements,
@@ -26,7 +26,7 @@ import {
 } from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
 import { useMaterialCatalog } from "../../materials/catalog";
-import { useExternalSourceDialog, useHeadersDialog } from "../dialogs";
+import { useExternalSourceDialog, useHeadersDialog, useSubMapDialog } from "../dialogs";
 import { useNotify } from "../ui/kit";
 import ModalShell from "../ui/ModalShell.vue";
 import UiControl from "../ui/UiControl.vue";
@@ -35,6 +35,7 @@ const store = useDesignerStore();
 const catalog = useMaterialCatalog();
 const dialog = useExternalSourceDialog();
 const headersDialog = useHeadersDialog();
+const subMapDialog = useSubMapDialog();
 const notify = useNotify();
 
 const METHODS: Method[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
@@ -61,6 +62,10 @@ interface DraftResponse {
   valueField: string;
   /** 显示内容模板：用 {{}} 从响应数据取数并自由拼接（#3） */
   display: string;
+  /** 父字段名（响应目标为子表单时）：明细数组所在的字段名 */
+  parentField: string;
+  /** 子映射（响应目标为子表单时）：响应行内各字段 → 子表单字段 */
+  subMaps: ExternalSubMap[];
   /** 当前推断形态：选项类目标 → select，否则 form */
   shape: DataShape;
 }
@@ -143,6 +148,17 @@ function isValueTarget(resp: DraftResponse): boolean {
   return Boolean(el && (el.isFormControl || el.isOption));
 }
 
+/** 目标是否为子表单（明细容器）—— 这类目标才需要「父字段名 + 子映射」（#4） */
+function isGroupTarget(resp: DraftResponse): boolean {
+  return Boolean(elementByNodeId(resp.targetNodeId)?.isGroup);
+}
+
+/** 父字段名默认值：明细数组所在字段（元素路径的最后一段） */
+function defaultParentField(el: BindableElement): string {
+  const segment = el.path.split(".").pop() ?? "";
+  return segment.replace(/\[\d+\]$/, "");
+}
+
 /** 页面里「可输入 / 下拉」类元素：外部数据源通常喂给这些元素 */
 const valueElements = computed(() => elements.value.filter((el) => el.isFormControl || el.isOption));
 
@@ -172,6 +188,8 @@ function reset(): void {
       labelField: r.labelField ?? "",
       valueField: r.valueField ?? "",
       display: r.display ?? "",
+      parentField: r.parentField ?? "",
+      subMaps: (r.subMaps ?? []).map((m) => ({ ...m })),
       shape: r.shape ?? "form",
     })),
   });
@@ -185,6 +203,7 @@ function reset(): void {
         resp.labelField = resp.labelField || "label";
         resp.valueField = resp.valueField || "value";
       }
+      if (el.isGroup && !resp.parentField) resp.parentField = defaultParentField(el);
     }
   }
 }
@@ -230,6 +249,8 @@ function addResponse(): void {
     labelField: "",
     valueField: "",
     display: "",
+    parentField: "",
+    subMaps: [],
     shape: "form",
   };
   // 只有一个「可输入 / 下拉」元素时默认选中目标，省去一次手动选择（#3）
@@ -260,7 +281,29 @@ function onResponseTarget(index: number, nodeId: string): void {
       resp.labelField = resp.labelField || "label";
       resp.valueField = resp.valueField || "value";
     }
+    // 目标是子表单 → 给父字段名默认值；换成别的目标则清掉子映射
+    resp.parentField = el.isGroup ? defaultParentField(el) : "";
+    if (!el.isGroup) resp.subMaps = [];
   }
+}
+
+/**
+ * 打开子映射弹窗（#4）。
+ * 取消时保留原有配置（弹窗 resolve null 表示「没改」）。
+ */
+async function openSubMap(index: number): Promise<void> {
+  const resp = draft.responses[index];
+  if (!resp) return;
+  const el = elementByNodeId(resp.targetNodeId);
+  if (!el?.isGroup) return;
+  const maps = await subMapDialog.open({
+    responseIndex: index,
+    parentField: resp.parentField,
+    groupNodeId: resp.targetNodeId,
+    label: el.label,
+    maps: resp.subMaps,
+  });
+  if (maps) resp.subMaps = maps;
 }
 
 /* ---------------- 请求头 ---------------- */
@@ -312,6 +355,11 @@ function buildSource(): ExternalDataSource {
       if (r.listField.trim()) out.listField = r.listField.trim();
       // 显示内容模板：只对「可输入 / 下拉」目标有意义（#3）
       if (r.display.trim()) out.display = r.display.trim();
+      // 父字段名 + 子映射：只对子表单目标有意义（#4）
+      if (r.parentField.trim()) out.parentField = r.parentField.trim();
+      if (r.subMaps.length) {
+        out.subMaps = r.subMaps.map((m) => ({ field: m.field, from: m.from }));
+      }
       return out;
     });
   if (responses.length) source.responses = responses;
@@ -470,6 +518,22 @@ function remove(): void {
           <div class="ext__row">
             <label class="ext__label">写入路径</label>
             <input v-model="resp.scopePath" class="ext__input wb-mono" placeholder="如 external.deptList" spellcheck="false" />
+          </div>
+          <div v-if="isGroupTarget(resp)" class="ext__row ext__row--split">
+            <div class="ext__cell">
+              <label class="ext__label">父字段名</label>
+              <input v-model="resp.parentField" class="ext__input wb-mono" placeholder="如 items" spellcheck="false" />
+            </div>
+            <div class="ext__cell ext__cell--grow">
+              <label class="ext__label">子映射</label>
+              <button type="button" class="ext__ghost" @click="openSubMap(index)">
+                {{ resp.subMaps.length ? `已配置 ${resp.subMaps.length} 项` : "设置子映射…" }}
+              </button>
+            </div>
+          </div>
+          <div v-if="isGroupTarget(resp)" class="ext__note">
+            响应数组的<b>每一行</b>会填成子表单的一条明细。父字段名
+            <code>{{ resp.parentField || "（未填）" }}</code> 是明细数组所在的字段，子映射只需填它的子字段。
           </div>
           <div v-if="isOptionTarget(resp)" class="ext__row ext__row--split">
             <div class="ext__cell">

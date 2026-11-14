@@ -18,6 +18,7 @@
 
 import type { NodeSchema, PageSchema } from "../schema/types";
 import { extractPath } from "../schema/expression";
+import { findLocation } from "../schema/tree";
 import { MATERIALS } from "../materials/catalog";
 import { bareKey } from "../materials/keys";
 import { createRegistry, type MaterialRegistry } from "../materials/registry";
@@ -304,6 +305,51 @@ export function collectBindableElements(
   };
 
   walk(page.children ?? [], "form");
+  return out;
+}
+
+/* ----------------------------- 子表单字段（#4 子映射用） ----------------------------- */
+
+/** 子表单内的字段 */
+export interface SubFormField {
+  /** 明细数组对象里的键：默认取节点 ID（与子表单内控件的自动绑定路径一致） */
+  field: string;
+  /** 展示名 */
+  label: string;
+  /** 完整路径（形如 form.items[0].goods） */
+  path: string;
+}
+
+/**
+ * 收集子表单（明细容器）里的字段清单，供「子映射」配置使用。
+ *
+ * 只取直接子级：子映射要填的就是「父字段里的子字段」，
+ * 嵌套子表单属于另一层映射，不在这里展开。
+ */
+export function collectSubFormFields(
+  page: PageSchema,
+  groupNodeId: string,
+  options: CollectBindableOptions = {},
+): SubFormField[] {
+  const registry = options.registry ?? createRegistry(MATERIALS);
+  const group = findLocation(page.children ?? [], groupNodeId)?.node;
+  if (!group) return [];
+
+  const elements = collectBindableElements(page, options);
+  const groupEl = elements.find((el) => el.nodeId === groupNodeId);
+  const prefix = groupEl ? `${groupEl.path}[${GROUP_INDEX}].` : "";
+
+  const out: SubFormField[] = [];
+  for (const child of group.children ?? []) {
+    const material = registry.get(child.component);
+    if (!material || material.kind === "subform") continue;
+    if (!material.isFormControl && !OPTION_COMPONENTS.has(bareKey(child.component))) continue;
+    out.push({
+      field: child.id,
+      label: fieldLabel(child, material),
+      path: `${prefix}${child.id}`,
+    });
+  }
   return out;
 }
 

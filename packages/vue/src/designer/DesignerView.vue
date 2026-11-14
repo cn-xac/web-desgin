@@ -10,6 +10,7 @@ import InspectorPanel from "./components/InspectorPanel.vue";
 import BindingPicker from "./components/BindingPicker.vue";
 import OptionsDialog from "./components/OptionsDialog.vue";
 import ExternalSourceDialog from "./components/ExternalSourceDialog.vue";
+import ExternalSubMapDialog from "./components/ExternalSubMapDialog.vue";
 import HeadersDialog from "./components/HeadersDialog.vue";
 import ConditionBuilder from "./components/ConditionBuilder.vue";
 import { migratePage } from "@x-ac/web-design-core";
@@ -297,6 +298,7 @@ function backToList(): void {
     <BindingPicker />
     <OptionsDialog />
     <ExternalSourceDialog />
+    <ExternalSubMapDialog />
     <HeadersDialog />
     <ConditionBuilder />
   </div>
