@@ -1,27 +1,55 @@
 <script setup lang="ts">
 /**
- * 选项录入弹窗（rSulo9）。
+ * 选项录入弹窗（rSulo9 / 本次增强）。
  *
- * 录入形态：一行一个选项，名称(label)在前、值(value)在后，以空格（支持多个空格）隔开。
- * 存进 Schema 的就是这段多行文本 —— 可读、可 diff、可手写，
- * 解析规则由 core 的 parseOptionLines 统一提供（渲染器与设计器共用）。
+ * 两种选项来源互斥呈现：
+ * 1. 手工录入：一行一个「名称 值」，存进 Schema 的多行文本（原行为）；
+ * 2. 选项数据源（#5）：从接口取选项，只需配置 label / value 映射——
+ *    label 必填，value 留空则运行时默认等于 label。配置后 options 自动绑到结果路径。
  *
- * 与外部数据源的关系：当节点配了外部数据源、且响应结果映射到本元素时，
- * 选项由接口返回，弹窗只读展示，不再手填 —— 取数与 label/value 映射都归 rg4KCt 管。
+ * 选项数据源本质就是节点上的 `dataSource`（asOptions: true，单个 select 形态响应），
+ * 与「外部数据源」共用同一套运行时；这里只是给它一个更省心的录入入口。
  */
-import { computed, ref, watch } from "vue";
-import { findLocation, parseOptionLines, toOptionLines } from "@x-ac/web-design-core";
+import { computed, reactive, ref, watch } from "vue";
+import type { ExternalDataSource, ExternalResponseMap, Method } from "@x-ac/web-design-core";
+import {
+  collectBindableElements,
+  findLocation,
+  parseOptionLines,
+  responsesOf,
+  toOptionLines,
+  type BindableElement,
+} from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
+import { useMaterialCatalog } from "../../materials/catalog";
 import { useOptionsDialog, useExternalSourceDialog } from "../dialogs";
 import { useNotify } from "../ui/kit";
 import ModalShell from "../ui/ModalShell.vue";
+import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
+const catalog = useMaterialCatalog();
 const dialog = useOptionsDialog();
 const externalDialog = useExternalSourceDialog();
 const notify = useNotify();
 
 const text = ref("");
+const optOn = ref(false);
+
+interface OptParam {
+  key: string;
+  path: string;
+  label?: string;
+}
+const optDraft = reactive({
+  url: "",
+  method: "GET" as Method,
+  params: [] as OptParam[],
+  listField: "",
+  labelField: "label",
+  valueField: "",
+  once: true,
+});
 
 /** 目标节点：弹窗打开期间选中项可能被改，按 nodeId 取，别跟着选中项漂 */
 const node = computed(() => {
@@ -30,24 +58,50 @@ const node = computed(() => {
   return findLocation(store.page.children, target.nodeId)?.node;
 });
 
-/**
- * 外部数据源是否接管了本元素的选项：
- * 节点配了外部数据源，且响应结果的 scopePath 正是 options 绑定的那个路径。
- */
-const external = computed(() => {
-  const source = node.value?.dataSource;
-  const scopePath = source?.response?.scopePath;
-  if (!source?.url || !scopePath) return null;
-  const bound = String(node.value?.props?.options ?? "").trim();
-  const expected = `{{${scopePath}}}`;
-  if (bound !== expected) return null;
-  return { source, scopePath };
-});
+/** 参数可选元素（表单控件，#1 的参数仍只取有值的元素） */
+const elements = computed(() => collectBindableElements(store.page, { registry: catalog }));
+const elementOptions = computed(() =>
+  elements.value.map((item: BindableElement) => ({
+    label: `${item.label}${item.isGroup ? "（整组）" : ""} · ${item.path}`,
+    value: item.path,
+  })),
+);
 
+/** 已配置的「选项数据源」信息（用于展示已启用状态） */
 const preview = computed(() => parseOptionLines(text.value));
+
+function defaultOpt(): void {
+  Object.assign(optDraft, {
+    url: "",
+    method: "GET" as Method,
+    params: [],
+    listField: "",
+    labelField: "label",
+    valueField: "",
+    once: true,
+  });
+}
 
 function load(): void {
   text.value = toOptionLines(node.value?.props?.options);
+
+  const source = node.value?.dataSource;
+  const enabled = Boolean(source?.url && source.asOptions && responsesOf(source)[0]);
+  optOn.value = enabled;
+  if (enabled && source) {
+    const resp = responsesOf(source)[0]!;
+    Object.assign(optDraft, {
+      url: source.url,
+      method: (source.method ?? "GET") as Method,
+      params: (source.params ?? []).map((i) => ({ ...i })),
+      listField: resp.listField ?? "",
+      labelField: resp.labelField ?? "label",
+      valueField: resp.valueField ?? "",
+      once: source.once !== false,
+    });
+  } else {
+    defaultOpt();
+  }
 }
 
 watch(
@@ -58,9 +112,66 @@ watch(
   { immediate: true },
 );
 
+function addParam(): void {
+  optDraft.params.push({ key: "", path: "" });
+}
+function removeParam(index: number): void {
+  optDraft.params.splice(index, 1);
+}
+function onParamElement(index: number, path: string): void {
+  const item = optDraft.params[index];
+  if (!item) return;
+  item.path = path;
+  item.label = elements.value.find((el) => el.path === path)?.label;
+}
+
+/* ---------------- 保存 ---------------- */
+
 function save(): void {
   const target = dialog.target.value;
-  if (!target || external.value) return;
+  if (!target) return;
+
+  // 选项数据源模式
+  if (optOn.value) {
+    if (!optDraft.url.trim()) {
+      notify("请填写请求地址", "error");
+      return;
+    }
+    if (!optDraft.labelField.trim()) {
+      notify("请填写名称字段（label 必填）", "error");
+      return;
+    }
+    const nodeId = node.value?.id;
+    if (!nodeId) return;
+    const scopePath = `options.${nodeId}`;
+    const source: ExternalDataSource = {
+      url: optDraft.url.trim(),
+      method: optDraft.method,
+      once: optDraft.once,
+      asOptions: true,
+      params: optDraft.params
+        .filter((i) => i.key.trim() && i.path)
+        .map((i) => ({ key: i.key.trim(), path: i.path, label: i.label })),
+      responses: [
+        {
+          scopePath,
+          shape: "select",
+          labelField: optDraft.labelField.trim(),
+          valueField: optDraft.valueField.trim(),
+        } as ExternalResponseMap,
+      ],
+    };
+    store.setNodeDataSource(source);
+    store.updateNodeProp(nodeId, "options", `{{${scopePath}}}`);
+    dialog.close();
+    notify("选项数据源已保存", "success");
+    return;
+  }
+
+  // 关闭选项数据源：若之前是 asOptions 源，清掉以免遗留
+  if (node.value?.dataSource?.asOptions) {
+    store.setNodeDataSource(undefined);
+  }
   store.updateProp(target.key, text.value);
   dialog.close();
   notify("选项已更新", "success");
@@ -68,7 +179,8 @@ function save(): void {
 
 function clear(): void {
   const target = dialog.target.value;
-  if (!target || external.value) return;
+  if (!target) return;
+  if (optOn.value) return;
   store.updateProp(target.key, "");
   dialog.close();
 }
@@ -88,18 +200,75 @@ function openExternal(): void {
     width="560px"
     @close="dialog.close()"
   >
-    <div v-if="external" class="opts__external">
-      <div class="opts__external-title">
-        选项由外部数据源提供
-        <span class="opts__external-name">{{ external.source.name || external.source.url }}</span>
-      </div>
-      <div class="opts__external-tip">
-        运行时由接口返回并映射为选项的「名称 / 值」，此处不再手工录入。
-        结果写入路径：<code>{{ external.scopePath }}</code>
-      </div>
-      <button type="button" class="opts__external-btn" @click="openExternal">查看 / 修改外部数据源配置</button>
+    <!-- 选项数据源开关（#5） -->
+    <div class="opts__source">
+      <label class="opts__source-switch">
+        <input v-model="optOn" type="checkbox" />
+        <span>使用选项数据源（从接口取选项）</span>
+      </label>
     </div>
 
+    <!-- 选项数据源配置 -->
+    <div v-if="optOn" class="opts__source-conf">
+      <div class="opts__row">
+        <label class="opts__label">请求方法</label>
+        <UiControl as="Select" v-model="optDraft.method" :options="[
+          { label: 'GET', value: 'GET' },
+          { label: 'POST', value: 'POST' },
+        ]" size="small" />
+      </div>
+      <div class="opts__row">
+        <label class="opts__label">请求地址</label>
+        <input v-model="optDraft.url" class="opts__input wb-mono" placeholder="/api/dict/list" spellcheck="false" />
+      </div>
+
+      <div class="opts__section">请求参数（可选，来自页面元素）</div>
+      <div class="opts__params">
+        <div v-for="(item, index) in optDraft.params" :key="index" class="opts__param">
+          <input v-model="item.key" class="opts__input" placeholder="参数名" spellcheck="false" />
+          <UiControl
+            as="Select"
+            :model-value="item.path"
+            :options="elementOptions"
+            filterable
+            clearable
+            size="small"
+            placeholder="选择元素…"
+            @update:model-value="(v: string) => onParamElement(index, v)"
+          />
+          <button type="button" class="opts__del" title="删除" @click="removeParam(index)">×</button>
+        </div>
+        <button type="button" class="opts__ghost--block" @click="addParam">+ 添加参数</button>
+      </div>
+
+      <div class="opts__row">
+        <label class="opts__label">列表字段</label>
+        <input v-model="optDraft.listField" class="opts__input wb-mono" placeholder="如 data.list（留空=响应本身即数组）" spellcheck="false" />
+      </div>
+      <div class="opts__row opts__row--split">
+        <div class="opts__cell">
+          <label class="opts__label">名称字段 <em class="opts__req">*</em></label>
+          <input v-model="optDraft.labelField" class="opts__input wb-mono" placeholder="label" spellcheck="false" />
+        </div>
+        <div class="opts__cell">
+          <label class="opts__label">值字段</label>
+          <input v-model="optDraft.valueField" class="opts__input wb-mono" placeholder="留空 = 用名称" spellcheck="false" />
+        </div>
+      </div>
+      <label class="opts__switch">
+        <input v-model="optDraft.once" type="checkbox" />
+        <span>只请求一次</span>
+      </label>
+      <div class="opts__tip">
+        运行时由接口返回并映射为选项的「名称 / 值」；未设值字段时值默认等于名称。结果写入
+        <code>options.{{ node?.id }}</code>，本元素的 options 已自动绑定。
+      </div>
+      <button type="button" class="opts__adv" @click="openExternal">
+        需要多条响应 / 缓存策略等高级配置？打开「外部数据源」 →
+      </button>
+    </div>
+
+    <!-- 手工录入 -->
     <template v-else>
       <div class="opts__hint">
         每行一个选项，<b>名称在前、值在后</b>，中间用空格隔开（多个空格也行）。<br />
@@ -129,15 +298,148 @@ function openExternal(): void {
     </template>
 
     <template #footer>
-      <button v-if="!external" type="button" class="opts__clear" @click="clear">清空</button>
+      <button v-if="!optOn" type="button" class="opts__clear" @click="clear">清空</button>
       <span class="opts__spacer" />
       <button type="button" class="opts__cancel" @click="dialog.close()">取消</button>
-      <button v-if="!external" type="button" class="opts__ok" @click="save">确定</button>
+      <button type="button" class="opts__ok" @click="save">确定</button>
     </template>
   </ModalShell>
 </template>
 
 <style scoped>
+.opts__source {
+  margin-bottom: 10px;
+}
+.opts__source-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--wb-ink2);
+  cursor: pointer;
+}
+.opts__source-conf {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.opts__row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.opts__row--split {
+  grid-template-columns: 1fr 1fr;
+}
+.opts__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.opts__label {
+  font-size: 11.5px;
+  color: var(--wb-ink3);
+}
+.opts__req {
+  color: var(--wb-danger);
+  font-style: normal;
+}
+.opts__input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--wb-line);
+  border-radius: 5px;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--wb-ink);
+  background: #fff;
+}
+.opts__input:focus {
+  outline: none;
+  border-color: var(--wb-primary);
+  box-shadow: 0 0 0 3px rgba(47, 75, 255, 0.1);
+}
+.opts__section {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--wb-line-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--wb-ink3);
+}
+.opts__params {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.opts__param {
+  display: grid;
+  grid-template-columns: 130px 1fr 24px;
+  gap: 6px;
+  align-items: center;
+}
+.opts__ghost--block {
+  width: 100%;
+  text-align: center;
+  border: 1px dashed var(--wb-line);
+  border-radius: 5px;
+  background: #fff;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--wb-ink2);
+  cursor: pointer;
+}
+.opts__ghost--block:hover {
+  border-color: var(--wb-primary);
+  color: var(--wb-primary);
+}
+.opts__del {
+  border: none;
+  background: transparent;
+  color: var(--wb-ink3);
+  font-size: 15px;
+  cursor: pointer;
+  line-height: 1;
+}
+.opts__del:hover {
+  color: var(--wb-danger);
+}
+.opts__switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--wb-ink2);
+  cursor: pointer;
+}
+.opts__tip {
+  font-size: 11.5px;
+  color: var(--wb-ink3);
+  line-height: 1.7;
+}
+.opts__tip code {
+  font-family: var(--wb-mono);
+  background: #fafbfd;
+  border: 1px solid var(--wb-line-soft);
+  border-radius: 3px;
+  padding: 0 4px;
+}
+.opts__adv {
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  font-size: 11.5px;
+  color: var(--wb-primary);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.opts__adv:hover {
+  text-decoration: underline;
+}
 .opts__hint {
   margin-bottom: 10px;
   font-size: 12px;
@@ -217,40 +519,6 @@ function openExternal(): void {
   font-family: var(--wb-mono);
   font-size: 11.5px;
   color: var(--wb-primary);
-}
-.opts__external {
-  padding: 14px;
-  border: 1px solid #dfe4ff;
-  border-radius: 8px;
-  background: var(--wb-primary-soft);
-}
-.opts__external-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--wb-ink);
-}
-.opts__external-name {
-  margin-left: 6px;
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--wb-primary);
-}
-.opts__external-tip {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--wb-ink2);
-  line-height: 1.7;
-}
-.opts__external-btn {
-  margin-top: 10px;
-  border: 1px solid var(--wb-primary);
-  border-radius: 5px;
-  background: #fff;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-family: inherit;
-  color: var(--wb-primary);
-  cursor: pointer;
 }
 .opts__clear {
   border: 1px solid var(--wb-line);
