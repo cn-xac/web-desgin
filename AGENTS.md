@@ -122,7 +122,7 @@ pnpm add @x-ac/web-design-react @x-ac/web-design-core react react-dom
 - 透传 core 的校验/导出/事件协议。
 - 样式：`import "@x-ac/web-design-react/style.css"`。
 
-`/designer` 子入口：`SchemaDesigner`（ref `SchemaDesignerHandle`：`exportSchema()`/`exportHtml()`/`importSchema(json)`/`save()`）、`DesignerStore`、`createMemoryRepository` 等。
+`/designer` 子入口：`SchemaDesigner`（ref `SchemaDesignerHandle`：`exportSchema()`/`exportHtml()`/`importSchema(json)`/`save()`）、`DesignerStore`、`createMemoryRepository`、`DesignerDialogsProvider` / `useDesignerDialogs()`（设计器六个弹窗：绑定选择 / 选项录入 / 外部数据源 / 显示隐藏条件 / 子映射 / 请求头）、`ModalShell`、`HelpTip`、`NativeTooltip`。
 `/kit` 子入口：`defineReactAdapter(options)`、`useFieldModel(value, update, channel?)`、`REACT_BINDING`(value/onChange)、`createDesignerKit(kit)`、`bindModel`、`inspectAdapter`。
 `/style.css`：样式入口。
 
@@ -303,3 +303,4 @@ pnpm --filter react-example dev   # http://127.0.0.1:5175
 
 - `SchemaRenderer`（vue `SchemaRenderer.vue` 与 react `SchemaRenderer.tsx`）现已对根级 `schema.children` 兜底 `?? []`：畸形 Schema（缺 `children`）不再在渲染入口崩溃，安全降级为空态。递归的 `SchemaNode` 此前已对 `node.children` 兜底。
 - `schemaVersion` 已升 `1.1.0`（迁移链 `1.0.0 → 1.1.0`，旧结构无需变换）。新增节点级 `visibility` 显隐契约与通用多条件组件；`if` / `show` / `for` 的判定统一收敛到 core 的 `resolveVisibility` / `resolveLoopInstances`，Vue / React / 静态 HTML 三端共用。两端 `SchemaRenderer` 新增 `visibility` prop 支持外部强制控制；子表单的显隐求值使用行级隔离 scope。详见 `docs/INTEGRATION.md` 第 11 节。
+- React 设计器已与 Vue 验收版对齐：新增 `DesignerDialogsProvider` 承载六个弹窗（绑定选择 / 选项录入 / 外部数据源 / 显示隐藏条件 / 子映射 / 请求头），属性面板补齐「外部数据源」入口与选项弹窗入口，条件配置由内联区块改为弹窗（`ConditionBuilder` 现为 `ConditionTrigger` 的兼容别名），并新增 `ModalShell` / `HelpTip` / `NativeTooltip` 与对应样式。弹窗状态挂在设计器实例上（Context），不使用全局单例，多实例与测试互不污染。

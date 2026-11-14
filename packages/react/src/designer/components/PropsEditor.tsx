@@ -2,11 +2,18 @@
  * 属性面板：按物料字段分组编辑当前选中节点的 props。
  * 与 Vue 版 PropsEditor.vue 功能对齐，差异只在 React 的受控通道 value / onChange。
  */
-import { createElement, useMemo, useState } from "react";
+import { createElement, useState } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { FIELD_GROUP_LABELS, collectBindableData, fieldOptions, groupFields } from "@x-ac/web-design-core";
+import {
+  FIELD_GROUP_LABELS,
+  canOwnExternalSource,
+  fieldOptions,
+  groupFields,
+  parseOptions,
+} from "@x-ac/web-design-core";
 import type { PropField, PropFieldGroup } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
+import { useDesignerDialogs } from "../dialogs";
 import { UiControl } from "../ui";
 
 /** 列定义的统一编辑模型：title 是列标题，key 是取数字段名 */
@@ -53,6 +60,7 @@ function columnsOf(raw: unknown): ColumnItem[] {
 
 export function PropsEditor() {
   const { store, state, adapter, registry, notify } = useDesigner();
+  const dialogs = useDesignerDialogs();
   const [collapsed, setCollapsed] = useState<Record<PropFieldGroup, boolean>>(INITIAL_COLLAPSED);
 
   const node = state.selectedNode;
@@ -73,14 +81,40 @@ export function PropsEditor() {
   const customKeys = new Set(Object.keys(node.props ?? {}));
   const sections = groupFields(material.fields);
 
+  /** 节点是否已配外部数据源（通过 externalRef 引用页面级源） */
+  const hasExternal = Boolean(node.externalRef);
+
   /**
-   * 可绑定数据清单（ruUqAF）：由 core 从页面 Schema 生成，与 Vue 侧同一份实现。
-   * React 侧没有弹窗基建，这里用原生下拉直接选，改动最小且功能等价。
+   * 该元素是否允许拥有外部数据源。
+   * 不可被用户改变的元素（文本、图片、分割线、容器、表格…）不能拥有数据源：
+   * 取数参数与触发时机都依赖元素自身的可变值。
    */
-  const bindables = useMemo(
-    () => collectBindableData(state.page, { registry }),
-    [state.page, registry],
-  );
+  const canAttachExternal = canOwnExternalSource(node.component, registry);
+
+  /** 外部数据源按钮的悬浮说明 */
+  const externalTitle = !canAttachExternal
+    ? "该元素的内容不可被用户改变，不能添加外部数据源"
+    : hasExternal
+      ? "已配置外部数据源，点击修改"
+      : "配置外部数据源（接口取数）";
+
+  /** 打开外部数据源配置弹窗 */
+  const openExternal = (): void => {
+    if (!canAttachExternal) {
+      notify("该元素的内容不可被用户改变，不能添加外部数据源", "error");
+      return;
+    }
+    dialogs.openExternal({ nodeId, label: material.title ?? node.component });
+  };
+
+  /** 选项摘要：面板上不铺开整份选项，只给个数和前几个名字 */
+  const optionsSummary = (key: string): { count: number; text: string } => {
+    const items = parseOptions(value(key));
+    const names = items.map((item) => item.label).filter(Boolean);
+    const head = names.slice(0, 3).join("、");
+    const more = names.length > 3 ? ` 等 ${names.length} 项` : names.length ? `（${names.length} 项）` : "";
+    return { count: items.length, text: names.length ? `${head}${more}` : "尚未设置" };
+  };
 
   const value = (key: string): unknown => effective[key];
   const isCustom = (key: string): boolean => customKeys.has(key);
@@ -105,12 +139,6 @@ export function PropsEditor() {
       next[group] = !prev[group];
       return next;
     });
-  };
-
-  /** 绑定选择：选一个可绑定数据，写成 {{path}}（覆盖当前值） */
-  const applyBinding = (key: string, path: string): void => {
-    if (!path) return;
-    set(key, `{{${path}}}`);
   };
 
   /**
@@ -242,9 +270,8 @@ export function PropsEditor() {
             onChange={(v: unknown) => set(field.key, v)}
           />
         );
-      // textarea 与 options 都用多行输入：选项是逗号/换行分隔的列表
+      // 多行文本（Vue 侧同为 rows=3 的 textarea）
       case "textarea":
-      case "options":
         return (
           <UiControl
             as="Input"
@@ -254,18 +281,22 @@ export function PropsEditor() {
             onChange={(v: unknown) => set(field.key, v)}
           />
         );
-      // 名称/值成对的选项：Vue 侧走独立弹窗，React 侧用多行输入等价录入
+      // 名称/值成对的选项：走独立弹窗录入（rSulo9）
       case "optionPair":
         return (
-          <UiControl
-            as="Input"
-            size="small"
-            rows={4}
-            value={String(current ?? "")}
-            onChange={(v: unknown) => set(field.key, v)}
-          />
+          <div className="props__options">
+            <button
+              type="button"
+              className="props__options-btn"
+              onClick={() => dialogs.openOptions({ nodeId, key: field.key, label: field.label })}
+            >
+              <span className="props__options-text">{optionsSummary(field.key).text}</span>
+              <span className="props__options-edit">编辑…</span>
+            </button>
+          </div>
         );
       case "text":
+      case "options":
         return (
           <UiControl
             as="Input"
@@ -288,6 +319,15 @@ export function PropsEditor() {
         <span className="props__id" title={nodeId} onClick={copyId}>
           {nodeId}
         </span>
+        <button
+          type="button"
+          className={`props__ext${hasExternal ? " is-on" : ""}${canAttachExternal ? "" : " is-disabled"}`}
+          aria-disabled={!canAttachExternal}
+          title={externalTitle}
+          onClick={openExternal}
+        >
+          外部数据源{hasExternal ? " ●" : ""}
+        </button>
       </div>
 
       {material.hint ? <div className="props__hint">{material.hint}</div> : null}
@@ -318,22 +358,22 @@ export function PropsEditor() {
                     </span>
                   ) : null}
                   {isBound(value(field.key)) ? <span className="props__bind">绑定</span> : null}
-                  {/* 绑定选择器（ruUqAF）：列出可绑定数据，选一条即完成绑定 */}
-                  <select
-                    className="props__bind-select"
-                    value=""
-                    title="绑定页面数据"
-                    onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
-                      applyBinding(field.key, event.target.value)
+                  {/* 绑定入口：点开是「可绑定数据」清单弹窗（ruUqAF） */}
+                  <button
+                    type="button"
+                    className="props__link"
+                    title={`把「${field.label}」绑定到页面数据`}
+                    onClick={() =>
+                      dialogs.openBinding({
+                        nodeId,
+                        key: field.key,
+                        label: field.label,
+                        where: "props",
+                      })
                     }
                   >
-                    <option value="">🔗</option>
-                    {bindables.map((item) => (
-                      <option key={item.path} value={item.path}>
-                        {item.group} · {item.label}（{item.path}）
-                      </option>
-                    ))}
-                  </select>
+                    🔗
+                  </button>
                 </div>
 
                 {renderControl(field)}

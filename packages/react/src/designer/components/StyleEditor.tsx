@@ -14,7 +14,7 @@ import {
 import type { SpacingBox, SpacingKey, SpacingSide } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
-import { ConditionBuilder } from "./ConditionBuilder";
+import { ConditionTrigger } from "./ConditionBuilder";
 
 interface StyleField {
   key: string;
@@ -312,12 +312,12 @@ export function StyleEditor() {
       <div className="style__section">显示 / 隐藏条件</div>
       <div className="style__row style__row--block">
         <label>显示条件</label>
-        <ConditionBuilder kind="show" />
+        <ConditionTrigger kind="show" />
         <div className="style__tip">命中即显示，优先级高于隐藏条件</div>
       </div>
       <div className="style__row style__row--block">
         <label>隐藏条件</label>
-        <ConditionBuilder kind="hide" />
+        <ConditionTrigger kind="hide" />
         <div className="style__tip">仅在显示条件未命中时生效</div>
       </div>
 

@@ -31,6 +31,7 @@ import type { DeviceType, PageRepository, PageSchema } from "@x-ac/web-design-co
 import { useUiAdapter } from "../provider";
 import { DesignerContext } from "./context";
 import type { DesignerContextValue } from "./context";
+import { DesignerDialogsProvider } from "./dialogs";
 import { resolveDesignerUi, resolveNotify, UiControl } from "./ui";
 import { PalettePanel } from "./components/PalettePanel";
 import { OutlinePanel } from "./components/OutlinePanel";
@@ -277,81 +278,84 @@ export const SchemaDesigner = forwardRef<SchemaDesignerHandle, SchemaDesignerPro
 
   return (
     <DesignerContext.Provider value={context}>
-      <div className="designer">
-        <header className="topbar">
-          <button className="icon-btn" title="返回页面列表" onClick={backToList}>
-            ←
-          </button>
+      {/* 弹窗会话挂在设计器实例上：状态随实例创建 / 销毁，多实例互不污染 */}
+      <DesignerDialogsProvider>
+        <div className="designer">
+          <header className="topbar">
+            <button className="icon-btn" title="返回页面列表" onClick={backToList}>
+              ←
+            </button>
+            <input
+              className="title-input"
+              placeholder="页面标题"
+              value={String(state.page.meta?.title ?? "")}
+              onChange={(event) => store.setTitle(event.target.value)}
+            />
+            {state.dirty ? (
+              <span className="dirty" title="有未保存的修改">
+                ●
+              </span>
+            ) : null}
+
+            <UiControl
+              as="Segmented"
+              size="small"
+              className="device"
+              options={DEVICE_OPTIONS}
+              value={(state.page.meta?.device ?? "pc") as DeviceType}
+              onChange={(value) => store.setDevice(String(value) as DeviceType)}
+            />
+
+            <div className="divider" />
+
+            <button className="icon-btn" title="撤销 (Ctrl+Z)" disabled={!state.canUndo} onClick={() => store.undo()}>
+              ↶
+            </button>
+            <button
+              className="icon-btn"
+              title="重做 (Ctrl+Shift+Z)"
+              disabled={!state.canRedo}
+              onClick={() => store.redo()}
+            >
+              ↷
+            </button>
+
+            <span className="stat">{state.nodeCount} 个节点</span>
+            <div className="spacer" />
+
+            <UiControl as="Button" size="small" onClick={() => fileInput.current?.click()}>
+              导入
+            </UiControl>
+            <UiControl as="Button" size="small" onClick={exportSchema}>
+              导出 JSON
+            </UiControl>
+            <UiControl as="Button" size="small" onClick={exportHtml}>
+              导出 HTML
+            </UiControl>
+            <UiControl as="Button" size="small" onClick={preview}>
+              预览
+            </UiControl>
+            <UiControl as="Button" size="small" type="primary" onClick={save}>
+              保存
+            </UiControl>
+          </header>
+
+          <div className="body">
+            <PalettePanel />
+            <OutlinePanel />
+            <CanvasStage navigate={navigate} />
+            <InspectorPanel />
+          </div>
+
           <input
-            className="title-input"
-            placeholder="页面标题"
-            value={String(state.page.meta?.title ?? "")}
-            onChange={(event) => store.setTitle(event.target.value)}
+            ref={fileInput}
+            type="file"
+            accept=".json,application/json"
+            className="hidden-input"
+            onChange={onFileChange}
           />
-          {state.dirty ? (
-            <span className="dirty" title="有未保存的修改">
-              ●
-            </span>
-          ) : null}
-
-          <UiControl
-            as="Segmented"
-            size="small"
-            className="device"
-            options={DEVICE_OPTIONS}
-            value={(state.page.meta?.device ?? "pc") as DeviceType}
-            onChange={(value) => store.setDevice(String(value) as DeviceType)}
-          />
-
-          <div className="divider" />
-
-          <button className="icon-btn" title="撤销 (Ctrl+Z)" disabled={!state.canUndo} onClick={() => store.undo()}>
-            ↶
-          </button>
-          <button
-            className="icon-btn"
-            title="重做 (Ctrl+Shift+Z)"
-            disabled={!state.canRedo}
-            onClick={() => store.redo()}
-          >
-            ↷
-          </button>
-
-          <span className="stat">{state.nodeCount} 个节点</span>
-          <div className="spacer" />
-
-          <UiControl as="Button" size="small" onClick={() => fileInput.current?.click()}>
-            导入
-          </UiControl>
-          <UiControl as="Button" size="small" onClick={exportSchema}>
-            导出 JSON
-          </UiControl>
-          <UiControl as="Button" size="small" onClick={exportHtml}>
-            导出 HTML
-          </UiControl>
-          <UiControl as="Button" size="small" onClick={preview}>
-            预览
-          </UiControl>
-          <UiControl as="Button" size="small" type="primary" onClick={save}>
-            保存
-          </UiControl>
-        </header>
-
-        <div className="body">
-          <PalettePanel />
-          <OutlinePanel />
-          <CanvasStage navigate={navigate} />
-          <InspectorPanel />
         </div>
-
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".json,application/json"
-          className="hidden-input"
-          onChange={onFileChange}
-        />
-      </div>
+      </DesignerDialogsProvider>
     </DesignerContext.Provider>
   );
 });

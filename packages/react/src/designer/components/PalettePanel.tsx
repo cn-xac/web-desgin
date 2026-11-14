@@ -11,6 +11,8 @@ export function PalettePanel() {
   const components = adapter?.components;
   const unavailable = (component: string): boolean => {
     if (!components) return false;
+    // 子表单（kind=subform）由引擎按结构渲染，不需要 UI 库提供组件实现，永远可拖入
+    if (registry.get(component)?.kind === "subform") return false;
     return !(materialKey(component) in components) && !(component in components);
   };
 
