@@ -255,6 +255,7 @@ export function OptionsDialog({ target, onClose }: OptionsDialogProps) {
                   as="Select"
                   size="small"
                   clearable
+                  filterable
                   placeholder="选择元素…"
                   value={item.path}
                   options={elementOptions}

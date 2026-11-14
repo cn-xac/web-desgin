@@ -28,6 +28,12 @@ export interface DesignerControlProps {
   disabled?: boolean;
   placeholder?: string;
   clearable?: boolean;
+  /**
+   * 下拉可搜索（元素多时输入关键字过滤）。
+   * 原生 select 不支持，仅作占位：与 Vue 的 NativeSelect 同约定，
+   * 宿主适配包（antd 的 showSearch / EP 的 filterable）接住即可生效。
+   */
+  filterable?: boolean;
   rows?: number;
   min?: number;
   max?: number;
@@ -96,6 +102,8 @@ function NativeNumber(props: DesignerControlProps) {
 }
 
 function NativeSelect(props: DesignerControlProps) {
+  // filterable（可搜索）原生 select 无对应能力，这里刻意不取用：与 Vue 的 NativeSelect 一致，
+  // 该开关只在适配包接住时才生效，回落实现静默忽略，不影响取值与回填。
   const { value, onChange, options, placeholder, clearable, disabled, className = "" } = props;
   const list = normalizeOptions(options);
   return (

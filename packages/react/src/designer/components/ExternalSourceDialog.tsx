@@ -528,6 +528,7 @@ export function ExternalSourceDialog({ target, onClose }: ExternalSourceDialogPr
                 as="Select"
                 size="small"
                 clearable
+                filterable
                 placeholder="选择元素…"
                 value={item.path}
                 options={elementOptions}
@@ -569,6 +570,7 @@ export function ExternalSourceDialog({ target, onClose }: ExternalSourceDialogPr
                   as="Select"
                   size="small"
                   clearable
+                  filterable
                   placeholder="选择目标元素（可空）"
                   value={resp.targetNodeId}
                   options={targetOptions}

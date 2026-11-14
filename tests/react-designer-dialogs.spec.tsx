@@ -22,8 +22,11 @@ import { createRoot } from "react-dom/client";
 import { SchemaDesigner } from "@x-ac/web-design-react/designer";
 import type { SchemaDesignerHandle } from "@x-ac/web-design-react/designer";
 import { NativeTooltip } from "@x-ac/web-design-react/designer";
-import { createEmptyPage, createMemoryRepository } from "@x-ac/web-design-core";
-import type { NodeSchema, PageRepository, PageSchema } from "@x-ac/web-design-core";
+import { ReactDesignProvider } from "@x-ac/web-design-react";
+import { createDesignerKit, defineReactAdapter } from "@x-ac/web-design-react/kit";
+import type { DesignerControlProps } from "@x-ac/web-design-react/designer";
+import { createEmptyPage, createMemoryRepository, MATERIALS } from "@x-ac/web-design-core";
+import type { NodeSchema, PageRepository, PageSchema, UiAdapter } from "@x-ac/web-design-core";
 
 let warnSpy: ReturnType<typeof vi.spyOn>;
 
@@ -47,7 +50,7 @@ function pageWith(children: NodeSchema[], extra: Partial<PageSchema> = {}): Page
   return { ...createEmptyPage("弹窗测试"), id: "p1", children, ...extra };
 }
 
-function setup(page: PageSchema) {
+function setup(page: PageSchema, adapter?: UiAdapter<never>) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -55,7 +58,12 @@ function setup(page: PageSchema) {
   const ref = createRef<SchemaDesignerHandle>();
 
   const render = async (): Promise<void> => {
-    const element: ReactElement = <SchemaDesigner pageId="p1" repository={repo} ref={ref} />;
+    const designer = <SchemaDesigner pageId="p1" repository={repo} ref={ref} />;
+    const element: ReactElement = adapter ? (
+      <ReactDesignProvider adapter={adapter as never}>{designer}</ReactDesignProvider>
+    ) : (
+      designer
+    );
     await act(async () => {
       root.render(element);
     });
@@ -206,6 +214,69 @@ describe("React 设计器：选项录入弹窗", () => {
 });
 
 describe("React 设计器：外部数据源弹窗", () => {
+  /**
+   * 元素下拉的「可搜索」开关：引擎负责把 filterable 透传给设计器控件，
+   * 真正的搜索能力由适配包接（antd → showSearch / EP → filterable）。
+   * 用探针适配包记录收到的 props，锁住这条接线，避免引擎侧悄悄断链。
+   */
+  it("元素下拉把 filterable 透传给设计器控件", async () => {
+    const seen: DesignerControlProps[] = [];
+
+    function ProbeSelect(props: DesignerControlProps) {
+      seen.push(props);
+      const list = (props.options ?? []).map((item) =>
+        typeof item === "object" && item !== null && "label" in item
+          ? { label: String(item.label), value: String(item.value) }
+          : { label: String(item), value: String(item) },
+      );
+      return (
+        <select
+          className="probe-select"
+          value={props.value === undefined || props.value === null ? "" : String(props.value)}
+          onChange={(event) => props.onChange?.(event.target.value)}
+        >
+          {list.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    const adapter = defineReactAdapter({
+      name: "probe",
+      components: {},
+      materials: MATERIALS,
+      designer: createDesignerKit({ Select: ProbeSelect }),
+    });
+
+    const ui = setup(
+      pageWith([{ id: "s1", component: "select", props: { label: "部门" } }]),
+      adapter as never,
+    );
+    try {
+      await ui.render();
+      await ui.select("s1");
+      await click(ui.container.querySelector(".props__ext"));
+
+      // 参数映射 / 响应映射默认都是空的，各加一行才会渲染出「选元素」下拉
+      await click(byText(ui.container, ".ext__ghost", "添加参数"));
+      await click(byText(ui.container, ".ext__ghost", "添加响应映射"));
+
+      // 请求方法 / 顶栏设备下拉不需要搜索；凡是「选元素」的下拉都必须带 filterable
+      const valueOf = (item: unknown): string =>
+        String((item as { value?: unknown } | null)?.value ?? item ?? "");
+      const elementPickers = seen.filter((props) =>
+        (props.options ?? []).some((item) => valueOf(item).startsWith("form.")),
+      );
+      expect(elementPickers.length).toBeGreaterThanOrEqual(2);
+      expect(elementPickers.every((props) => props.filterable === true)).toBe(true);
+    } finally {
+      await ui.cleanup();
+    }
+  });
+
   it("配置后写进页面级 externalSources，节点只留 externalRef", async () => {
     const ui = setup(pageWith([{ id: "s1", component: "select", props: { label: "部门" } }]));
     try {
