@@ -159,6 +159,33 @@ function defaultParentField(el: BindableElement): string {
   return segment.replace(/\[\d+\]$/, "");
 }
 
+/**
+ * 响应映射的说明文案。
+ * 收进标题栏的问号图标、鼠标指向时展示：说明正文铺在卡片里会把卡片撑得很高。
+ */
+function tipOf(resp: DraftResponse): string {
+  const parts: string[] = [];
+  if (isGroupTarget(resp)) {
+    parts.push(
+      `响应数组的每一行会填成子表单的一条明细。父字段名「${resp.parentField || "（未填）"}」是明细数组所在的字段，子映射只需填它的子字段。`,
+    );
+  }
+  if (isValueTarget(resp)) {
+    parts.push(
+      "「显示内容」支持用 {{}} 从响应数据取数并自由拼接（如 {{data.a}}/{{data.b}}）；下拉逐项渲染，输入框把整段响应渲染成字符串。",
+    );
+  }
+  if (!resp.targetNodeId) {
+    parts.push(`未选目标元素：结果整体写入 ${resp.scopePath}，由你自行把某元素属性绑到该路径。`);
+  } else if (!isOptionTarget(resp)) {
+    parts.push(`目标不是选项类元素，响应将整体写入 ${resp.scopePath} 的值。`);
+  }
+  if (!parts.length) {
+    parts.push("选项类目标：响应按名称 / 值字段映射成选项；列表字段留空表示响应本身就是数组。");
+  }
+  return parts.join("\n");
+}
+
 /** 页面里「可输入 / 下拉」类元素：外部数据源通常喂给这些元素 */
 const valueElements = computed(() => elements.value.filter((el) => el.isFormControl || el.isOption));
 
@@ -309,10 +336,15 @@ async function openSubMap(index: number): Promise<void> {
 /* ---------------- 请求头 ---------------- */
 
 async function openHeaders(): Promise<void> {
-  const result = await headersDialog.open(draft.headers);
-  if (Object.keys(result).length || !Object.keys(draft.headers).length) {
-    draft.headers = result;
+  const rows = await headersDialog.open(draft.headers);
+  // null = 取消，保留原值；确认则整体覆盖（把请求头全删掉也必须生效）
+  if (!rows) return;
+  const cleaned: Record<string, string> = {};
+  for (const row of rows) {
+    const key = row.key.trim();
+    if (key) cleaned[key] = row.value;
   }
+  draft.headers = cleaned;
 }
 
 /* ---------------- 保存 / 移除 ---------------- */
@@ -501,9 +533,11 @@ function remove(): void {
         <div v-for="(resp, index) in draft.responses" :key="index" class="ext__resp">
           <div class="ext__resp-head">
             <span class="ext__resp-no">映射 {{ index + 1 }}</span>
+            <span class="ext__help" :data-tip="tipOf(resp)">?</span>
             <button type="button" class="ext__del" title="删除映射" @click="removeResponse(index)">×</button>
           </div>
-          <div class="ext__param">
+          <!-- 目标元素 + 列表字段：两项各占一半宽度 -->
+          <div class="ext__resp-target">
             <UiControl
               as="Select"
               :model-value="resp.targetNodeId"
@@ -513,6 +547,12 @@ function remove(): void {
               size="small"
               placeholder="选择目标元素（可空）"
               @update:model-value="(v: string) => onResponseTarget(index, v)"
+            />
+            <input
+              v-model="resp.listField"
+              class="ext__input wb-mono"
+              placeholder="列表字段，如 data.list"
+              spellcheck="false"
             />
           </div>
           <div class="ext__row">
@@ -530,10 +570,6 @@ function remove(): void {
                 {{ resp.subMaps.length ? `已配置 ${resp.subMaps.length} 项` : "设置子映射…" }}
               </button>
             </div>
-          </div>
-          <div v-if="isGroupTarget(resp)" class="ext__note">
-            响应数组的<b>每一行</b>会填成子表单的一条明细。父字段名
-            <code>{{ resp.parentField || "（未填）" }}</code> 是明细数组所在的字段，子映射只需填它的子字段。
           </div>
           <div v-if="isOptionTarget(resp)" class="ext__row ext__row--split">
             <div class="ext__cell">
@@ -553,20 +589,6 @@ function remove(): void {
               :placeholder="DISPLAY_PLACEHOLDER"
               spellcheck="false"
             />
-          </div>
-          <div v-if="isValueTarget(resp)" class="ext__note">
-            支持用 <code v-text="'{{}}'"></code> 从响应数据取数并自由拼接（如
-            <code v-text="'{{data.a}}/{{data.b}}'"></code>）；下拉逐项渲染，输入框把整段响应渲染成字符串。
-          </div>
-          <div v-if="!resp.targetNodeId" class="ext__note">
-            未选目标元素：结果整体写入 <code>{{ resp.scopePath }}</code>，由你自行把某元素属性绑到该路径。
-          </div>
-          <div v-else-if="!isOptionTarget(resp)" class="ext__note">
-            目标不是选项类元素，响应将整体写入 <code>{{ resp.scopePath }}</code> 的值。
-          </div>
-          <div class="ext__row">
-            <label class="ext__label">列表字段</label>
-            <input v-model="resp.listField" class="ext__input wb-mono" placeholder="如 data.list（留空表示响应本身就是数组）" spellcheck="false" />
           </div>
         </div>
         <button type="button" class="ext__ghost ext__ghost--block" @click="addResponse">+ 添加响应映射</button>
@@ -686,7 +708,7 @@ function remove(): void {
 }
 .ext__param {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 140px 1fr 24px;
   gap: 6px;
   align-items: center;
 }
@@ -713,7 +735,50 @@ function remove(): void {
 .ext__resp-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
+}
+.ext__resp-head .ext__del {
+  margin-left: auto;
+}
+/* 标题栏问号图标：说明内容悬浮展示，避免说明正文把卡片撑高 */
+.ext__help {
+  position: relative;
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--wb-line);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  cursor: help;
+}
+.ext__help:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: 20px;
+  right: 0;
+  z-index: 30;
+  width: 250px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: #2b3242;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.7;
+  text-align: left;
+  white-space: pre-line;
+  box-shadow: 0 6px 18px rgba(20, 26, 40, 0.2);
+}
+/* 目标元素 + 列表字段：两项各占一半宽度 */
+.ext__resp-target {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-items: center;
 }
 .ext__resp-no {
   font-size: 11px;

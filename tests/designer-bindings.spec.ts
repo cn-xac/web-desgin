@@ -374,3 +374,120 @@ describe("设计器：子映射（#4）", () => {
     expect(subMap.visible.value).toBe(false);
   });
 });
+
+describe("设计器：外部数据源弹窗交互修正", () => {
+  /** 打开外部数据源弹窗（挂在一个输入框上） */
+  async function openExternalDialog() {
+    const mounted = await mountWithNode({
+      id: "i1",
+      component: "input",
+      props: { label: "姓名" },
+    });
+    await mounted.wrapper.find(".props__ext").trigger("click");
+    await tick();
+    return mounted;
+  }
+
+  /** 在主弹窗里找到「请求头」按钮 */
+  function headersButton(wrapper: ReturnType<typeof mountWithNode>["wrapper"]) {
+    return wrapper.findAll(".ext__ghost").find((btn) => btn.text().includes("请求头"));
+  }
+
+  it("请求头删除后确定，再次打开不再存在", async () => {
+    const { wrapper, store } = await openExternalDialog();
+    await wrapper.find('input[placeholder="/api/dept/list"]').setValue("/api/dept/list");
+
+    // 加一条请求头
+    await headersButton(wrapper)!.trigger("click");
+    await tick();
+    await wrapper.find(".hdr__add").trigger("click");
+    await tick();
+    const keyInput = wrapper.find('input[placeholder="名称，如 Authorization"]');
+    await keyInput.setValue("X-Token");
+    await wrapper.find('input[placeholder="取值"]').setValue("abc");
+    await wrapper.find(".hdr__ok").trigger("click");
+    await tick();
+    expect(headersButton(wrapper)!.text()).toContain("已设置 1 个请求头");
+
+    // 再打开并删掉这一条
+    await headersButton(wrapper)!.trigger("click");
+    await tick();
+    await wrapper.find(".hdr__del").trigger("click");
+    await tick();
+    await wrapper.find(".hdr__ok").trigger("click");
+    await tick();
+    expect(headersButton(wrapper)!.text()).toContain("设置请求头");
+    expect(headersButton(wrapper)!.text()).not.toContain("已设置");
+
+    // 保存主弹窗：请求头确实没了
+    await wrapper.find(".ext__ok").trigger("click");
+    await tick();
+    const node = store.page.children[0];
+    const source = store.page.externalSources?.[node.externalRef ?? ""];
+    expect(source).toBeTruthy();
+    expect(source?.url).toBe("/api/dept/list");
+    expect(source?.headers).toBeUndefined();
+  });
+
+  it("请求头弹窗取消时保留原有请求头", async () => {
+    const { wrapper, store } = await openExternalDialog();
+    await wrapper.find('input[placeholder="/api/dept/list"]').setValue("/api/dept/list");
+
+    await headersButton(wrapper)!.trigger("click");
+    await tick();
+    await wrapper.find(".hdr__add").trigger("click");
+    await tick();
+    await wrapper.find('input[placeholder="名称，如 Authorization"]').setValue("X-Token");
+    await wrapper.find(".hdr__ok").trigger("click");
+    await tick();
+
+    // 再次打开后取消：原值应保留
+    await headersButton(wrapper)!.trigger("click");
+    await tick();
+    await wrapper.find(".hdr__cancel").trigger("click");
+    await tick();
+    expect(headersButton(wrapper)!.text()).toContain("已设置 1 个请求头");
+
+    await wrapper.find(".ext__ok").trigger("click");
+    await tick();
+    const node = store.page.children[0];
+    const source = store.page.externalSources?.[node.externalRef ?? ""];
+    expect(source?.headers).toEqual({ "X-Token": "" });
+  });
+
+  it("请求参数映射的删除按钮与输入框同处一行", async () => {
+    const { wrapper } = await openExternalDialog();
+
+    const addParam = wrapper.findAll(".ext__ghost--block").find((btn) => btn.text().includes("添加参数"));
+    await addParam!.trigger("click");
+    await tick();
+
+    const row = wrapper.find(".ext__param");
+    // 一行内三列：参数名、元素下拉、删除按钮
+    expect(row.findAll("input").length).toBe(1);
+    expect(row.findAll("button").length).toBe(1);
+    expect(row.find(".ext__del").exists()).toBe(true);
+  });
+
+  it("响应映射的目标元素与列表字段并排，说明收进问号图标", async () => {
+    const { wrapper } = await openExternalDialog();
+
+    const addResponse = wrapper
+      .findAll(".ext__ghost--block")
+      .find((btn) => btn.text().includes("添加响应映射"));
+    await addResponse!.trigger("click");
+    await tick();
+
+    // 目标元素与列表字段在同一行，各占一半
+    const targetRow = wrapper.find(".ext__resp-target");
+    expect(targetRow.exists()).toBe(true);
+    expect(targetRow.findAll("input").length).toBe(1);
+
+    // 说明改为问号图标，鼠标指向时展示
+    const help = wrapper.find(".ext__help");
+    expect(help.exists()).toBe(true);
+    expect(help.attributes("data-tip")).toBeTruthy();
+    // 卡片内不再铺开说明正文
+    expect(wrapper.find(".ext__resp").find(".ext__note").exists()).toBe(false);
+  });
+});

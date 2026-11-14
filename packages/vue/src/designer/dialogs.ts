@@ -163,31 +163,35 @@ export function useSubMapDialog() {
 /* ---------------- 请求头（独立弹窗） ---------------- */
 
 const headersVisible = ref(false);
-/** 由外部数据源弹窗持有：打开请求头弹窗时把当前头传进来，关闭时取回 */
-const headersDraft = ref<Record<string, string>>({});
-const headersResolve = ref<((value: Record<string, string>) => void) | null>(null);
+/**
+ * 由外部数据源弹窗持有：打开请求头弹窗时把当前头传进来，关闭时取回。
+ * 用行数组而非对象：空名称的行在编辑期间要保留，否则一改别的行它就被挤掉了。
+ */
+const headersRows = ref<Array<{ key: string; value: string }>>([]);
+const headersResolve = ref<((value: Array<{ key: string; value: string }> | null) => void) | null>(null);
 
 export function useHeadersDialog() {
   /**
-   * 打开请求头弹窗。返回一个 Promise，resolve 出用户确认后的请求头；
-   * 取消时 resolve 空对象（调用方据此判断是否覆盖）。
+   * 打开请求头弹窗。返回一个 Promise，resolve 出用户确认后的请求头行；
+   * 取消时 resolve null（表示「没改」，调用方须保留原值 ——
+   * 不能用空对象表示取消，否则「确认删空」与「取消」无法区分）。
    */
-  function open(current: Record<string, string>): Promise<Record<string, string>> {
-    headersDraft.value = { ...current };
+  function open(current: Record<string, string>): Promise<Array<{ key: string; value: string }> | null> {
+    headersRows.value = Object.entries(current).map(([key, value]) => ({ key, value }));
     headersVisible.value = true;
     return new Promise((resolve) => {
       headersResolve.value = resolve;
     });
   }
-  function confirm(value: Record<string, string>): void {
+  function confirm(value: Array<{ key: string; value: string }>): void {
     headersVisible.value = false;
     headersResolve.value?.(value);
     headersResolve.value = null;
   }
   function cancel(): void {
     headersVisible.value = false;
-    headersResolve.value?.({});
+    headersResolve.value?.(null);
     headersResolve.value = null;
   }
-  return { visible: headersVisible, draft: headersDraft, open, confirm, cancel };
+  return { visible: headersVisible, rows: headersRows, open, confirm, cancel };
 }

@@ -5,47 +5,25 @@
  * 请求头是「另一类」配置：条目多、几乎不改、且改错了很难一眼看出来。
  * 塞进外部数据源主弹窗会把主弹窗撑成一坨，所以单独拆一个弹窗，
  * 主弹窗只留一个「请求头（N）」按钮 + 计数。
+ *
+ * 行以数组形式保存：空名称的行在编辑期间必须留着，
+ * 否则用户刚添加的那一行会被下一次编辑挤掉；空行在「确定」时才过滤。
  */
-import { computed } from "vue";
 import { useHeadersDialog } from "../dialogs";
 import ModalShell from "../ui/ModalShell.vue";
 
 const dialog = useHeadersDialog();
 
-/** 行模型：空键名的行在提交时忽略 */
-const rows = computed(() =>
-  Object.entries(dialog.draft.value).map(([key, value]) => ({ key, value })),
-);
-
-function update(index: number, field: "key" | "value", next: string): void {
-  const list = rows.value.slice();
-  const row = { ...list[index] };
-  row[field] = next;
-  list[index] = row;
-  dialog.draft.value = Object.fromEntries(
-    list.filter((item) => item.key.trim()).map((item) => [item.key.trim(), item.value]),
-  );
-}
-
 function add(): void {
-  dialog.draft.value = { ...dialog.draft.value, "": "" };
+  dialog.rows.value.push({ key: "", value: "" });
 }
 
 function remove(index: number): void {
-  const list = rows.value.slice();
-  list.splice(index, 1);
-  dialog.draft.value = Object.fromEntries(
-    list.filter((item) => item.key.trim()).map((item) => [item.key.trim(), item.value]),
-  );
+  dialog.rows.value.splice(index, 1);
 }
 
 function confirm(): void {
-  const cleaned = Object.fromEntries(
-    rows.value
-      .filter((item) => item.key.trim())
-      .map((item) => [item.key.trim(), item.value]),
-  );
-  dialog.confirm(cleaned);
+  dialog.confirm(dialog.rows.value.map((row) => ({ key: row.key, value: row.value })));
 }
 </script>
 
@@ -54,24 +32,22 @@ function confirm(): void {
     <div class="hdr__hint">逐条填写请求头名称与取值，名称不能为空。</div>
 
     <div class="hdr__rows">
-      <div v-for="(row, index) in rows" :key="index" class="hdr__row">
+      <div v-for="(row, index) in dialog.rows.value" :key="index" class="hdr__row">
         <input
+          v-model="row.key"
           class="hdr__input wb-mono"
-          :value="row.key"
           placeholder="名称，如 Authorization"
           spellcheck="false"
-          @input="update(index, 'key', ($event.target as HTMLInputElement).value)"
         />
         <input
+          v-model="row.value"
           class="hdr__input wb-mono"
-          :value="row.value"
           placeholder="取值"
           spellcheck="false"
-          @input="update(index, 'value', ($event.target as HTMLInputElement).value)"
         />
         <button type="button" class="hdr__del" title="删除" @click="remove(index)">×</button>
       </div>
-      <div v-if="!rows.length" class="hdr__empty">还没有请求头</div>
+      <div v-if="!dialog.rows.value.length" class="hdr__empty">还没有请求头</div>
     </div>
 
     <button type="button" class="hdr__add" @click="add">+ 添加请求头</button>
