@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { compactNode, compactPage } from "@x-ac/web-design-core";
 import type { PageSchema } from "@x-ac/web-design-core";
-import { migratePage } from "@x-ac/web-design-core";
+import { migratePage, SCHEMA_VERSION } from "@x-ac/web-design-core";
 
 const samplePath = new URL("./fixtures/sample-employee.json", import.meta.url);
 
@@ -48,9 +48,18 @@ describe("序列化与往返一致性", () => {
 
 describe("版本迁移", () => {
   it("同版本原样返回", () => {
-    const { schema, applied } = migratePage({ schemaVersion: "1.0.0", id: "p", type: "page", children: [] });
+    const { schema, applied } = migratePage({ schemaVersion: SCHEMA_VERSION, id: "p", type: "page", children: [] });
     expect(applied).toEqual([]);
-    expect(schema.schemaVersion).toBe("1.0.0");
+    expect(schema.schemaVersion).toBe(SCHEMA_VERSION);
+  });
+
+  it("1.0.0 迁移到 1.1.0 只推进版本，不改旧结构", () => {
+    const node = { id: "n1", component: "ec-input", directives: [{ name: "show", value: "list.length > 0" }] };
+    const { schema, applied } = migratePage({ schemaVersion: "1.0.0", id: "p", type: "page", children: [node] });
+    expect(applied).toEqual(["1.0.0 -> 1.1.0"]);
+    expect(schema.schemaVersion).toBe("1.1.0");
+    expect(schema.children[0].directives).toEqual(node.directives);
+    expect("visibility" in schema.children[0]).toBe(false);
   });
 
   it("更高版本直接拒绝", () => {
