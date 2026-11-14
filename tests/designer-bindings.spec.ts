@@ -509,7 +509,9 @@ describe("设计器：外部数据源弹窗交互修正", () => {
   });
 });
 
-describe("设计器：选项类元素复用同一个选项弹窗", () => {
+// 这三个用例吃的是扩展仓的专有物料（ec-tree-select / ec-transfer），
+// CI 干净环境没有兄弟仓 EP 适配包，属性面板里不会有 optionPair 字段 → 整块跳过。
+describe.skipIf(!__HAS_ELEMENT_PLUS__)("设计器：选项类元素复用同一个选项弹窗", () => {
   /** 打开某个元素属性面板里的选项弹窗（optionPair 类型才有这个入口） */
   async function openOptionsDialog(component: string, id: string) {
     const mounted = await mountWithNode({ id, component, props: {} });
