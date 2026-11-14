@@ -8,7 +8,7 @@
 | `@x-ac/web-design-vue` | Vue 适配层 | `SchemaRenderer` / `createVueDesign`、`nativeAdapter`（经 `/kit`）、`/designer` 子入口、`/style.css` |
 | `@x-ac/web-design-react` | React 适配层 | `SchemaRenderer`、`nativeAdapter`、`/kit` 子入口、`/style.css` |
 
-固定**单版本组**：三包永远同一版本号（当前 `1.0.0`）。
+固定**单版本组**：三包永远同一版本号（当前 `1.1.0`）。
 
 可独立运行的示例见 `apps/vue-example`（Vue）与 `apps/react-example`（React），二者都只依赖对应适配层 + core，**零 UI 库依赖**。
 

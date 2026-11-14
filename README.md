@@ -19,7 +19,7 @@ pnpm add @x-ac/web-design-vue @x-ac/web-design-core vue
 pnpm add @x-ac/web-design-react @x-ac/web-design-core react react-dom
 ```
 
-三包采用 **fixed 单版本组**：永远同一版本号（当前 `1.0.0`）。
+三包采用 **fixed 单版本组**：永远同一版本号（当前 `1.1.0`）。
 
 ## 30 秒上手：Vue
 

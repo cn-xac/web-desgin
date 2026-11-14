@@ -1,6 +1,6 @@
 # AGENTS.md — @x-ac/web-design（AI 使用契约）
 
-> 本文件供 AI 智能体直接阅读并据此使用该开发包。读完即可渲染页面、构造合法 `PageSchema`、注册自定义物料、做校验/导出、用设计器、跑构建与测试。所有签名均对应当前 `1.0.0` 源码。
+> 本文件供 AI 智能体直接阅读并据此使用该开发包。读完即可渲染页面、构造合法 `PageSchema`、注册自定义物料、做校验/导出、用设计器、跑构建与测试。所有签名均对应当前 `1.1.0` 源码。
 >
 > **AI 软件自动加载说明**：本 `AGENTS.md` 位于仓库根，Codex / Claude Code / Cursor / WorkBuddy 等智能体在打开本仓库时会自动加载本文件。无需 README 之外的额外引导；README 顶部亦已显式指向本文件。
 
@@ -47,7 +47,7 @@ scripts/      release.mjs / clean-dist.mjs / rename-scope.mjs
 ```
 
 - 包管理器：**pnpm**（workspace）。命令均从仓库根 `packages` 上级（即本目录）执行。
-- 三包同版本号（fixed version group，`1.0.0`）。`scripts/release.mjs check` 会校验版本一致。
+- 三包同版本号（fixed version group，`1.1.0`）。`scripts/release.mjs check` 会校验版本一致。
 
 ## 3. 安装
 

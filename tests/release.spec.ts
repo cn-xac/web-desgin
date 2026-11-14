@@ -40,7 +40,10 @@ describe("可发布包发现与版本一致性", () => {
       "@x-ac/web-design-react",
       "@x-ac/web-design-vue",
     ]);
-    expect(packages.every((pkg) => pkg.version === "1.0.0")).toBe(true);
+    // 版本号随发布递增，断言「三包同版本」而不是写死某个号
+    const aligned = release.assertAligned(packages);
+    expect(aligned.ok).toBe(true);
+    expect(aligned.version).toMatch(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
   });
 
   it("全部同版本时判定对齐", () => {
@@ -98,9 +101,11 @@ describe("改写 package.json", () => {
 
   it("dry-run 不写文件，只返回将要修改的包", () => {
     const packages = release.discoverPackages();
+    const before = release.assertAligned(packages).version;
     const changed = release.writeVersions(packages, "0.9.9", { dryRun: true });
     expect(changed).toHaveLength(3);
-    expect(release.assertAligned(release.discoverPackages()).version).toBe("1.0.0");
+    // 磁盘上仍是 dry-run 之前的版本
+    expect(release.assertAligned(release.discoverPackages()).version).toBe(before);
   });
 });
 

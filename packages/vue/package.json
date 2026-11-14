@@ -1,6 +1,6 @@
 {
   "name": "@x-ac/web-design-vue",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "Vue 3 适配层：Schema 渲染器 + 可视化设计器 + vue-* 扩展仓组件作者 SDK（/kit）",
   "license": "MIT",

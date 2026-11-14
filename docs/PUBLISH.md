@@ -190,6 +190,7 @@ GitHub Pages 部署由独立的 `.github/workflows/pages.yml` 负责，与 npm �
 
 ### 决策记录
 - 三包版本定为 **1.0.0**（核心渲染 / 设计器能力已具备，功能层与 Vue 版对齐）；每个 `package.json` 同时补了 `repository` / `homepage` / `bugs`，指向 `cn-xac/web-design`。
+- **1.1.0**：`schemaVersion` 升到 `1.1.0`（`node.visibility` 显隐契约 + 迁移链 `1.0.0 → 1.1.0`），React 设计器补齐与 Vue 验收版对齐的六个弹窗与外部数据源入口，设计器「选元素」下拉补 `filterable` 透传。发布方式不变：推 `v1.1.0` tag 触发 `publish.yml` 走可信发布，无 NPM_TOKEN。
 - 示例按目录拆成两个独立项目（`apps/vue-example` 与 `apps/react-example`），各自只依赖对应适配层 + core，**零 UI 库依赖**，CI 可直接构建，不再依赖 `playground` 的兄弟 EP 仓（`link:../../../design-vue-element-plus`）。
 - 发布与示例部署分离：npm 发布只发 `packages/*` 三包，示例仅作 Pages 演示，不参与发版。
 - 发布脚本 `scripts/release.mjs` 仍保留给本地用（`release:check` / `release:version` / `release:publish`），但 CI 不走它。
