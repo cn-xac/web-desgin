@@ -131,6 +131,8 @@ export const NativeSelect = defineComponent({
     disabled: { type: Boolean, default: false },
     size: { type: String, default: "default" },
     clearable: { type: Boolean, default: false },
+    /** 搜索：原生 select 不支持，仅占位避免透传告警（宿主用 el-select 时生效，#3） */
+    filterable: { type: Boolean, default: false },
   },
   emits: ["update:modelValue", "change"],
   setup(props, { emit, attrs }) {

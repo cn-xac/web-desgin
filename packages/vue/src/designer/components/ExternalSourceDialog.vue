@@ -1,27 +1,31 @@
 <script setup lang="ts">
 /**
- * 外部数据源配置弹窗（rg4KCt）。
+ * 外部数据源配置弹窗（rg4KCt / 本次增强）。
  *
- * 「通过按钮点击弹窗配置」—— 入口在属性面板的「外部数据源」按钮上，
- * 配置挂在当前节点（node.dataSource）：谁用它，谁决定参数选谁、结果写给谁。
+ * 本次针对反馈的改造：
+ * 1. 响应数据映射支持多条（仿参数映射，可增删），各自写不同 scope 路径（#4）；
+ * 2. 映射目标可任选「任意元素」（含非表单元素，#1）—— 非表单元素的写入路径落在 data.<节点ID>；
+ * 3. 响应映射整体可选：不配也能发请求（例如仅用于触发 / 写副作用，#2）；
+ * 4. 触发由「数据源所在元素自身的值」或「额外选中的参数」驱动，不依赖绑定元素（#2）；
+ * 5. 下拉全部改用宿主 UI 库的 Select（设计态与运行时同观感）并支持搜索（#3）。
  *
- * 配置项与待办一一对应：
- * - 请求方法 → 走 core 的统一请求层（拦截器 / 超时 / baseURL 全部生效）
- * - 触发长度 → 输入型元素输入到指定长度才发请求
- * - URL
- * - 请求参数映射 → 只能选当前页面的元素；子表单内元素也可选，整组子表单可作单值
- * - 响应数据映射 → 映射到某个元素；目标是选项类元素时按 value/label 映射成选项
- * - 只请求一次 → 页面级缓存
- * - 请求头 → 独立弹窗
+ * 仅选项类目标会在保存时把它的 options 绑到结果路径（取数与 label/value 映射都归本弹窗管）。
  */
 import { computed, reactive, watch } from "vue";
-import type { ExternalDataSource } from "@x-ac/web-design-core";
-import { collectBindableElements, findLocation, type Method } from "@x-ac/web-design-core";
+import type { DataShape, ExternalDataSource, ExternalResponseMap } from "@x-ac/web-design-core";
+import {
+  collectBindableElements,
+  findLocation,
+  responsesOf,
+  type BindableElement,
+  type Method,
+} from "@x-ac/web-design-core";
 import { useDesignerStore } from "../store";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useExternalSourceDialog, useHeadersDialog } from "../dialogs";
 import { useNotify } from "../ui/kit";
 import ModalShell from "../ui/ModalShell.vue";
+import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
 const catalog = useMaterialCatalog();
@@ -30,38 +34,35 @@ const headersDialog = useHeadersDialog();
 const notify = useNotify();
 
 const METHODS: Method[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+const METHOD_OPTIONS = METHODS.map((m) => ({ label: m, value: m }));
 
-interface Draft {
-  name: string;
-  method: Method;
-  url: string;
-  headers: Record<string, string>;
-  once: boolean;
-  triggerLength: number;
-  triggerPath: string;
-  params: Array<{ key: string; path: string; label?: string }>;
+interface DraftParam {
+  key: string;
+  path: string;
+  label?: string;
+}
+interface DraftResponse {
+  /** 选中目标元素（可空 = 只填路径，不强绑定元素，#2） */
+  targetNodeId: string;
+  /** 写入 scope 的路径，可手改 */
   scopePath: string;
   listField: string;
   labelField: string;
   valueField: string;
-  /** 响应目标是否为选项类元素（决定是否按 value/label 映射） */
-  optionTarget: boolean;
+  /** 当前推断形态：选项类目标 → select，否则 form */
+  shape: DataShape;
 }
 
-const draft = reactive<Draft>({
+const draft = reactive({
   name: "",
-  method: "GET",
+  method: "GET" as Method,
   url: "",
-  headers: {},
+  headers: {} as Record<string, string>,
   once: true,
   triggerLength: 0,
   triggerPath: "",
-  params: [],
-  scopePath: "",
-  listField: "",
-  labelField: "label",
-  valueField: "value",
-  optionTarget: false,
+  params: [] as DraftParam[],
+  responses: [] as DraftResponse[],
 });
 
 const node = computed(() => {
@@ -70,9 +71,10 @@ const node = computed(() => {
   return findLocation(store.page.children, target.nodeId)?.node;
 });
 
-/** 页面里可被映射的元素（只含表单控件与明细容器 —— 与「仅限当前页面选择元素」对齐） */
-const elements = computed(() => collectBindableElements(store.page, { registry: catalog }));
+/** 全部元素（含非表单元素，#1）：用于参数 / 触发 / 响应目标的下拉 */
+const elements = computed(() => collectBindableElements(store.page, { registry: catalog, includeAll: true }));
 
+/** 按路径选择的元素下拉（参数 / 触发用） */
 const elementOptions = computed(() =>
   elements.value.map((item) => ({
     label: `${item.label}${item.isGroup ? "（整组）" : ""} · ${item.path}`,
@@ -80,10 +82,31 @@ const elementOptions = computed(() =>
   })),
 );
 
-/** 响应目标元素：按 scopePath 反查 */
-const targetElement = computed(() => elements.value.find((item) => item.path === draft.scopePath));
+/** 按节点选择的元素下拉（响应目标用，便于自动判定「选项类」） */
+const targetOptions = computed(() =>
+  elements.value.map((item) => ({
+    label: `${item.label}${item.isOption ? "（选项）" : ""}${item.isGroup ? "（整组）" : ""} · ${item.path}`,
+    value: item.nodeId,
+  })),
+);
+
+function elementByNodeId(nodeId: string): BindableElement | undefined {
+  return elements.value.find((item) => item.nodeId === nodeId);
+}
+function elementByPath(path: string): BindableElement | undefined {
+  return elements.value.find((item) => item.path === path);
+}
+function isOptionTarget(resp: DraftResponse): boolean {
+  return Boolean(elementByNodeId(resp.targetNodeId)?.isOption);
+}
 
 const headerCount = computed(() => Object.keys(draft.headers).length);
+
+/** 默认响应路径：external.<名称> */
+function defaultScopePath(): string {
+  const key = (draft.name.trim() || "data").replace(/[^\w$一-龥]/g, "") || "data";
+  return `external.${key}`;
+}
 
 function reset(): void {
   const source = node.value?.dataSource;
@@ -96,15 +119,27 @@ function reset(): void {
     triggerLength: Number(source?.triggerLength ?? 0),
     triggerPath: source?.triggerPath ?? "",
     params: (source?.params ?? []).map((item) => ({ ...item })),
-    scopePath: source?.response?.scopePath ?? "",
-    listField: source?.response?.listField ?? "",
-    labelField: source?.response?.labelField ?? "label",
-    valueField: source?.response?.valueField ?? "value",
-    optionTarget: false,
-  } satisfies Draft);
-  // 目标元素是选项类元素时，形态按选项走
-  const found = elements.value.find((item) => item.path === draft.scopePath);
-  draft.optionTarget = Boolean(found?.isOption);
+    responses: responsesOf(source).map((r) => ({
+      targetNodeId: "",
+      scopePath: r.scopePath,
+      listField: r.listField ?? "",
+      labelField: r.labelField ?? "",
+      valueField: r.valueField ?? "",
+      shape: r.shape ?? "form",
+    })),
+  });
+  // 反查每个响应命中的目标节点（scopePath === 某元素路径）
+  for (const resp of draft.responses) {
+    const el = elements.value.find((e) => e.path === resp.scopePath);
+    if (el) {
+      resp.targetNodeId = el.nodeId;
+      resp.shape = el.isOption ? "select" : "form";
+      if (el.isOption) {
+        resp.labelField = resp.labelField || "label";
+        resp.valueField = resp.valueField || "value";
+      }
+    }
+  }
 }
 
 watch(
@@ -115,42 +150,71 @@ watch(
   { immediate: true },
 );
 
-/** 选了响应目标 → 自动判定形态（选项类元素按 value/label 映射） */
-function onTargetChange(path: string): void {
-  draft.scopePath = path;
-  const found = elements.value.find((item) => item.path === path);
-  draft.optionTarget = Boolean(found?.isOption);
-}
-
 /* ---------------- 参数映射 ---------------- */
 
 function addParam(): void {
   draft.params.push({ key: "", path: "" });
 }
-
 function removeParam(index: number): void {
   draft.params.splice(index, 1);
 }
-
 function onParamElement(index: number, path: string): void {
   const item = draft.params[index];
   if (!item) return;
   item.path = path;
-  const found = elements.value.find((el) => el.path === path);
-  item.label = found?.label;
+  item.label = elementByPath(path)?.label;
+}
+
+/* ---------------- 响应映射（多条，#4） ---------------- */
+
+function addResponse(): void {
+  draft.responses.push({
+    targetNodeId: "",
+    scopePath: defaultScopePath(),
+    listField: "",
+    labelField: "",
+    valueField: "",
+    shape: "form",
+  });
+}
+function removeResponse(index: number): void {
+  draft.responses.splice(index, 1);
+}
+function onResponseTarget(index: number, nodeId: string): void {
+  const resp = draft.responses[index];
+  if (!resp) return;
+  resp.targetNodeId = nodeId;
+  const el = elementByNodeId(nodeId);
+  if (el) {
+    resp.scopePath = el.path;
+    resp.shape = el.isOption ? "select" : "form";
+    if (el.isOption) {
+      resp.labelField = resp.labelField || "label";
+      resp.valueField = resp.valueField || "value";
+    }
+  }
 }
 
 /* ---------------- 请求头 ---------------- */
 
 async function openHeaders(): Promise<void> {
   const result = await headersDialog.open(draft.headers);
-  // 取消时返回空对象：只在用户确实清空全部请求头时才覆盖
   if (Object.keys(result).length || !Object.keys(draft.headers).length) {
     draft.headers = result;
   }
 }
 
 /* ---------------- 保存 / 移除 ---------------- */
+
+/** 找出「选项类目标」对应的节点：它的 options 要绑到结果路径 */
+function optionNodeIdsOf(responses: ExternalResponseMap[]): string[] {
+  const ids: string[] = [];
+  for (const r of responses) {
+    const el = elements.value.find((e) => e.path === r.scopePath && e.isOption);
+    if (el) ids.push(el.nodeId);
+  }
+  return ids;
+}
 
 function buildSource(): ExternalDataSource {
   const source: ExternalDataSource = {
@@ -159,19 +223,28 @@ function buildSource(): ExternalDataSource {
   };
   if (draft.name.trim()) source.name = draft.name.trim();
   if (Object.keys(draft.headers).length) source.headers = { ...draft.headers };
+
   const params = draft.params.filter((item) => item.key.trim() && item.path);
-  if (params.length) source.params = params.map((item) => ({ key: item.key.trim(), path: item.path, label: item.label }));
-  if (draft.scopePath.trim()) {
-    source.response = {
-      scopePath: draft.scopePath.trim(),
-      shape: draft.optionTarget ? "select" : "form",
-    };
-    if (draft.listField.trim()) source.response.listField = draft.listField.trim();
-    if (draft.optionTarget) {
-      source.response.labelField = draft.labelField.trim() || "label";
-      source.response.valueField = draft.valueField.trim() || "value";
-    }
+  if (params.length) {
+    source.params = params.map((item) => ({ key: item.key.trim(), path: item.path, label: item.label }));
   }
+
+  const responses = draft.responses
+    .filter((r) => r.scopePath.trim())
+    .map((r): ExternalResponseMap => {
+      const out: ExternalResponseMap = { scopePath: r.scopePath.trim() };
+      const el = elementByNodeId(r.targetNodeId);
+      if (el?.isOption) {
+        // 选项类：恒为选项形态；value 不配则运行时回退到 label（#5）
+        out.shape = "select";
+        out.labelField = r.labelField.trim() || "label";
+        out.valueField = r.valueField.trim();
+      }
+      if (r.listField.trim()) out.listField = r.listField.trim();
+      return out;
+    });
+  if (responses.length) source.responses = responses;
+
   source.once = draft.once;
   if (draft.triggerLength > 0) {
     source.triggerLength = draft.triggerLength;
@@ -187,14 +260,19 @@ function save(): void {
     notify("请填写请求地址", "error");
     return;
   }
+
+  const prevIds = optionNodeIdsOf(responsesOf(node.value?.dataSource));
   const source = buildSource();
   store.setNodeDataSource(source);
 
-  // 响应目标是选项类元素 → 把它的 options 绑到结果路径，
-  // 运行时接口返回什么就是什么选项（取数与映射都归外部数据源管）
-  const found = elements.value.find((item) => item.path === source.response?.scopePath);
-  if (found?.isOption && source.response?.scopePath) {
-    store.updateNodeProp(found.nodeId, "options", `{{${source.response.scopePath}}}`);
+  // 选项类目标的 options 绑到结果路径；曾被绑定但本次不再绑定的要清掉，避免悬空引用
+  const newIds = optionNodeIdsOf(source.responses ?? []);
+  for (const id of prevIds) {
+    if (!newIds.includes(id)) store.updateNodeProp(id, "options", "");
+  }
+  for (const id of newIds) {
+    const scopePath = elementByNodeId(id)?.path;
+    if (scopePath) store.updateNodeProp(id, "options", `{{${scopePath}}}`);
   }
 
   dialog.close();
@@ -204,13 +282,9 @@ function save(): void {
 function remove(): void {
   const target = dialog.target.value;
   if (!target) return;
-  const previousPath = node.value?.dataSource?.response?.scopePath;
+  const prevIds = optionNodeIdsOf(responsesOf(node.value?.dataSource));
   store.setNodeDataSource(undefined);
-  // 顺带解除目标元素上指向该结果的 options 绑定，避免留下悬空引用
-  if (previousPath) {
-    const found = elements.value.find((item) => item.path === previousPath);
-    if (found?.isOption) store.updateNodeProp(found.nodeId, "options", "");
-  }
+  for (const id of prevIds) store.updateNodeProp(id, "options", "");
   dialog.close();
   notify("已移除外部数据源", "success");
 }
@@ -220,7 +294,7 @@ function remove(): void {
   <ModalShell
     v-if="dialog.visible.value && dialog.target.value"
     :title="`外部数据源 · ${dialog.target.value.label}`"
-    width="600px"
+    width="620px"
     @close="dialog.close()"
   >
     <div class="ext">
@@ -233,9 +307,7 @@ function remove(): void {
       <div class="ext__row ext__row--split">
         <div class="ext__cell">
           <label class="ext__label">请求方法</label>
-          <select v-model="draft.method" class="ext__input">
-            <option v-for="item in METHODS" :key="item" :value="item">{{ item }}</option>
-          </select>
+          <UiControl as="Select" v-model="draft.method" :options="METHOD_OPTIONS" size="small" />
         </div>
         <div class="ext__cell ext__cell--grow">
           <label class="ext__label">请求地址 URL</label>
@@ -264,10 +336,16 @@ function remove(): void {
         </div>
         <div class="ext__cell ext__cell--grow">
           <label class="ext__label">触发字段</label>
-          <select v-model="draft.triggerPath" class="ext__input">
-            <option value="">（用元素自身的值）</option>
-            <option v-for="item in elementOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
-          </select>
+          <UiControl
+            as="Select"
+            :model-value="draft.triggerPath"
+            :options="elementOptions"
+            filterable
+            clearable
+            size="small"
+            placeholder="（用本元素自身的值）"
+            @update:model-value="(v: string) => (draft.triggerPath = v)"
+          />
         </div>
       </div>
 
@@ -284,57 +362,71 @@ function remove(): void {
       <div class="ext__params">
         <div v-for="(item, index) in draft.params" :key="index" class="ext__param">
           <input v-model="item.key" class="ext__input" placeholder="参数名" spellcheck="false" />
-          <select
-            class="ext__input"
-            :value="item.path"
-            @change="onParamElement(index, ($event.target as HTMLSelectElement).value)"
-          >
-            <option value="">选择元素…</option>
-            <option v-for="opt in elementOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-          </select>
+          <UiControl
+            as="Select"
+            :model-value="item.path"
+            :options="elementOptions"
+            filterable
+            clearable
+            size="small"
+            placeholder="选择元素…"
+            @update:model-value="(v: string) => onParamElement(index, v)"
+          />
           <button type="button" class="ext__del" title="删除" @click="removeParam(index)">×</button>
         </div>
         <button type="button" class="ext__ghost ext__ghost--block" @click="addParam">+ 添加参数</button>
       </div>
 
-      <!-- 响应数据映射 -->
+      <!-- 响应数据映射（多条，#4） -->
       <div class="ext__section">
         响应数据映射
-        <span class="ext__section-hint">结果写入目标元素；目标是选项类元素时按「值 / 名称」映射成选项</span>
+        <span class="ext__section-hint">可设多条，各自写不同路径；留空则不写数据（仅触发请求）</span>
       </div>
-      <div class="ext__row">
-        <label class="ext__label">映射目标</label>
-        <select class="ext__input" :value="draft.scopePath" @change="onTargetChange(($event.target as HTMLSelectElement).value)">
-          <option value="">不映射（仅请求）</option>
-          <option v-for="item in elementOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
-        </select>
+      <div class="ext__params">
+        <div v-for="(resp, index) in draft.responses" :key="index" class="ext__resp">
+          <div class="ext__resp-head">
+            <span class="ext__resp-no">映射 {{ index + 1 }}</span>
+            <button type="button" class="ext__del" title="删除映射" @click="removeResponse(index)">×</button>
+          </div>
+          <div class="ext__param">
+            <UiControl
+              as="Select"
+              :model-value="resp.targetNodeId"
+              :options="targetOptions"
+              filterable
+              clearable
+              size="small"
+              placeholder="选择目标元素（可空）"
+              @update:model-value="(v: string) => onResponseTarget(index, v)"
+            />
+          </div>
+          <div class="ext__row">
+            <label class="ext__label">写入路径</label>
+            <input v-model="resp.scopePath" class="ext__input wb-mono" placeholder="如 external.deptList" spellcheck="false" />
+          </div>
+          <div v-if="isOptionTarget(resp)" class="ext__row ext__row--split">
+            <div class="ext__cell">
+              <label class="ext__label">值字段</label>
+              <input v-model="resp.valueField" class="ext__input wb-mono" placeholder="留空 = 用名称" spellcheck="false" />
+            </div>
+            <div class="ext__cell">
+              <label class="ext__label">名称字段</label>
+              <input v-model="resp.labelField" class="ext__input wb-mono" placeholder="label" spellcheck="false" />
+            </div>
+          </div>
+          <div v-else-if="!resp.targetNodeId" class="ext__note">
+            未选目标元素：结果整体写入 <code>{{ resp.scopePath }}</code>，由你自行把某元素属性绑到该路径。
+          </div>
+          <div v-else class="ext__note">
+            目标不是选项类元素，响应将整体写入 <code>{{ resp.scopePath }}</code> 的值。
+          </div>
+          <div class="ext__row">
+            <label class="ext__label">列表字段</label>
+            <input v-model="resp.listField" class="ext__input wb-mono" placeholder="如 data.list（留空表示响应本身就是数组）" spellcheck="false" />
+          </div>
+        </div>
+        <button type="button" class="ext__ghost ext__ghost--block" @click="addResponse">+ 添加响应映射</button>
       </div>
-
-      <template v-if="draft.scopePath">
-        <div class="ext__row">
-          <label class="ext__label">写入路径</label>
-          <input v-model="draft.scopePath" class="ext__input wb-mono" spellcheck="false" />
-        </div>
-        <div class="ext__row">
-          <label class="ext__label">列表字段</label>
-          <input v-model="draft.listField" class="ext__input wb-mono" placeholder="如 data.list（留空表示响应本身就是数组）" spellcheck="false" />
-        </div>
-        <div v-if="draft.optionTarget" class="ext__row ext__row--split">
-          <div class="ext__cell">
-            <label class="ext__label">值字段</label>
-            <input v-model="draft.valueField" class="ext__input wb-mono" placeholder="value" spellcheck="false" />
-          </div>
-          <div class="ext__cell">
-            <label class="ext__label">名称字段</label>
-            <input v-model="draft.labelField" class="ext__input wb-mono" placeholder="label" spellcheck="false" />
-          </div>
-        </div>
-        <div v-else class="ext__note">
-          目标不是选项类元素，响应将整体写入
-          <code>{{ targetElement?.label ?? draft.scopePath }}</code>
-          的值。
-        </div>
-      </template>
     </div>
 
     <template #footer>
@@ -438,7 +530,7 @@ function remove(): void {
 }
 .ext__param {
   display: grid;
-  grid-template-columns: 140px 1fr 24px;
+  grid-template-columns: 140px 1fr;
   gap: 6px;
   align-items: center;
 }
@@ -452,6 +544,26 @@ function remove(): void {
 }
 .ext__del:hover {
   color: var(--wb-danger);
+}
+.ext__resp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--wb-line-soft);
+  border-radius: 7px;
+  background: #fbfcfe;
+}
+.ext__resp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ext__resp-no {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--wb-ink3);
 }
 .ext__note {
   font-size: 11.5px;
