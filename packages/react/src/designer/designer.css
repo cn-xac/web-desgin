@@ -514,13 +514,43 @@ select.wbd-input.wbd-sm {
 .opanel__head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
+  padding: 7px 8px;
   border-bottom: 1px solid var(--wb-line-soft);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+}
+.opanel__tabs {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+.opanel__tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid var(--wb-line);
+  border-radius: 5px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--wb-ink3);
+  cursor: pointer;
+  font-family: inherit;
+}
+.opanel__tab.is-on {
+  border-color: var(--wb-primary);
+  background: var(--wb-primary-soft);
+  color: var(--wb-primary);
+}
+.opanel__tab-count {
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--wb-primary);
+  color: #fff;
+  font-size: 10px;
+  line-height: 15px;
 }
 .opanel__count {
   padding: 0 6px;
@@ -576,6 +606,65 @@ select.wbd-input.wbd-sm {
   font-size: 11px;
   color: var(--wb-ink3);
   line-height: 1.5;
+}
+
+/* 特殊设置列表（#6） */
+.oset {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.oset__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px;
+  border-radius: 5px;
+  font-size: 12px;
+  color: var(--wb-ink2);
+  cursor: pointer;
+  user-select: none;
+}
+.oset__row:hover {
+  background: var(--wb-bg);
+}
+.oset__row.is-sel {
+  background: var(--wb-primary-soft);
+  color: var(--wb-primary);
+  font-weight: 600;
+}
+.oset__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.oset__flags {
+  display: flex;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.oset__flag {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+}
+.oset__flag--ext {
+  background: #2f4bff;
+}
+.oset__flag--vis {
+  background: #16a34a;
+}
+.oset__flag--rule {
+  background: #d97706;
+}
+.oset__flag--evt {
+  background: #9333ea;
 }
 
 /* ---- designer/components/OutlineTree.vue ---- */

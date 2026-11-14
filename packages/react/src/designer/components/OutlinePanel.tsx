@@ -1,5 +1,11 @@
 import { useEffect, useState, type DragEvent } from "react";
-import { getBreadcrumb, type DropPosition, type NodeSchema } from "@x-ac/web-design-core";
+import {
+  collectSpecialSettings,
+  getBreadcrumb,
+  type DropPosition,
+  type NodeSchema,
+  type SpecialSettingItem,
+} from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 
 interface OutlineTreeProps {
@@ -41,7 +47,6 @@ function OutlineTree({ nodes, depth, expanded, onToggle }: OutlineTreeProps) {
 
   const selectRow = (node: NodeSchema): void => {
     store.select(node.id);
-    // jsdom / 非浏览器宿主没有 scrollIntoView，滚动只是增强体验，不能让选中流程崩掉
     const target = document.querySelector<HTMLElement>(`[data-node-id="${node.id}"]`);
     target?.scrollIntoView?.({ block: "center" });
   };
@@ -154,12 +159,7 @@ function OutlineTree({ nodes, depth, expanded, onToggle }: OutlineTreeProps) {
               </span>
             </div>
             {kids && expanded.has(node.id) ? (
-              <OutlineTree
-                nodes={children}
-                depth={depth + 1}
-                expanded={expanded}
-                onToggle={onToggle}
-              />
+              <OutlineTree nodes={children} depth={depth + 1} expanded={expanded} onToggle={onToggle} />
             ) : null}
           </li>
         );
@@ -168,11 +168,22 @@ function OutlineTree({ nodes, depth, expanded, onToggle }: OutlineTreeProps) {
   );
 }
 
-/** 组件树面板：头部计数、根节点接收「放到最外层」的拖放 */
+type Tab = "tree" | "settings";
+
+/** 组件树面板：头部 tab 切换「组件树 / 特殊设置」，根节点接收「放到最外层」的拖放 */
 export function OutlinePanel() {
-  const { store, state } = useDesigner();
+  const { store, state, registry } = useDesigner();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const [tab, setTab] = useState<Tab>("tree");
   const roots = state.page.children ?? [];
+
+  const settings = collectSpecialSettings(state.page, { registry });
+
+  const selectSetting = (item: SpecialSettingItem): void => {
+    store.select(item.nodeId);
+    const target = document.querySelector<HTMLElement>(`[data-node-id="${item.nodeId}"]`);
+    target?.scrollIntoView?.({ block: "nearest" });
+  };
 
   /** 画布选中深处节点时自动展开祖先，并把对应行滚到可视区 */
   useEffect(() => {
@@ -223,29 +234,82 @@ export function OutlinePanel() {
   return (
     <aside className="opanel">
       <div className="opanel__head">
-        <span>组件树</span>
-        <span className="opanel__count">{state.nodeCount}</span>
-      </div>
-
-      <div className="opanel__scroll wb-scroll">
-        <div
-          className={`opanel__root${rootHint ? " is-hint-inside" : ""}`}
-          title="页面根：拖到这里放到最外层"
-          onClick={() => store.select(null)}
-          onDragOver={onRootDragOver}
-          onDragLeave={() => store.setDropHint(null)}
-          onDrop={onRootDrop}
-        >
-          <span className="opanel__root-icon">📄</span>
-          <span className="opanel__root-name">页面</span>
+        <div className="opanel__tabs">
+          <button
+            type="button"
+            className={`opanel__tab${tab === "tree" ? " is-on" : ""}`}
+            onClick={() => setTab("tree")}
+          >
+            组件树
+          </button>
+          <button
+            type="button"
+            className={`opanel__tab${tab === "settings" ? " is-on" : ""}`}
+            onClick={() => setTab("settings")}
+          >
+            特殊设置
+            {settings.length ? <span className="opanel__tab-count">{settings.length}</span> : null}
+          </button>
         </div>
-
-        {roots.length ? (
-          <OutlineTree nodes={roots} depth={0} expanded={expanded} onToggle={onToggle} />
-        ) : (
-          <div className="opanel__empty">画布还是空的，从左侧拖入或点击组件</div>
-        )}
       </div>
+
+      {tab === "tree" ? (
+        <div className="opanel__scroll wb-scroll">
+          <div
+            className={`opanel__root${rootHint ? " is-hint-inside" : ""}`}
+            title="页面根：拖到这里放到最外层"
+            onClick={() => store.select(null)}
+            onDragOver={onRootDragOver}
+            onDragLeave={() => store.setDropHint(null)}
+            onDrop={onRootDrop}
+          >
+            <span className="opanel__root-icon">📄</span>
+            <span className="opanel__root-name">页面</span>
+          </div>
+
+          {roots.length ? (
+            <OutlineTree nodes={roots} depth={0} expanded={expanded} onToggle={onToggle} />
+          ) : (
+            <div className="opanel__empty">画布还是空的，从左侧拖入或点击组件</div>
+          )}
+        </div>
+      ) : (
+        <div className="opanel__scroll wb-scroll">
+          {settings.length ? (
+            <ul className="oset">
+              {settings.map((item) => {
+                const rowClass = `oset__row${state.selectedId === item.nodeId ? " is-sel" : ""}`;
+                return (
+                  <li
+                    key={item.nodeId}
+                    className={rowClass}
+                    data-outline-id={item.nodeId}
+                    onClick={() => selectSetting(item)}
+                    onMouseEnter={() => store.hover(item.nodeId)}
+                    onMouseLeave={() => store.hover(null)}
+                  >
+                    <span className="oset__name" title={item.label}>
+                      {item.label}
+                    </span>
+                    <span className="oset__flags">
+                      {item.flags.external ? <span className="oset__flag oset__flag--ext" title="外部数据源">源</span> : null}
+                      {item.flags.visibility ? <span className="oset__flag oset__flag--vis" title="显示 / 隐藏">隐</span> : null}
+                      {item.flags.rules ? <span className="oset__flag oset__flag--rule" title="数据校验">验</span> : null}
+                      {item.flags.events ? <span className="oset__flag oset__flag--evt" title="事件">事</span> : null}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="opanel__empty">
+              还没有特殊设置。
+              <br />
+              配置了外部数据源、显示 / 隐藏、校验或事件的元素会列在这里。
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="opanel__foot">点击选中 · 悬停高亮 · 拖拽调整层级</div>
     </aside>
