@@ -1512,3 +1512,31 @@ select.wbd-input.wbd-sm {
 .designer textarea.wbd-input { resize: vertical; font-family: var(--wb-mono); }
 .designer .wbd-color { display: inline-flex; align-items: center; gap: 6px; }
 .designer .wbd-color input[type="color"] { width: 30px; height: 26px; padding: 0; border: 1px solid var(--wb-line); border-radius: 4px; background: #fff; }
+
+/* ---- 通用多条件构造器（rfD7Jv / r5u4Ul） ---- */
+.cond { width: 100%; }
+.cond__toggle { width: 100%; border: 1px solid var(--wb-line); border-radius: 5px; background: #fff; padding: 5px 8px; font-size: 12px; font-family: inherit; text-align: left; color: var(--wb-ink2); cursor: pointer; }
+.cond__toggle:hover { border-color: var(--wb-primary); color: var(--wb-primary); }
+.cond__body { margin-top: 8px; padding: 8px; border: 1px solid var(--wb-line-soft); border-radius: 8px; background: #fbfcfe; }
+.cond__tip { margin-bottom: 8px; font-size: 11.5px; line-height: 1.7; color: var(--wb-ink3); }
+.cond__tip.is-error { color: var(--wb-danger); }
+.cond__modes { display: flex; gap: 6px; margin-bottom: 8px; }
+.cond__mode { border: 1px solid var(--wb-line); border-radius: 5px; background: #fff; padding: 4px 12px; font-size: 12px; font-family: inherit; color: var(--wb-ink2); cursor: pointer; }
+.cond__mode.is-active { border-color: var(--wb-primary); background: var(--wb-primary-soft); color: var(--wb-primary); }
+.cond__expression { width: 100%; box-sizing: border-box; margin-bottom: 4px; padding: 6px 8px; border: 1px solid var(--wb-line); border-radius: 5px; font-size: 12px; font-family: var(--wb-mono); }
+.cond__row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; }
+.cond__no { width: 18px; flex: none; text-align: center; font-size: 12px; color: var(--wb-ink3); }
+.cond__select, .cond__value { min-width: 0; box-sizing: border-box; border: 1px solid var(--wb-line); border-radius: 5px; background: #fff; padding: 5px 6px; font-size: 12px; font-family: inherit; color: var(--wb-ink); }
+.cond__left { flex: 1 1 140px; }
+.cond__aggregate { flex: 0 0 76px; }
+.cond__operator { flex: 0 0 86px; }
+.cond__value { flex: 1 1 100px; }
+.cond__value--only { flex: 1 1 260px; }
+.cond__only { display: flex; align-items: center; gap: 3px; flex: none; font-size: 11px; color: var(--wb-ink2); }
+.cond__del { flex: none; border: none; background: transparent; font-size: 16px; color: var(--wb-ink3); cursor: pointer; }
+.cond__del:hover { color: var(--wb-danger); }
+.cond__actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.cond__add, .cond__cancel, .cond__ok { border-radius: 5px; padding: 5px 10px; font-size: 12px; font-family: inherit; cursor: pointer; }
+.cond__add { border: 1px dashed var(--wb-line); background: #fff; color: var(--wb-ink2); margin-right: auto; }
+.cond__cancel { border: 1px solid var(--wb-line); background: #fff; color: var(--wb-ink2); }
+.cond__ok { border: 1px solid var(--wb-primary); background: var(--wb-primary); color: #fff; }

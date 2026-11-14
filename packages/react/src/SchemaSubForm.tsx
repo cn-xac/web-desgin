@@ -6,6 +6,7 @@ import {
   moveArrayItem,
   pushArrayItem,
   removeArrayItem,
+  setByPath,
 } from "@x-ac/web-design-core";
 import type { NodeSchema } from "@x-ac/web-design-core";
 import { RenderContext, BINDING_BASE, useRenderContext } from "./context";
@@ -21,7 +22,7 @@ import { SchemaNode } from "./SchemaNode";
  *
  * 与 Vue 版 SchemaSubForm 对齐：引擎按 kind 结构渲染，无需 UI 库组件实现。
  */
-export function SchemaSubForm({ node }: { node: NodeSchema }) {
+export function SchemaSubForm({ node, hidden = false }: { node: NodeSchema; hidden?: boolean }) {
   const ctx = useRenderContext();
   const design = ctx.design;
   const parentBase = useContext(BINDING_BASE);
@@ -36,6 +37,18 @@ export function SchemaSubForm({ node }: { node: NodeSchema }) {
 
   /** 设计态用一个本地预览组数，避免改动真实数据数组 */
   const [designCount, setDesignCount] = useState(1);
+
+  /**
+   * 子表单内显隐条件用「行级隔离作用域」求值：只把当前行放回明细路径下（占位下标 0），
+   * 组内元素读不到子表单外部数据；绑定仍走 BINDING_BASE + 全量 scope。
+   */
+  function isolatedScope(index: number): Record<string, unknown> {
+    const arr = (getByPath(ctx.scope, fullPath) as unknown[] | undefined) ?? [];
+    const row = arr[index] ?? {};
+    const isolated: Record<string, unknown> = {};
+    setByPath(isolated, `${fullPath}[0]`, row);
+    return isolated;
+  }
 
   const groups = (() => {
     if (design) {
@@ -127,7 +140,7 @@ export function SchemaSubForm({ node }: { node: NodeSchema }) {
   ));
 
   const content: ReactNode = (
-    <div className="ux-subform" style={{ display: "block", margin: "8px 0", border: "1px dashed #dcdfe6", borderRadius: 8, padding: 12, background: "rgba(47,75,255,0.02)" }}>
+    <div className="ux-subform" style={{ display: hidden ? "none" : "block", margin: "8px 0", border: "1px dashed #dcdfe6", borderRadius: 8, padding: 12, background: "rgba(47,75,255,0.02)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "#1f2329" }}>{title}</span>
         {!design && maxItems > 0 ? (
@@ -172,7 +185,14 @@ export function SchemaSubForm({ node }: { node: NodeSchema }) {
           {/* 子表单内字段失焦校验无法唯一定位「第几组」（模板共享节点 ID），
               故对子孙表单控件跳过全局失焦校验；提交时 collectFields 会逐组下钻统一校验兜底。
               同时注入当前组 base，让组内字段按 form.<base>[i].<id> 自动绑定。 */}
-          <RenderContext.Provider value={{ ...ctx, validateField: () => {} }}>
+          <RenderContext.Provider
+            value={{
+              ...ctx,
+              validateField: () => {},
+              visibilityScope: isolatedScope(index),
+              visibilityRowIndex: 0,
+            }}
+          >
             <BINDING_BASE.Provider value={group.base}>{groupNodes}</BINDING_BASE.Provider>
           </RenderContext.Provider>
         </div>

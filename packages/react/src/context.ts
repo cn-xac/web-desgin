@@ -3,6 +3,7 @@ import type {
   ActionAdapter,
   ActionSchema,
   DropPosition,
+  ExternalVisibility,
   MaterialRegistry,
   NodeSchema,
   PageSchema,
@@ -47,6 +48,12 @@ export interface RenderContextValue {
   validateField: (node: NodeSchema) => void;
   /** 宿主的事件拦截钩子（与 Vue 的 :on-event 同签名） */
   onEvent?: UiEventHook;
+  /** 宿主按节点 id 传入的显隐控制（r5u4Ul），可标记 force */
+  visibility?: ExternalVisibility;
+  /** 子表单内的行级隔离作用域，仅供新显隐条件求值；绑定仍用 scope */
+  visibilityScope?: Record<string, unknown>;
+  /** 当前明细行下标 */
+  visibilityRowIndex?: number;
   /** 节点事件只读通知：拿到的是同一个 UiEventPayload，不参与控制流（对齐 Vue 的 @node-event） */
   notifyEvent: (payload: UiEventPayload) => void;
   /** 设计态开关：true 时画布节点带选中/悬停/拖拽能力，view 模式恒为 false */

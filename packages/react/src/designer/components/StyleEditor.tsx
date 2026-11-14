@@ -14,6 +14,7 @@ import {
 import type { SpacingBox, SpacingKey, SpacingSide } from "@x-ac/web-design-core";
 import { useDesigner } from "../context";
 import { UiControl } from "../ui";
+import { ConditionBuilder } from "./ConditionBuilder";
 
 interface StyleField {
   key: string;
@@ -308,7 +309,19 @@ export function StyleEditor() {
         </div>
       ))}
 
-      <div className="style__section">显示与循环</div>
+      <div className="style__section">显示 / 隐藏条件</div>
+      <div className="style__row style__row--block">
+        <label>显示条件</label>
+        <ConditionBuilder kind="show" />
+        <div className="style__tip">命中即显示，优先级高于隐藏条件</div>
+      </div>
+      <div className="style__row style__row--block">
+        <label>隐藏条件</label>
+        <ConditionBuilder kind="hide" />
+        <div className="style__tip">仅在显示条件未命中时生效</div>
+      </div>
+
+      <div className="style__section">显示与循环（旧指令）</div>
       {DIRECTIVES.map((directive) => (
         <div className="style__row style__row--block" key={directive.name}>
           <label>{directive.label}</label>
@@ -325,7 +338,7 @@ export function StyleEditor() {
 
       <div className="style__section">预览元素</div>
       <pre className="style__preview">
-        {JSON.stringify({ style: node.style ?? {}, directives: node.directives ?? [] }, null, 2)}
+        {JSON.stringify({ style: node.style ?? {}, visibility: node.visibility ?? {}, directives: node.directives ?? [] }, null, 2)}
       </pre>
     </div>
   );

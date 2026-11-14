@@ -4,6 +4,7 @@ import type {
   ActionAdapter,
   DataExportOptions,
   DataExportResult,
+  ExternalVisibility,
   Material,
   MaterialRegistry,
   NodeSchema,
@@ -62,6 +63,11 @@ export interface SchemaRendererProps {
    */
   onNodeEvent?: (payload: UiEventPayload) => void;
   /**
+   * 外部显隐控制：按节点 id 传入 { visible, force? }。
+   * force=true 忽略节点自身条件；否则仅在本地条件均未命中时生效。
+   */
+  visibility?: ExternalVisibility;
+  /**
    * 设计态：画布节点带选中 / 悬停 / 拖拽能力（对齐 Vue 的 design prop）。
    * 仅在 SchemaDesigner 内部使用，普通运行时不传。
    */
@@ -114,7 +120,7 @@ function deviceMaxWidth(page: PageSchema): number {
 }
 
 export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererProps>(function SchemaRenderer(
-  { page, mode = "view", navigate, ui, adapter, data, onDataChange, onSubmit, onEvent, onNodeEvent, design = false, designer, className, style },
+  { page, mode = "view", navigate, ui, adapter, data, onDataChange, onSubmit, onEvent, onNodeEvent, visibility, design = false, designer, className, style },
   ref,
 ) {
   // Hook 必须无条件调用：prop 显式传入时仍读一次 Context，但不会用它
@@ -228,6 +234,7 @@ export const SchemaRenderer = forwardRef<SchemaRendererHandle, SchemaRendererPro
     setValue: store.setValue,
     validateField,
     onEvent,
+    visibility,
     notifyEvent: (payload) => onNodeEvent?.(payload),
     design,
     designer,

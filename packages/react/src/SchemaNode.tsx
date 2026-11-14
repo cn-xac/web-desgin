@@ -10,14 +10,16 @@ import {
   isBindable,
   isRequired,
   materialKey,
-  resolveBoolean,
+  resolveDirectiveVisibility,
+  resolveLoopInstances,
   resolveNodeStyle,
   resolveValue,
+  resolveVisibility,
   runActions,
   runEventHooks,
   toReactHandlerName,
 } from "@x-ac/web-design-core";
-import type { NodeSchema } from "@x-ac/web-design-core";
+import type { NodeSchema, VisibilityDecision } from "@x-ac/web-design-core";
 import type { CSSProperties } from "react";
 import { RenderContext, BINDING_BASE, useRenderContext } from "./context";
 import type { RenderContextValue } from "./context";
@@ -141,7 +143,20 @@ function FieldShell({
   );
 }
 
-function NodeBody({ node }: { node: NodeSchema }) {
+/**
+ * 统一显隐判定：新配置用隔离后的行级作用域，旧 directives 沿用全量 scope。
+ * 与 Vue 渲染器 / 静态 HTML 导出共用 core 的 resolveVisibility。
+ */
+function decide(node: NodeSchema, ctx: RenderContextValue): VisibilityDecision {
+  const isolated = ctx.visibilityScope ?? ctx.scope;
+  const local = resolveVisibility(node, isolated, ctx.visibility, { rowIndex: ctx.visibilityRowIndex });
+  if (local.source === "directive" || local.source === "default") {
+    return resolveDirectiveVisibility(node, ctx.scope);
+  }
+  return local;
+}
+
+function NodeBody({ node, decision }: { node: NodeSchema; decision: VisibilityDecision }) {
   const ctx = useRenderContext();
   // 绑定前缀：默认 form；子表单内由上层 SchemaSubForm 注入当前组路径，实现无限嵌套
   const bindingBase = useContext(BINDING_BASE);
@@ -157,7 +172,7 @@ function NodeBody({ node }: { node: NodeSchema }) {
     material,
   ) as CSSProperties;
 
-  const hidden = (node.directives ?? []).some((d) => d.name === "show" && !resolveBoolean(d.value, ctx.scope));
+  const hidden = !decision.visible && decision.mode !== "if";
   if (hidden) style.display = "none";
 
   // 包裹层穿透：选中 / 悬停框改画到组件根节点，空内容时给最小高度保证可点选
@@ -180,7 +195,8 @@ function NodeBody({ node }: { node: NodeSchema }) {
 
   /* 子表单（明细数组容器）：引擎按 kind 结构渲染，无需 UI 库组件实现 */
   if (material.kind === "subform") {
-    return <SchemaSubForm node={node} />;
+    // 子表单由引擎结构渲染、不吃 style，隐藏状态单独传下去（修复既存缺口）
+    return <SchemaSubForm node={node} hidden={hidden} />;
   }
 
   /* 组件实现同样来自适配包：业务物料用 registerMaterials() 注册后就能命中 */
@@ -301,39 +317,37 @@ function NodeBody({ node }: { node: NodeSchema }) {
   return <Fragment>{createElement(Component ?? "div", controlProps, children)}</Fragment>;
 }
 
-/** 递归渲染入口：先处理 if / for，再渲染节点本体 */
+/** 递归渲染入口：统一判定显隐，再处理 for 展开 */
 export function SchemaNode({ node }: { node: NodeSchema }) {
   const ctx = useRenderContext();
-  const directives = node.directives ?? [];
+  const decision = decide(node, ctx);
+  if (!decision.visible && decision.mode === "if") return null;
 
-  if (directives.some((d) => d.name === "if" && !resolveBoolean(d.value, ctx.scope))) return null;
-
-  const loop = directives.find((d) => d.name === "for");
-  if (!loop)
+  const instances = resolveLoopInstances(node, ctx.scope);
+  if (!instances) {
     return (
       <DesignerWrap node={node}>
-        <NodeBody node={node} />
+        <NodeBody node={node} decision={decision} />
       </DesignerWrap>
     );
-
-  const list = resolveValue(loop.value ?? "", ctx.scope);
-  const items = Array.isArray(list) ? list : [];
-  const itemKey = loop.itemKey ?? "item";
-  const indexKey = loop.indexKey ?? "index";
-  const rest: RenderContextValue = { ...ctx };
+  }
 
   return (
     <>
-      {items.map((item, index) => (
-        <RenderContext.Provider
-          key={`${node.id}-${index}`}
-          value={{ ...rest, scope: { ...ctx.scope, [itemKey]: item, [indexKey]: index } }}
-        >
-          <DesignerWrap node={node}>
-            <NodeBody node={{ ...node, directives: directives.filter((d) => d.name !== "for") }} />
-          </DesignerWrap>
-        </RenderContext.Provider>
-      ))}
+      {instances.map((instance) => {
+        // 循环实例用增强后的 scope 重新判定，与 Vue / 静态导出保持一致
+        const next: RenderContextValue = { ...ctx, scope: instance.scope, visibilityScope: instance.scope };
+        return (
+          <RenderContext.Provider key={instance.key} value={next}>
+            <DesignerWrap node={node}>
+              <NodeBody
+                node={{ ...node, directives: (node.directives ?? []).filter((d) => d.name !== "for") }}
+                decision={decide(node, next)}
+              />
+            </DesignerWrap>
+          </RenderContext.Provider>
+        );
+      })}
     </>
   );
 }
