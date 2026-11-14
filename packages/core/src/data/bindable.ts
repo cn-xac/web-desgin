@@ -22,6 +22,7 @@ import { MATERIALS } from "../materials/catalog";
 import { bareKey } from "../materials/keys";
 import { createRegistry, type MaterialRegistry } from "../materials/registry";
 import type { Material } from "../materials/types";
+import { responsesOf } from "./external";
 
 export type BindableKind = "state" | "field" | "datasource" | "external";
 
@@ -44,6 +45,12 @@ export interface CollectBindableOptions {
   registry?: MaterialRegistry;
   /** 页面状态展开的最大层级；1 = 顶层 key + 再展开一层对象。缺省 2 */
   stateDepth?: number;
+  /**
+   * 是否收集「全部元素」（含非表单元素）。
+   * 缺省 false：只收集表单控件与明细容器（用于触发 / 参数映射）；
+   * true：用于响应数据映射的目标选择 —— 任何元素都能接外部数据（#1）。
+   */
+  includeAll?: boolean;
 }
 
 const GROUP_STATE = "页面状态";
@@ -159,17 +166,19 @@ function collectPageDataSources(page: PageSchema): BindableItem[] {
   );
 }
 
-/** 外部数据源的响应写进 scope.response.scopePath，那个路径即可绑定项 */
+/** 外部数据源的响应写进 scope 的各自路径，那些路径即可绑定项 */
 function collectExternalSources(page: PageSchema): BindableItem[] {
   const out: BindableItem[] = [];
   const walk = (nodes: NodeSchema[]): void => {
     for (const node of nodes ?? []) {
       const source = node.dataSource;
-      const scopePath = source?.response?.scopePath;
-      if (scopePath) {
-        out.push(
-          makeItem(scopePath, scopePath, GROUP_EXTERNAL, "external", source?.name ?? source?.url ?? ""),
-        );
+      for (const response of responsesOf(source)) {
+        const scopePath = response.scopePath;
+        if (scopePath) {
+          out.push(
+            makeItem(scopePath, scopePath, GROUP_EXTERNAL, "external", source?.name ?? source?.url ?? ""),
+          );
+        }
       }
       walk(node.children ?? []);
     }
@@ -200,7 +209,7 @@ export const OPTION_COMPONENTS = new Set([
 /** 可选元素（节点 + 它的绑定路径） */
 export interface BindableElement {
   nodeId: string;
-  /** 元素的绑定路径：控件是 form.<节点ID>，明细数组是 form.<明细路径> */
+  /** 元素的绑定路径：控件是 form.<节点ID>，明细数组是 form.<明细路径>；非表单元素为 data.<节点ID> */
   path: string;
   /** 展示名 */
   label: string;
@@ -211,6 +220,8 @@ export interface BindableElement {
   isOption: boolean;
   /** 是否明细容器（可整体作为单个参数值） */
   isGroup: boolean;
+  /** 是否表单控件（内容可被用户改变） */
+  isFormControl: boolean;
 }
 
 /**
@@ -218,19 +229,29 @@ export interface BindableElement {
  *
  * 与 collectBindableData 的区别：这里给的是「节点」而不是「数据项」，
  * 供外部数据源做参数映射 / 响应映射时选元素用。
+ *
+ * - 缺省（includeAll = false）：只收表单控件与明细容器，用于「触发 / 参数映射」
+ *   （只有这些元素才有可被读取的实时值）；
+ * - includeAll = true：额外收所有普通元素（#1），用于「响应数据映射」的目标选择，
+ *   让任何元素都能接外部数据 —— 非表单元素的写入路径为 data.<节点ID>，
+ *   再由该元素把展示属性绑到 {{data.<节点ID>}}。
  */
 export function collectBindableElements(
   page: PageSchema,
   options: CollectBindableOptions = {},
 ): BindableElement[] {
   const registry = options.registry ?? createRegistry(MATERIALS);
+  const includeAll = options.includeAll ?? false;
   const out: BindableElement[] = [];
 
   const walk = (nodes: NodeSchema[], base: string): void => {
     for (const node of nodes ?? []) {
       const material = registry.get(node.component);
+      const isGroup = material?.kind === "subform";
+      const isForm = Boolean(material?.isFormControl);
+      const isOption = OPTION_COMPONENTS.has(bareKey(node.component));
 
-      if (material?.kind === "subform") {
+      if (isGroup) {
         const itemPath = String(node.props?.itemPath ?? "items");
         const fullPath = itemPath ? `${base}.${itemPath}` : base;
         out.push({
@@ -241,21 +262,25 @@ export function collectBindableElements(
           component: node.component,
           isOption: false,
           isGroup: true,
+          isFormControl: false,
         });
         walk(node.children ?? [], `${fullPath}[${GROUP_INDEX}]`);
         continue;
       }
 
-      if (material?.isFormControl) {
+      if (isForm || isOption || includeAll) {
         const explicit = extractPath(node.props?.modelValue);
+        // 表单 / 选项控件落在 form 前缀；其余元素落在 data 前缀（不污染表单数据）
+        const path = explicit ?? (isForm || isOption ? `${base}.${node.id}` : `data.${node.id}`);
         out.push({
           nodeId: node.id,
-          path: explicit ?? `${base}.${node.id}`,
-          label: fieldLabel(node, material),
-          title: material.title,
+          path,
+          label: material ? fieldLabel(node, material) : node.component,
+          title: material?.title ?? node.component,
           component: node.component,
-          isOption: OPTION_COMPONENTS.has(bareKey(node.component)),
+          isOption,
           isGroup: false,
+          isFormControl: isForm,
         });
       }
 
@@ -316,4 +341,71 @@ export function groupBindableData(items: BindableItem[]): Array<{ group: string;
     else map.set(item.group, [item]);
   }
   return Array.from(map, ([group, list]) => ({ group, items: list }));
+}
+
+/* ----------------------------- 特殊设置清单（#6） ----------------------------- */
+
+/** 节点带有的「特殊设置」标记 */
+export interface SpecialSettingFlags {
+  /** 外部数据源 */
+  external: boolean;
+  /** 显示 / 隐藏条件 */
+  visibility: boolean;
+  /** 数据校验规则 */
+  rules: boolean;
+  /** 事件动作 */
+  events: boolean;
+}
+
+export interface SpecialSettingItem {
+  nodeId: string;
+  /** 展示名（物料标题 + 文本摘要） */
+  label: string;
+  component: string;
+  title: string;
+  flags: SpecialSettingFlags;
+}
+
+function nodeSummary(node: NodeSchema, material: Material | undefined): string {
+  const textProp = material?.textProp;
+  const summary = textProp ? String(node.props?.[textProp] ?? "").trim() : "";
+  const tail = summary ? ` · ${summary.slice(0, 16)}` : "";
+  return `${material?.title ?? node.component}${tail}`;
+}
+
+/**
+ * 收集页面里带「特殊设置」的节点，供组件树的「特殊设置」tab 直观展示
+ * （哪些元素用了外部数据源 / 显隐条件 / 校验 / 事件）。
+ */
+export function collectSpecialSettings(
+  page: PageSchema,
+  options: CollectBindableOptions = {},
+): SpecialSettingItem[] {
+  const registry = options.registry ?? createRegistry(MATERIALS);
+  const out: SpecialSettingItem[] = [];
+
+  const walk = (nodes: NodeSchema[]): void => {
+    for (const node of nodes ?? []) {
+      const material = registry.get(node.component);
+      const flags: SpecialSettingFlags = {
+        external: Boolean(node.dataSource?.url),
+        visibility: Boolean(node.visibility),
+        rules: Boolean(node.rules?.length),
+        events: Boolean(node.events && Object.keys(node.events).length),
+      };
+      if (flags.external || flags.visibility || flags.rules || flags.events) {
+        out.push({
+          nodeId: node.id,
+          label: nodeSummary(node, material),
+          component: node.component,
+          title: material?.title ?? node.component,
+          flags,
+        });
+      }
+      walk(node.children ?? []);
+    }
+  };
+
+  walk(page.children ?? []);
+  return out;
 }

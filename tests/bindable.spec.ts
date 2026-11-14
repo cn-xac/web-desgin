@@ -108,7 +108,7 @@ describe("collectBindableData：可绑定数据清单", () => {
             dataSource: {
               url: "/api/dept",
               name: "部门",
-              response: { scopePath: "external.dept" },
+              responses: [{ scopePath: "external.dept" }],
             },
           },
         ],

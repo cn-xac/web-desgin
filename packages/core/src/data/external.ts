@@ -23,6 +23,7 @@ import type { Scope } from "../schema/expression";
 import type { NodeSchema, PageSchema } from "../schema/types";
 import type { BindingContext, DataBinding, DataShape } from "./types";
 import { getProvider } from "./registry";
+import { normalize } from "./normalize";
 
 /* ----------------------------- 配置契约 ----------------------------- */
 
@@ -41,17 +42,17 @@ export interface ExternalParamMap {
   label?: string;
 }
 
-/** 响应数据映射 */
+/** 响应数据映射（一条） */
 export interface ExternalResponseMap {
   /** 结果写入 scope 的路径。映射到某个元素时 = 该元素的绑定路径 */
   scopePath: string;
   /** 从响应里取出数组的字段名（如 data.list） */
   listField?: string;
-  /** 选项形态：label 取值字段 */
+  /** 选项形态：label 取值字段（缺省 label） */
   labelField?: string;
-  /** 选项形态：value 取值字段 */
+  /** 选项形态：value 取值字段（缺省 value；选项数据源缺省则回退到 label） */
   valueField?: string;
-  /** 归一化形态；缺省 form（原样返回） */
+  /** 归一化形态；缺省由目标元素类型推断（选项类 → select，否则 form） */
   shape?: DataShape;
 }
 
@@ -66,14 +67,41 @@ export interface ExternalDataSource {
   headers?: Record<string, string>;
   /** 请求参数映射：值来自页面上选中的元素 */
   params?: ExternalParamMap[];
-  /** 响应数据映射 */
+  /**
+   * 响应数据映射（可多条，#4）。
+   * 每条各自写不同的 scope 路径，形态 / label / value 独立，
+   * 例如一条写 `external.deptList`（选项），一条写 `external.summary`（整段对象）。
+   */
+  responses?: ExternalResponseMap[];
+  /**
+   * @deprecated 旧版单条响应映射，仅供读取早期 Schema 时兼容。
+   * 新写入一律走 `responses` 数组；`responsesOf()` 会自动把本条提升为数组。
+   */
   response?: ExternalResponseMap;
+  /**
+   * 标记本数据源是「选项数据源」（#5）：响应恒为选项形态，由下拉 / 单选等元素直接消费，
+   * 不再需要逐条选响应形态；仅配置 label / value 映射即可。
+   */
+  asOptions?: boolean;
   /** 只请求一次（当前页面仅请求一次）；缺省 true */
   once?: boolean;
   /** 触发长度：输入达到该长度才发请求；0 / 缺省 = 页面加载即取 */
   triggerLength?: number;
-  /** 触发时读取的输入路径；缺省用响应目标元素自身的绑定路径 */
+  /** 触发时读取的输入路径；缺省用数据源所在元素自身的绑定路径 */
   triggerPath?: string;
+}
+
+/**
+ * 兼容读取响应映射：新结构用 `responses` 数组；旧结构单条 `response` 自动提升为数组。
+ * 既支持本次重构后的多响应，也不至于让早期 Schema 直接失效。
+ */
+export function responsesOf(source: ExternalDataSource | undefined): ExternalResponseMap[] {
+  if (!source) return [];
+  if (Array.isArray(source.responses)) {
+    return source.responses.filter((item): item is ExternalResponseMap => Boolean(item?.scopePath));
+  }
+  if (source.response?.scopePath) return [source.response];
+  return [];
 }
 
 /* ----------------------------- 工具 ----------------------------- */
@@ -101,7 +129,14 @@ export function reachesTriggerLength(source: ExternalDataSource, value: unknown)
   return text.length >= threshold;
 }
 
-/** 把外部数据源翻译成 core 的 DataBinding（参数值统一走 {{}} 绑定） */
+/**
+ * 把外部数据源翻译成 core 的 DataBinding。
+ *
+ * 关键决策：binding 一律取「原始响应」（shape = 'form'），参数的 {{}} 绑定照常解析；
+ * 各响应映射的「选项 / 表单」形态、label / value / listField 归一化，
+ * 放到 loadExternalSource 里按每条响应分别做（见 normalizeResponse）。
+ * 这样多条响应（各自不同形态）可以共用同一次缓存请求，互不干扰。
+ */
 export function toDataBinding(source: ExternalDataSource): DataBinding {
   const params: Record<string, unknown> = {};
   for (const item of source.params ?? []) {
@@ -109,21 +144,41 @@ export function toDataBinding(source: ExternalDataSource): DataBinding {
     params[item.key] = item.path ? `{{${item.path}}}` : "";
   }
 
-  const response = source.response;
   return {
     type: "http",
     url: source.url,
     method: source.method ?? "GET",
     headers: source.headers,
     params,
-    shape: response?.shape ?? "form",
-    listField: response?.listField,
-    labelField: response?.labelField,
-    valueField: response?.valueField,
+    // 原始响应：各响应的形态在 loadExternalSource 内分别归一化
+    shape: "form",
     // 「只请求一次」= 不过期；否则 ttl 0 表示不入缓存，每次都真取
     cache: isOnceOnly(source) ? {} : { ttl: 0 },
     trigger: source.triggerLength ? "manual" : "load",
   };
+}
+
+/**
+ * 按单条响应配置把「原始响应」归一化为目标形态。
+ * - shape = 'form'：原样返回（已转换后的对象）；
+ * - 选项形态（select/radio/checkbox）：经 listField 取数组，再按 label/value 映射。
+ *
+ * valueField 缺省时的回退规则：
+ * - 选项数据源（asOptions，#5）：未配值字段 → 值默认等于名称（label）；
+ * - 其它外部数据源：沿用通用约定，值默认取对象的 value 字段。
+ */
+function normalizeResponse(raw: unknown, response: ExternalResponseMap, fallbackValueToLabel: boolean): unknown {
+  const labelField = response.labelField ?? "label";
+  const valueField = response.valueField || (fallbackValueToLabel ? labelField : "value");
+  const binding: DataBinding = {
+    type: "http",
+    url: "",
+    shape: response.shape ?? "form",
+    listField: response.listField,
+    labelField,
+    valueField,
+  };
+  return normalize(binding, raw, { scope: {} });
 }
 
 /* ----------------------------- 运行时 ----------------------------- */
@@ -136,8 +191,14 @@ export interface LoadExternalOptions {
 }
 
 /**
- * 加载单个外部数据源，结果写进 scope 的 response.scopePath。
+ * 加载单个外部数据源。
+ *
+ * 流程：先取一次原始响应（走参数 {{}} 绑定 + 页面级缓存），再按 `responses` 里每条响应
+ * 各自的 shape / labelField / valueField / listField 归一化，分别写进各自的 scopePath。
  * 取数失败不抛错：保留原值，只通过 onError 上报，页面不会白屏。
+ *
+ * 若未配置任何响应映射（#2：不需要绑定元素），仍会发起请求（例如仅用于「触发 / 写副作用」），
+ * 但不向 scope 写任何数据。
  */
 export async function loadExternalSource(
   source: ExternalDataSource,
@@ -151,12 +212,14 @@ export async function loadExternalSource(
 
   try {
     const provider = getProvider(options.provider ?? "default");
-    const result = await provider.load(binding, ctx);
+    const raw = await provider.load(binding, ctx);
 
-    const scopePath = source.response?.scopePath;
-    if (scopePath) setByPath(scope, scopePath, result);
+    for (const response of responsesOf(source)) {
+      const mapped = normalizeResponse(raw, response, Boolean(source.asOptions));
+      setByPath(scope, response.scopePath, mapped);
+    }
     options.onError?.("", source);
-    return result;
+    return raw;
   } catch (error) {
     if ((error as Error)?.name === "AbortError") return undefined;
     const message = `外部数据源${source.name ? `「${source.name}」` : ""}加载失败：${(error as Error).message}`;

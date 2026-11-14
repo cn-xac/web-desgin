@@ -8,6 +8,7 @@ import {
   loadExternalSources,
   reachesTriggerLength,
   resolveExternalParams,
+  responsesOf,
   setDefaultRequest,
   toDataBinding,
   type ExternalDataSource,
@@ -76,22 +77,25 @@ describe("toDataBinding：配置翻译", () => {
     expect(toDataBinding(source({ once: false })).cache).toEqual({ ttl: 0 });
   });
 
-  it("响应映射翻译成归一化形态", () => {
+  it("绑定取原始响应，形态映射下放到各响应（#4）", () => {
     const binding = toDataBinding(
       source({
-        response: {
-          scopePath: "external.dept",
-          shape: "select",
-          labelField: "name",
-          valueField: "id",
-          listField: "data.list",
-        },
+        responses: [
+          { scopePath: "external.dept", shape: "select", labelField: "name", valueField: "id", listField: "data.list" },
+        ],
       }),
     );
-    expect(binding.shape).toBe("select");
-    expect(binding.labelField).toBe("name");
-    expect(binding.valueField).toBe("id");
-    expect(binding.listField).toBe("data.list");
+    // toDataBinding 只负责原始响应 + 参数绑定；形态按响应分别归一化
+    expect(binding.shape).toBe("form");
+    expect(binding.params).toEqual({});
+  });
+
+  it("responsesOf 兼容旧的单条 response 写法", () => {
+    const legacy = source({ response: { scopePath: "external.dept", shape: "select" } });
+    expect(responsesOf(legacy)).toEqual([{ scopePath: "external.dept", shape: "select" }]);
+    expect(responsesOf(source({ responses: [{ scopePath: "external.x" }] }))).toEqual([
+      { scopePath: "external.x" },
+    ]);
   });
 });
 
@@ -106,11 +110,38 @@ describe("loadExternalSource：运行时取数", () => {
     );
     const scope: Record<string, unknown> = {};
     const result = await loadExternalSource(
-      source({ response: { scopePath: "external.dept" } }),
+      source({ responses: [{ scopePath: "external.dept" }] }),
       scope,
     );
     expect(result).toEqual({ id: 1, name: "技术中心" });
     expect((scope.external as Record<string, unknown>).dept).toEqual({ id: 1, name: "技术中心" });
+  });
+
+  it("多条响应各自写入不同 scope 路径（#4）", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() =>
+            mockResponse({ data: { list: [{ id: 1, name: "A" }] }, summary: "共 1 条" }),
+          ),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = {};
+    await loadExternalSource(
+      source({
+        responses: [
+          { scopePath: "external.options", shape: "select", listField: "data.list", labelField: "name", valueField: "id" },
+          { scopePath: "external.info", shape: "form" },
+        ],
+      }),
+      scope,
+    );
+    expect((scope.external as Record<string, unknown>).options).toEqual([{ label: "A", value: "1" }]);
+    expect((scope.external as Record<string, unknown>).info).toEqual({
+      data: { list: [{ id: 1, name: "A" }] },
+      summary: "共 1 条",
+    });
   });
 
   it("选项形态按 label/value 映射后写入", async () => {
@@ -126,19 +157,43 @@ describe("loadExternalSource：运行时取数", () => {
     const scope: Record<string, unknown> = {};
     await loadExternalSource(
       source({
-        response: {
-          scopePath: "external.dept",
-          shape: "select",
-          listField: "data.list",
-          labelField: "name",
-          valueField: "id",
-        },
+        responses: [
+          {
+            scopePath: "external.dept",
+            shape: "select",
+            listField: "data.list",
+            labelField: "name",
+            valueField: "id",
+          },
+        ],
       }),
       scope,
     );
     expect((scope.external as Record<string, unknown>).dept).toEqual([
       { label: "A", value: "1" },
       { label: "B", value: "2" },
+    ]);
+  });
+
+  it("选项数据源未配 value 映射时 value 默认等于 label（#5）", async () => {
+    setDefaultRequest(
+      createRequest({
+        defaults: {
+          fetchImpl: fakeFetch(() => mockResponse([{ name: "技术中心" }, { name: "产品中心" }])),
+        },
+      }),
+    );
+    const scope: Record<string, unknown> = {};
+    await loadExternalSource(
+      source({
+        asOptions: true,
+        responses: [{ scopePath: "external.dept", shape: "select", labelField: "name" }],
+      }),
+      scope,
+    );
+    expect((scope.external as Record<string, unknown>).dept).toEqual([
+      { label: "技术中心", value: "技术中心" },
+      { label: "产品中心", value: "产品中心" },
     ]);
   });
 
@@ -176,7 +231,7 @@ describe("loadExternalSource：运行时取数", () => {
     const scope: Record<string, unknown> = { external: { dept: "旧值" } };
     const errors: string[] = [];
     const result = await loadExternalSource(
-      source({ response: { scopePath: "external.dept" } }),
+      source({ responses: [{ scopePath: "external.dept" }] }),
       scope,
       { onError: (message) => errors.push(message) },
     );
