@@ -62,6 +62,13 @@ describe("受限表达式求值", () => {
     expect(resolveValue("前缀{{notExist}}", scope)).toBe("前缀");
   });
 
+  it("首尾都是插值的混排也能逐段替换（自由拼接）", () => {
+    // "{{a}}/{{b}}" 会被整串插值正则误当成单个表达式，这里守住逐段替换的行为
+    expect(resolveValue("{{form.name}}/{{form.age}}", scope)).toBe("张三/28");
+    expect(resolveValue("{{a}}-{{b}}-{{c}}", { a: 1, b: 2, c: 3 })).toBe("1-2-3");
+    expect(resolveValue("{{form.name}}/{{notExist}}", scope)).toBe("张三/");
+  });
+
   it("非字符串原样返回", () => {
     const arr = [{ label: "姓名", prop: "name" }];
     expect(resolveValue(arr, scope)).toBe(arr);

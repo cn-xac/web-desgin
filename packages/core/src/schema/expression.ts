@@ -428,7 +428,11 @@ export function evaluate(expression: string, scope: Scope = {}): unknown {
   }
 }
 
-const FULL_INTERPOLATION = /^\s*\{\{([\s\S]+?)\}\}\s*$/;
+/**
+ * 整串插值：内容里不能再出现 {{ 或 }}。
+ * 否则 "{{a}}/{{b}}" 会被这条正则捕获成 "a}}/{{b" 而当成单个表达式，求值必然失败。
+ */
+const FULL_INTERPOLATION = /^\s*\{\{((?:(?!\{\{|\}\})[\s\S])+)\}\}\s*$/;
 const INLINE_INTERPOLATION = /\{\{([\s\S]+?)\}\}/g;
 
 /**
