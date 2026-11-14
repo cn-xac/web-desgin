@@ -16,6 +16,9 @@ export * from "./schema/migrate";
 export * from "./schema/datasource";
 export * from "./schema/array";
 
+/** 元素显示 / 隐藏控制 + 通用多条件求值（r5u4Ul / rfD7Jv） */
+export * from "./visibility";
+
 /** 统一请求层：拦截器 + 上传，供所有 URL 请求收口 */
 export * from "./request";
 

@@ -6,6 +6,12 @@
 import type { NodeSchema, PageSchema } from "./types";
 import { compilePattern, getRuleDefinition, RULE_TYPES } from "../validation/rules";
 import { materialKey } from "../materials/keys";
+import {
+  CONDITION_AGGREGATES,
+  CONDITION_MODE_OPTIONS,
+  CONDITION_OPERATOR_OPTIONS,
+} from "../visibility/types";
+import { validateAdvancedExpression } from "../visibility/evaluate";
 
 export type IssueLevel = "error" | "warning";
 
@@ -24,6 +30,9 @@ export interface ValidationResult {
 
 const SEMVER = /^\d+\.\d+\.\d+$/;
 const DIRECTIVE_NAMES = new Set(["show", "if", "for"]);
+const CONDITION_MODES = new Set<string>(CONDITION_MODE_OPTIONS.map((option) => option.value));
+const CONDITION_OPS = new Set<string>(CONDITION_OPERATOR_OPTIONS.map((option) => option.value));
+const CONDITION_AGGS = new Set<string>(CONDITION_AGGREGATES.map((option) => option.value));
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -119,6 +128,49 @@ export function validatePage(input: unknown, knownComponents?: Set<string>): Val
             }
             if (directive.name === "for" && typeof directive.value !== "string") {
               error(`${at}.directives[${di}].value`, "for 指令必须给出遍历表达式");
+            }
+          });
+        }
+      }
+
+      if (node.visibility !== undefined) {
+        if (!isRecord(node.visibility)) {
+          error(`${at}.visibility`, "visibility 必须是对象");
+        } else {
+          (["show", "hide"] as const).forEach((kind) => {
+            const group = node.visibility?.[kind];
+            if (group === undefined) return;
+            const groupPath = `${at}.visibility.${kind}`;
+            if (!isRecord(group) || !Array.isArray(group.rows) || !CONDITION_MODES.has(String(group.mode))) {
+              error(groupPath, "条件组必须包含合法 mode 与 rows 数组");
+              return;
+            }
+            const rows = group.rows as unknown[];
+            rows.forEach((rawRow, ri) => {
+              const rowPath = `${groupPath}.rows[${ri}]`;
+              if (!isRecord(rawRow)) {
+                error(rowPath, "条件必须是对象");
+                return;
+              }
+              const hasLeft = typeof rawRow.left === "string" && rawRow.left.trim() !== "";
+              const hasOperator = typeof rawRow.operator === "string" && CONDITION_OPS.has(rawRow.operator);
+              if (rawRow.left !== undefined && typeof rawRow.left !== "string") {
+                error(`${rowPath}.left`, "left 必须是绑定路径字符串");
+              }
+              if (rawRow.operator !== undefined && !CONDITION_OPS.has(String(rawRow.operator))) {
+                error(`${rowPath}.operator`, `不支持的条件关系 ${String(rawRow.operator)}`);
+              }
+              if (rawRow.aggregate !== undefined && !CONDITION_AGGS.has(String(rawRow.aggregate))) {
+                error(`${rowPath}.aggregate`, "不支持的聚合口径，仅支持 sum / avg / min / max");
+              }
+              // 要么「左元素 + 关系 + 右值」，要么「仅值」，不允许半成品
+              if (hasLeft !== hasOperator) {
+                error(rowPath, "left 与 operator 必须同时存在，或同时省略（仅值形态）");
+              }
+            });
+            if (group.mode === "advanced" && typeof group.expression === "string") {
+              const message = validateAdvancedExpression(group.expression, rows.length);
+              if (message) error(`${groupPath}.expression`, message);
             }
           });
         }

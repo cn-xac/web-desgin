@@ -6,7 +6,8 @@
  */
 
 import type { NodeSchema, PageSchema } from "../schema/types";
-import { resolveBoolean, resolveValue } from "../schema/expression";
+import { resolveValue } from "../schema/expression";
+import { resolveLoopInstances, resolveVisibility } from "../visibility/evaluate";
 import { registry as globalRegistry } from "../materials/catalog";
 import type { MaterialRegistry } from "../materials/registry";
 import type { Material } from "../materials/types";
@@ -115,20 +116,17 @@ function renderTable(props: Record<string, unknown>, scope: Scope, style: string
 }
 
 function renderNode(node: NodeSchema, scope: Scope, materials: MaterialRegistry): string {
-  const directives = node.directives ?? [];
-  if (directives.some((d) => d.name === "if" && !resolveBoolean(d.value, scope))) return "";
+  // 显隐判定与运行时共用 core 契约（含新 visibility 配置与旧 directives 回落）
+  const decision = resolveVisibility(node, scope);
+  if (!decision.visible && decision.mode === "if") return "";
 
-  const forDirective = directives.find((d) => d.name === "for");
-  if (forDirective) {
-    const list = resolveValue(forDirective.value ?? "", scope);
-    const items = Array.isArray(list) ? list : [];
-    const itemKey = forDirective.itemKey ?? "item";
-    const indexKey = forDirective.indexKey ?? "index";
-    return items
-      .map((item, index) =>
+  const instances = resolveLoopInstances(node, scope);
+  if (instances) {
+    return instances
+      .map((instance) =>
         renderNode(
-          { ...node, directives: directives.filter((d) => d.name !== "for") },
-          { ...scope, [itemKey]: item, [indexKey]: index },
+          { ...node, directives: (node.directives ?? []).filter((d) => d.name !== "for") },
+          instance.scope,
           materials,
         ),
       )
@@ -137,7 +135,7 @@ function renderNode(node: NodeSchema, scope: Scope, materials: MaterialRegistry)
 
   const material = materials.get(node.component);
   const props = materials.defaults(node.component, node.props);
-  const hidden = directives.some((d) => d.name === "show" && !resolveBoolean(d.value, scope));
+  const hidden = !decision.visible && decision.mode !== "if";
   const style = styleAttr(node.component, props, node.style, scope, material) || (hidden ? ' style="display:none"' : "");
   const styleWithHidden = hidden && !style.includes("display:none") ? `${style.replace(/"$/, "")}${style ? ";" : ' style="'}display:none"` : style;
   const children = (node.children ?? []).map((child) => renderNode(child, scope, materials)).join("");

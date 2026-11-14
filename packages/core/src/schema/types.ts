@@ -5,6 +5,7 @@
 
 import type { ValidationRule } from "../validation/rules";
 import type { ExternalDataSource } from "../data/external";
+import type { VisibilityConfig } from "../visibility/types";
 
 export type DeviceType = "pc" | "pad" | "h5";
 
@@ -43,6 +44,11 @@ export interface NodeSchema {
    * 挂在节点上：谁用它，决定了参数映射选哪些元素、响应映射写到哪里。
    */
   dataSource?: ExternalDataSource;
+  /**
+   * 显示 / 隐藏控制（r5u4Ul）。配置在目标节点自身，只控制该节点。
+   * 与 directives 并存：未配置时回落到旧指令，旧 Schema 行为不变。
+   */
+  visibility?: VisibilityConfig;
   children?: NodeSchema[];
 }
 
@@ -74,7 +80,8 @@ export interface PageSchema {
   children: NodeSchema[];
 }
 
-export const SCHEMA_VERSION = "1.0.0";
+/** 1.1.0：新增节点级 visibility 配置（r5u4Ul / rfD7Jv），旧字段语义未变 */
+export const SCHEMA_VERSION = "1.1.0";
 
 export function createEmptyPage(title = "未命名页面"): PageSchema {
   return {

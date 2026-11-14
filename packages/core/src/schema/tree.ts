@@ -186,6 +186,7 @@ export function cloneWithNewIds(node: NodeSchema): NodeSchema {
     props: node.props ? JSON.parse(JSON.stringify(node.props)) : undefined,
     style: node.style ? { ...node.style } : undefined,
     directives: node.directives ? JSON.parse(JSON.stringify(node.directives)) : undefined,
+    visibility: node.visibility ? JSON.parse(JSON.stringify(node.visibility)) : undefined,
     events: node.events ? JSON.parse(JSON.stringify(node.events)) : undefined,
     rules: node.rules ? JSON.parse(JSON.stringify(node.rules)) : undefined,
     children: node.children?.map(cloneWithNewIds),

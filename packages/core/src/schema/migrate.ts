@@ -16,12 +16,13 @@ interface MigrationEntry {
 
 /** 版本升级链。新增版本时在这里 push 一条，并把 to 改成新版本号 */
 const MIGRATIONS: MigrationEntry[] = [
-  // 示例：0.9.0 -> 1.0.0 时把 `props.data` 统一挪到 `props.modelValue`
-  // {
-  //   from: "0.9.0",
-  //   to: "1.0.0",
-  //   run: (schema) => schema,
-  // },
+  {
+    // 1.1.0 只新增可选字段 node.visibility，旧 Schema 无需结构变换。
+    // 保留迁移入口是为了满足「语义变更必须升版本并留迁移函数」的契约。
+    from: "1.0.0",
+    to: "1.1.0",
+    run: (schema) => schema,
+  },
 ];
 
 function compare(a: string, b: string): number {

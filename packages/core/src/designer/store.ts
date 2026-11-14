@@ -12,6 +12,7 @@
 import type { ActionSchema, DeviceType, NodeSchema, PageSchema } from "../schema/types";
 import { createEmptyPage } from "../schema/types";
 import type { ExternalDataSource } from "../data/external";
+import type { VisibilityConfig } from "../visibility/types";
 import { normalizeRules, type ValidationRule } from "../validation/rules";
 import {
   cloneWithNewIds,
@@ -481,7 +482,8 @@ export class DesignerStore {
     this.emit();
   }
 
-  setDirective(name: "show" | "if" | "for", value: string): void {    if (!this.selectedId) return;
+  setDirective(name: "show" | "if" | "for", value: string): void {
+    if (!this.selectedId) return;
     const id = this.selectedId;
     this.mutatePage((page) => {
       const node = findLocation(page.children, id)?.node;
@@ -490,6 +492,22 @@ export class DesignerStore {
       if (value.trim()) directives.push({ name, value: value.trim() });
       node.directives = directives.length ? directives : undefined;
     }, `directive:${id}:${name}`);
+    this.emit();
+  }
+
+  /**
+   * 写入节点的显示 / 隐藏条件（r5u4Ul）。
+   * 传 undefined 表示移除该节点的全部条件配置。
+   */
+  setVisibility(config: VisibilityConfig | undefined): void {
+    if (!this.selectedId) return;
+    const id = this.selectedId;
+    this.mutatePage((page) => {
+      const node = findLocation(page.children, id)?.node;
+      if (!node) return false;
+      if (!config) delete node.visibility;
+      else node.visibility = clone(config);
+    }, `visibility:${id}`);
     this.emit();
   }
 
