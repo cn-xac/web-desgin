@@ -3,7 +3,7 @@
  * 设计器三个新入口的端到端验证（真实点击，不 mock 组件）：
  * - 绑定选择器（ruUqAF）：列出可绑定数据 → 点一条即完成绑定；
  * - 选项录入弹窗（rSulo9）：一行一选项，名称在前值在后；
- * - 外部数据源弹窗（rg4KCt）：配置后写进 node.dataSource。
+ * - 外部数据源弹窗（rg4KCt）：配置后写进页面级 externalSources，节点用 externalRef 引用。
  *
  * 用例不依赖适配包：直接往 store 里放 Schema 再选中节点，
  * 这样 CI（stub 适配器）与本地（真实 EP 适配包）跑的是同一套断言。
@@ -201,5 +201,43 @@ describe("设计器：外部数据源弹窗", () => {
     await tick();
     expect(store.page.children[0].externalRef).toBeUndefined();
     expect(Object.keys(store.page.externalSources ?? {}).length).toBe(0);
+  });
+});
+
+describe("设计器：不可变元素禁用外部数据源", () => {
+  it("内容不可被用户改变的元素不能添加外部数据源", async () => {
+    const { wrapper, store } = await mountWithNode({
+      id: "t1",
+      component: "text",
+      props: { text: "说明文字" },
+    });
+
+    const btn = wrapper.find(".props__ext");
+    expect(btn.exists()).toBe(true);
+    // 弱禁用：按钮仍可见，但标成不可用
+    expect(btn.classes()).toContain("is-disabled");
+
+    await btn.trigger("click");
+    await tick();
+
+    // 弹窗不打开，也没有写入任何配置
+    expect(wrapper.find(".wbd-modal__title").exists()).toBe(false);
+    expect(store.page.children[0].externalRef).toBeUndefined();
+    expect(Object.keys(store.page.externalSources ?? {}).length).toBe(0);
+  });
+
+  it("内容可被用户改变的元素仍可添加外部数据源", async () => {
+    const { wrapper } = await mountWithNode({
+      id: "i1",
+      component: "input",
+      props: { label: "姓名" },
+    });
+
+    const btn = wrapper.find(".props__ext");
+    expect(btn.classes()).not.toContain("is-disabled");
+
+    await btn.trigger("click");
+    await tick();
+    expect(wrapper.find(".wbd-modal__title").text()).toContain("外部数据源");
   });
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, type Component } from "vue";
 import type { PropField, PropFieldGroup } from "@x-ac/web-design-core";
-import { FIELD_GROUP_LABELS, fieldOptions, groupFields, parseOptions } from "@x-ac/web-design-core";
+import { FIELD_GROUP_LABELS, canOwnExternalSource, fieldOptions, groupFields, parseOptions } from "@x-ac/web-design-core";
 import UiControl from "../ui/UiControl.vue";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useDesignerStore } from "../store";
@@ -133,6 +133,10 @@ function openOptions(key: string, label: string): void {
 /** 打开外部数据源配置弹窗（rg4KCt） */
 function openExternal(): void {
   if (!node.value) return;
+  if (!canAttachExternal.value) {
+    notify("该元素的内容不可被用户改变，不能添加外部数据源", "error");
+    return;
+  }
   externalDialog.open({ nodeId: node.value.id, label: material.value?.title ?? node.value.component });
 }
 
@@ -147,6 +151,21 @@ function optionsSummary(key: string): { count: number; text: string } {
 
 /** 节点是否已配外部数据源（通过 externalRef 引用页面级源） */
 const hasExternal = computed(() => Boolean(node.value?.externalRef));
+
+/**
+ * 该元素是否允许拥有外部数据源。
+ * 不可被用户改变的元素（文本、图片、分割线、容器、表格…）不能拥有数据源：
+ * 取数参数与触发时机都依赖元素自身的可变值。
+ */
+const canAttachExternal = computed(() =>
+  node.value ? canOwnExternalSource(node.value.component, catalog) : false,
+);
+
+/** 外部数据源按钮的悬浮说明 */
+const externalTitle = computed(() => {
+  if (!canAttachExternal.value) return "该元素的内容不可被用户改变，不能添加外部数据源";
+  return hasExternal.value ? "已配置外部数据源，点击修改" : "配置外部数据源（接口取数）";
+});
 
 function copyId(): void {
   if (!node.value) return;
@@ -163,8 +182,9 @@ function copyId(): void {
       <button
         type="button"
         class="props__ext"
-        :class="{ 'is-on': hasExternal }"
-        :title="hasExternal ? '已配置外部数据源，点击修改' : '配置外部数据源（接口取数）'"
+        :class="{ 'is-on': hasExternal, 'is-disabled': !canAttachExternal }"
+        :aria-disabled="!canAttachExternal"
+        :title="externalTitle"
         @click="openExternal"
       >
         外部数据源{{ hasExternal ? " ●" : "" }}
@@ -471,6 +491,13 @@ function copyId(): void {
   border-color: var(--wb-primary);
   background: var(--wb-primary-soft);
   color: var(--wb-primary);
+}
+
+/* 不可拥有外部数据源：弱禁用（仍可点击，点击后给出原因） */
+.props__ext.is-disabled {
+  color: var(--wb-ink4, #a8b0be);
+  border-style: dashed;
+  background: #fbfcfe;
 }
 /* 选项录入入口：摘要 + 编辑按钮，点开是独立弹窗 */
 .props__options {

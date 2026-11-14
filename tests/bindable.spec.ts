@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  canOwnExternalSource,
   collectBindableData,
   collectBindableElements,
   filterBindableData,
@@ -176,5 +177,32 @@ describe("collectBindableElements：可选元素清单", () => {
     expect(group?.isGroup).toBe(true);
     expect(group?.path).toBe("form.items");
     expect(elements.find((e) => e.nodeId === "c1")?.path).toBe("form.items[0].c1");
+  });
+});
+
+describe("canOwnExternalSource：哪些元素可以拥有外部数据源", () => {
+  it("内容可被用户改变的元素（表单控件 / 选项类）可以拥有", () => {
+    expect(canOwnExternalSource("ec-input")).toBe(true);
+    expect(canOwnExternalSource("ec-textarea")).toBe(true);
+    expect(canOwnExternalSource("ec-select")).toBe(true);
+    expect(canOwnExternalSource("ec-radio")).toBe(true);
+    expect(canOwnExternalSource("ec-checkbox")).toBe(true);
+    expect(canOwnExternalSource("ec-dict-select")).toBe(true);
+  });
+
+  it("内容不可被用户改变的纯展示元素不能拥有", () => {
+    expect(canOwnExternalSource("ec-text")).toBe(false);
+    expect(canOwnExternalSource("ec-title")).toBe(false);
+    expect(canOwnExternalSource("ec-image")).toBe(false);
+    expect(canOwnExternalSource("ec-divider")).toBe(false);
+    expect(canOwnExternalSource("ec-container")).toBe(false);
+    expect(canOwnExternalSource("ec-table")).toBe(false);
+    expect(canOwnExternalSource("ec-button")).toBe(false);
+    expect(canOwnExternalSource("ec-subform")).toBe(false);
+  });
+
+  it("带不带 ec- 前缀结果一致", () => {
+    expect(canOwnExternalSource("input")).toBe(canOwnExternalSource("ec-input"));
+    expect(canOwnExternalSource("text")).toBe(canOwnExternalSource("ec-text"));
   });
 });

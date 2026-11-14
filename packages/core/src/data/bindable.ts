@@ -202,6 +202,25 @@ export const OPTION_COMPONENTS = new Set([
   "dict-select",
 ]);
 
+/**
+ * 元素是否允许「拥有」外部数据源（作为触发 / 拥有者）。
+ *
+ * 判据是「内容可被用户改变」：表单控件与选项类元素。
+ * 纯展示元素（文本、图片、分割线、容器、表格、按钮等）自身不产生用户输入，
+ * 让它们拥有外部数据源没有意义 —— 取数参数与触发时机都无处可依。
+ *
+ * 注意区分两个角色：
+ * - 拥有者：必须是可被用户改变的元素（本函数判定的范围）；
+ * - 响应目标：可以是任意元素（响应数据写进去即可，见 collectBindableElements 的 includeAll）。
+ */
+export function canOwnExternalSource(component: string, registry?: MaterialRegistry): boolean {
+  if (!component) return false;
+  const reg = registry ?? createRegistry(MATERIALS);
+  const material = reg.get(component);
+  if (material?.isFormControl) return true;
+  return OPTION_COMPONENTS.has(bareKey(component));
+}
+
 /** 可选元素（节点 + 它的绑定路径） */
 export interface BindableElement {
   nodeId: string;

@@ -14,6 +14,7 @@
 import { computed, reactive, ref, watch } from "vue";
 import type { DataShape, ExternalDataSource, ExternalResponseMap } from "@x-ac/web-design-core";
 import {
+  canOwnExternalSource,
   collectBindableElements,
   findLocation,
   responsesOf,
@@ -158,7 +159,15 @@ function reset(): void {
 watch(
   () => [dialog.visible.value, dialog.target.value?.nodeId] as const,
   ([visible]) => {
-    if (visible) reset();
+    if (!visible) return;
+    const target = node.value;
+    // 兜底：内容不可被用户改变的元素不允许拥有外部数据源
+    if (target && !canOwnExternalSource(target.component, catalog)) {
+      notify("该元素的内容不可被用户改变，不能添加外部数据源", "error");
+      dialog.close();
+      return;
+    }
+    reset();
   },
   { immediate: true },
 );
