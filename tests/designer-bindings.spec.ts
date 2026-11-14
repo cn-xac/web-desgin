@@ -508,3 +508,63 @@ describe("设计器：外部数据源弹窗交互修正", () => {
     expect(wrapper.element.contains(pop)).toBe(false);
   });
 });
+
+describe("设计器：选项类元素复用同一个选项弹窗", () => {
+  /** 打开某个元素属性面板里的选项弹窗（optionPair 类型才有这个入口） */
+  async function openOptionsDialog(component: string, id: string) {
+    const mounted = await mountWithNode({ id, component, props: {} });
+    const editBtn = mounted.wrapper
+      .findAll(".props__options-btn")
+      .find((btn) => btn.text().includes("编辑"));
+    expect(editBtn).toBeTruthy();
+    await editBtn!.trigger("click");
+    await tick();
+    return mounted;
+  }
+
+  it("树选择的选项走同一个弹窗，能写入层级路径", async () => {
+    const { wrapper, store } = await openOptionsDialog("ec-tree-select", "ts1");
+
+    // 弹窗里是「一行一选项」的统一录入形态
+    expect(wrapper.find(".opts__text").exists()).toBe(true);
+    await wrapper.find(".opts__text").setValue("集团总部/技术中心\n集团总部/产品中心");
+    await wrapper.find(".opts__ok").trigger("click");
+    await tick();
+
+    const node = store.page.children[0];
+    expect(String(node.props?.options)).toContain("集团总部/技术中心");
+  });
+
+  it("穿梭框的选项走同一个弹窗", async () => {
+    const { wrapper, store } = await openOptionsDialog("ec-transfer", "tr1");
+
+    expect(wrapper.find(".opts__text").exists()).toBe(true);
+    await wrapper.find(".opts__text").setValue("华东 华\n华南 南");
+    await wrapper.find(".opts__ok").trigger("click");
+    await tick();
+
+    const node = store.page.children[0];
+    expect(String(node.props?.options)).toContain("华东 华");
+  });
+
+  it("树选择也能使用选项数据源", async () => {
+    const { wrapper, store } = await openOptionsDialog("ec-tree-select", "ts1");
+
+    // 打开「使用选项数据源」并配置
+    await wrapper.find(".opts__source-switch input").setValue(true);
+    await tick();
+    await wrapper.find('input[placeholder="/api/dict/list"]').setValue("/api/org/list");
+    await wrapper.find(".opts__ok").trigger("click");
+    await tick();
+
+    const node = store.page.children[0];
+    // 选项被绑定到结果路径
+    expect(String(node.props?.options)).toBe("{{options.ts1}}");
+    // 数据源写在页面级，节点只引用
+    const ref = node.externalRef;
+    expect(ref).toBeTruthy();
+    const source = store.page.externalSources?.[ref ?? ""];
+    expect(source?.url).toBe("/api/org/list");
+    expect(source?.asOptions).toBe(true);
+  });
+});

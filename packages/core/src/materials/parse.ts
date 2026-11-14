@@ -9,6 +9,8 @@
  * 「有多少项、每项写什么」。字符串在 Schema 里可读、可 diff、可手写。
  */
 
+import { parseOptionLines, type OptionItem } from "./utils";
+
 export interface PairItem {
   label: string;
   value: string;
@@ -46,7 +48,18 @@ export function parsePairs(raw: unknown): PairItem[] {
 
 /** 只要标签（面包屑、分段控制器这类只需要一项文字） */
 export function parseLabels(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.map((item) => String(item));
+  if (Array.isArray(raw)) {
+    // 数组可能是选项数据源绑定后的 [{label,value}]：取名称，不要 String(对象)
+    return raw
+      .map((item) => {
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          return String(obj.label ?? obj.value ?? "");
+        }
+        return String(item ?? "");
+      })
+      .filter(Boolean);
+  }
   if (typeof raw !== "string") return [];
   return raw
     .split(ENTRY_SPLIT)
@@ -63,26 +76,30 @@ export interface TreeNode {
 /**
  * 解析层级路径成树，给级联选择 / 树选择用。
  *
- * 写法：每行一条路径，`/` 或 `>` 分层。重复的中间节点自动合并。
+ * 写法与其它选项类组件统一：**每个选项的名称即路径**（`/` 或 `>` 分层），
+ * 叶子节点的值取选项自己的值（没给值就用路径本身）：
+ * - 字符串：一行一条「名称 值」，与选项弹窗录入的格式一致；
+ * - 数组：选项数据源绑定后就是这个形态（取每项名称作路径、值作叶子值）。
+ *
+ * 重复的中间节点自动合并。
  */
 export function parsePaths(raw: unknown): TreeNode[] {
-  const lines =
-    typeof raw === "string"
-      ? raw.split(/\n/).map((line) => line.trim()).filter(Boolean)
-      : [];
-
+  const items = toPathItems(raw);
   const roots: TreeNode[] = [];
   const index = new Map<string, TreeNode>();
 
-  for (const line of lines) {
-    const parts = line.split(/[/>]/).map((part) => part.trim()).filter(Boolean);
+  for (const item of items) {
+    const parts = item.label.split(/[/>]/).map((part) => part.trim()).filter(Boolean);
+    if (!parts.length) continue;
     let parentChildren = roots;
     let path = "";
-    for (const part of parts) {
+    for (let i = 0; i < parts.length; i += 1) {
+      const part = parts[i];
       path = path ? `${path}/${part}` : part;
       let node = index.get(path);
       if (!node) {
-        node = { value: path, label: part };
+        const isLeaf = i === parts.length - 1;
+        node = { value: isLeaf && item.value ? item.value : path, label: part };
         index.set(path, node);
         parentChildren.push(node);
       }
@@ -99,6 +116,23 @@ export function parsePaths(raw: unknown): TreeNode[] {
     });
 
   return prune(roots);
+}
+
+/** 层级选项统一成「名称 / 值」：字符串按选项行解析，数组直接取 label / value */
+function toPathItems(raw: unknown): OptionItem[] {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (item && typeof item === "object") {
+          const obj = item as Record<string, unknown>;
+          return { label: String(obj.label ?? obj.value ?? ""), value: String(obj.value ?? "") };
+        }
+        return { label: String(item ?? ""), value: "" };
+      })
+      .filter((item) => item.label !== "");
+  }
+  if (typeof raw !== "string") return [];
+  return parseOptionLines(raw);
 }
 
 /** `a,b,c` → ["a","b","c"]，给多选类选项用；与 parseLabels 同义，保留语义化别名 */

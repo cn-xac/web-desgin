@@ -39,12 +39,37 @@ describe("core：上移的通用解析工具", () => {
     expect(parseLabels(null)).toEqual([]);
   });
 
+  it("parseLabels 遇到选项数组取名称，不把对象转成 [object Object]", () => {
+    expect(parseLabels([{ label: "甲", value: "a" }, { label: "乙", value: "b" }])).toEqual(["甲", "乙"]);
+  });
+
   it("parsePaths 合并重复的中间节点并裁掉空 children", () => {
     const tree = parsePaths("华东/上海/浦东\n华东/上海/徐汇\n华南/广州");
     expect(tree).toHaveLength(2);
     expect(tree[0].children).toHaveLength(1);
     expect(tree[0].children?.[0].children).toHaveLength(2);
     expect(tree[1].children?.[0].children).toBeUndefined();
+  });
+
+  it("parsePaths 接受选项数组：名称作路径、值作叶子值", () => {
+    const tree = parsePaths([
+      { label: "华东/上海", value: "sh" },
+      { label: "华东/北京", value: "bj" },
+    ]);
+    expect(tree).toHaveLength(1);
+    expect(tree[0].label).toBe("华东");
+    expect(tree[0].children?.map((node) => node.value)).toEqual(["sh", "bj"]);
+  });
+
+  it("parsePaths 接受「名称 值」写法：名称是路径、值是叶子值", () => {
+    const tree = parsePaths("华东/上海 sh\n华东/北京 bj");
+    expect(tree[0].children?.map((node) => node.value)).toEqual(["sh", "bj"]);
+    expect(tree[0].children?.[0].label).toBe("上海");
+  });
+
+  it("parsePaths 没给值时叶子值回退为路径本身", () => {
+    const tree = parsePaths([{ label: "华东/上海" }]);
+    expect(tree[0].children?.[0].value).toBe("华东/上海");
   });
 });
 
