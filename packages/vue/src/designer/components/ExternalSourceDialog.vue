@@ -29,6 +29,7 @@ import { useMaterialCatalog } from "../../materials/catalog";
 import { useExternalSourceDialog, useHeadersDialog, useSubMapDialog } from "../dialogs";
 import { useNotify } from "../ui/kit";
 import ModalShell from "../ui/ModalShell.vue";
+import HelpTip from "../ui/HelpTip.vue";
 import UiControl from "../ui/UiControl.vue";
 
 const store = useDesignerStore();
@@ -161,7 +162,8 @@ function defaultParentField(el: BindableElement): string {
 
 /**
  * 响应映射的说明文案。
- * 收进标题栏的问号图标、鼠标指向时展示：说明正文铺在卡片里会把卡片撑得很高。
+ * 收进标题栏的问号图标（HelpTip 组件）、鼠标指向时展示：
+ * 说明正文铺在卡片里会把卡片撑得很高。
  */
 function tipOf(resp: DraftResponse): string {
   const parts: string[] = [];
@@ -533,7 +535,7 @@ function remove(): void {
         <div v-for="(resp, index) in draft.responses" :key="index" class="ext__resp">
           <div class="ext__resp-head">
             <span class="ext__resp-no">映射 {{ index + 1 }}</span>
-            <span class="ext__help" :data-tip="tipOf(resp)">?</span>
+            <HelpTip :text="tipOf(resp)" />
             <button type="button" class="ext__del" title="删除映射" @click="removeResponse(index)">×</button>
           </div>
           <!-- 目标元素 + 列表字段：两项各占一半宽度 -->
@@ -739,39 +741,6 @@ function remove(): void {
 }
 .ext__resp-head .ext__del {
   margin-left: auto;
-}
-/* 标题栏问号图标：说明内容悬浮展示，避免说明正文把卡片撑高 */
-.ext__help {
-  position: relative;
-  flex: none;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: var(--wb-line);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 15px;
-  text-align: center;
-  cursor: help;
-}
-.ext__help:hover::after {
-  content: attr(data-tip);
-  position: absolute;
-  top: 20px;
-  right: 0;
-  z-index: 30;
-  width: 250px;
-  padding: 7px 9px;
-  border-radius: 6px;
-  background: #2b3242;
-  color: #fff;
-  font-size: 11.5px;
-  font-weight: 400;
-  line-height: 1.7;
-  text-align: left;
-  white-space: pre-line;
-  box-shadow: 0 6px 18px rgba(20, 26, 40, 0.2);
 }
 /* 目标元素 + 列表字段：两项各占一半宽度 */
 .ext__resp-target {

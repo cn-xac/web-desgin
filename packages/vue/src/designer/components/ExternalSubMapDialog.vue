@@ -16,10 +16,18 @@ import { useDesignerStore } from "../store";
 import { useMaterialCatalog } from "../../materials/catalog";
 import { useSubMapDialog } from "../dialogs";
 import ModalShell from "../ui/ModalShell.vue";
+import HelpTip from "../ui/HelpTip.vue";
 
 const store = useDesignerStore();
 const catalog = useMaterialCatalog();
 const dialog = useSubMapDialog();
+
+/** 问号图标上的悬浮说明 */
+const SUB_MAP_TIP = [
+  "子映射：响应数组的每一行会填成子表单的一条明细。",
+  "左侧是子表单里已有的字段（只读），右侧填这一项在响应数据里对应的字段名，留空表示不映射。",
+  "父字段名已在主映射里设置，这里只填它的子字段。",
+].join("\n");
 
 /** 子表单里的字段（左侧只读列） */
 const fields = computed(() => {
@@ -69,7 +77,7 @@ function save(): void {
     <div class="sub">
       <!-- 说明项：让人一眼看懂怎么填 -->
       <div class="sub__tip">
-        <span class="sub__tip-icon" title="子映射怎么用">?</span>
+        <HelpTip :text="SUB_MAP_TIP" />
         <div class="sub__tip-body">
           <b>子映射</b>：响应数组的<b>每一行</b>会填成子表单的一条明细。<br />
           左侧是子表单里已有的字段，右侧填这一项在响应数据里对应的<b>字段名</b>（留空 = 不映射）。<br />
@@ -122,19 +130,6 @@ function save(): void {
   border: 1px solid #dbe4ff;
   border-radius: 7px;
   background: #f5f8ff;
-}
-.sub__tip-icon {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--wb-primary);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
-  cursor: help;
 }
 .sub__tip-body {
   font-size: 11.5px;
